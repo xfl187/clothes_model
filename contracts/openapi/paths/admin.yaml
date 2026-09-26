@@ -1,0 +1,135 @@
+DefaultProvider:
+  get:
+    tags: [Admin Configuration]
+    operationId: getDefaultProviderConfiguration
+    summary: Read the Provider selection applied to new jobs
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: Current default Provider configuration.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/DefaultProviderConfiguration
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+  put:
+    tags: [Admin Configuration]
+    operationId: updateDefaultProviderConfiguration
+    summary: Change the default for new jobs without modifying existing locked jobs
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/admin/schemas.yaml#/DefaultProviderUpdateRequest
+    responses:
+      '200':
+        description: Default Provider updated for new jobs only.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/DefaultProviderConfiguration
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+ComfyNode:
+  get:
+    tags: [Admin Configuration]
+    operationId: getComfyNodeConfiguration
+    summary: Read the single redacted ComfyUI node configuration
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: Redacted node configuration.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/ComfyNodeConfiguration
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+  put:
+    tags: [Admin Configuration]
+    operationId: updateComfyNodeConfiguration
+    summary: Replace the single ComfyUI physical-node configuration
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/admin/schemas.yaml#/ComfyNodeConfigurationRequest
+    responses:
+      '200':
+        description: Node configuration saved; credentials are not returned.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/ComfyNodeConfiguration
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+TestComfyNode:
+  post:
+    tags: [Admin Configuration]
+    operationId: testComfyNodeConnection
+    summary: Test connectivity without enabling the node or changing locked jobs
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Connection test result.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/ConnectionTestResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+Retention:
+  get:
+    tags: [Admin Configuration]
+    operationId: getRetentionPolicy
+    summary: Read runtime retention policy
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: Current retention policy.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/RetentionPolicy
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+  put:
+    tags: [Admin Configuration]
+    operationId: updateRetentionPolicy
+    summary: Update future cleanup eligibility rules
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/admin/schemas.yaml#/RetentionPolicyUpdateRequest
+    responses:
+      '200':
+        description: Retention policy updated.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/RetentionPolicy
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized

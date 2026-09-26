@@ -1,0 +1,70 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+
+# Local runtime data
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+/data/
+/uploads/
+/private-storage/
+/backend/data/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.coverage
+htmlcov/
+
+# Node and web tooling
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+reports/
+artifacts/
+*.tsbuildinfo
+
+# Android and Gradle
+.gradle/
+build/
+local.properties
+captures/
+.kotlin/
+
+# IDE and operating system files
+.idea/
+.vscode/
+.fleet/
+*.iml
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local worktrees and Superpowers execution state
+.worktrees/
+worktrees/
+.superpowers/sdd/
+.superpowers/brainstorm/.last-port
+.superpowers/brainstorm/.last-token
+.superpowers/brainstorm/**/state/
+
+# Generated contract artifacts are intentionally tracked. Do not add broad
+# generated/ ignore rules; Task 5 will enforce deterministic regeneration.

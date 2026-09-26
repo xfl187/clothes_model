@@ -1,0 +1,84 @@
+<style>
+  .design-note{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 20px}.design-note span{background:#f1edf8;color:#55466f;border-radius:999px;padding:6px 10px;font-size:12px}
+  .phone-grid{display:grid;grid-template-columns:repeat(4,minmax(210px,1fr));gap:20px;align-items:start}
+  .frame-wrap h3{margin:0 0 8px;font-size:14px}.frame-wrap>p{font-size:11px;color:#746d79;line-height:1.4;margin:8px 3px 0}
+  .phone{--ink:#28252c;--muted:#746e79;--accent:#6b4fa0;--accent-soft:#eee6fb;--surface:#fbf9fd;--card:#fff;--line:#e3dee7;width:100%;max-width:285px;aspect-ratio:9/19;margin:auto;border:7px solid #242127;border-radius:32px;background:var(--surface);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 14px 34px rgba(35,29,42,.14);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+  .sys{height:21px;display:flex;align-items:center;justify-content:space-between;padding:0 13px;font-size:8px;font-weight:600;flex:none}.sys:after{content:'●  4G  ▰';letter-spacing:1px}
+  .bar{display:flex;align-items:center;justify-content:space-between;padding:9px 14px 12px;gap:8px;flex:none}.bar b{font-size:15px}.bar .icon{font-size:14px}.back{font-size:18px;color:var(--ink)}
+  .body{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;min-height:0;flex:1;overflow:hidden}
+  .eyebrow{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}.title{font-size:20px;line-height:1.15;font-weight:700}.desc{font-size:10px;line-height:1.45;color:var(--muted)}
+  .field{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 11px}.field label{display:block;font-size:8px;color:var(--muted);margin-bottom:5px}.field b{display:block;font-size:11px}.field code{font-size:9px;color:#5f5964}
+  .button{background:var(--accent);color:#fff;border-radius:15px;padding:11px 12px;text-align:center;font-size:11px;font-weight:700}.button.secondary{background:var(--accent-soft);color:var(--accent)}.button.disabled{background:#d8d3dc;color:#89838d}
+  .foot{padding:10px 14px 14px;flex:none}.helper{font-size:9px;color:var(--muted);text-align:center;margin-top:7px}
+  .stepper{display:flex;gap:5px;padding:0 14px 10px}.stepper i{height:3px;flex:1;border-radius:3px;background:#dfd9e4}.stepper i.on{background:var(--accent)}
+  .hero{background:linear-gradient(150deg,#e9dcf8,#f5eefb 48%,#f4e8e6);border-radius:20px;padding:16px;min-height:115px;display:flex;flex-direction:column;justify-content:flex-end}.hero b{font-size:18px;margin-bottom:4px}.hero span{font-size:10px;color:#594a61;line-height:1.4}
+  .mode-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mode{background:var(--card);border-radius:15px;padding:11px;border:1px solid var(--line);min-height:58px}.mode b{display:block;font-size:10px;margin-bottom:4px}.mode span{font-size:8px;color:var(--muted)}.mode.future{background:#f3f2f5;color:#77717b}
+  .section-head{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:700}.section-head span{font-size:8px;color:var(--accent)}
+  .task-row{display:grid;grid-template-columns:38px 1fr auto;gap:8px;align-items:center;background:var(--card);border-radius:13px;padding:8px;border:1px solid var(--line)}.thumb{width:38px;height:45px;border-radius:9px;background:linear-gradient(145deg,#c9bdcb,#806f86)}.task-row b{font-size:9px;display:block}.task-row span{font-size:8px;color:var(--muted)}.state{font-size:8px;color:var(--accent);font-weight:700}
+  .nav{display:grid;grid-template-columns:repeat(3,1fr);background:#f0edf3;border-top:1px solid var(--line);padding:8px 3px 10px;flex:none}.nav div{text-align:center;font-size:8px;color:#77717c}.nav .active{color:var(--accent);font-weight:700}
+  .asset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.asset{aspect-ratio:3/4;border-radius:12px;background:linear-gradient(155deg,#dad1dc,#9d8ea2);position:relative;border:2px solid transparent}.asset.garment{background:linear-gradient(155deg,#ece6df,#ae947e)}.asset.selected{border-color:var(--accent)}.asset.selected:after{content:'✓';position:absolute;right:5px;top:5px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:9px}.asset.add{background:#f0edf2;border:1px dashed #bcb4c1;display:grid;place-items:center;color:#807985;font-size:20px}
+  .warning{background:#fff2d9;color:#70521e;border-radius:11px;padding:8px 9px;font-size:8px;line-height:1.35}.experimental{position:absolute;left:5px;bottom:5px;background:rgba(37,31,39,.78);color:#fff;padding:3px 5px;border-radius:6px;font-size:7px}
+  .summary{display:grid;grid-template-columns:48px 1fr;gap:9px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px}.summary .preview{width:48px;height:58px;border-radius:9px;background:linear-gradient(145deg,#c9bdcb,#806f86)}.summary b{display:block;font-size:9px}.summary span{font-size:8px;color:var(--muted)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--line);border-radius:999px;padding:6px 8px;font-size:8px;background:#fff}.chip.on{background:var(--accent-soft);border-color:#cbb8e8;color:var(--accent);font-weight:700}
+  .progress-ring{width:96px;height:96px;border-radius:50%;margin:8px auto;background:conic-gradient(var(--accent) 0 62%,#e8e3ea 62%);display:grid;place-items:center}.progress-ring:after{content:'62%';width:73px;height:73px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-size:18px;font-weight:700}
+  .candidate{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:center;background:#fff;border-radius:12px;padding:8px;border:1px solid var(--line)}.candidate .dot{width:8px;height:8px;border-radius:50%;background:#56a278;margin:auto}.candidate.wait .dot{background:#d79a36}.candidate b{font-size:9px;display:block}.candidate span{font-size:8px;color:var(--muted)}
+  .attention{background:#fff0e8;color:#7e3e21;border-radius:12px;padding:9px;font-size:8px;line-height:1.4}
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.result{aspect-ratio:3/4;border-radius:14px;background:linear-gradient(145deg,#c9bdcb 0 35%,#7a687f 36% 100%);position:relative}.result:nth-child(2){background:linear-gradient(145deg,#d5c6c0 0 35%,#886f69 36% 100%)}.result .badge{position:absolute;left:5px;top:5px;background:rgba(37,31,39,.75);color:#fff;border-radius:6px;padding:3px 5px;font-size:7px}.result .heart{position:absolute;right:6px;bottom:6px;background:#fff;border-radius:50%;width:21px;height:21px;display:grid;place-items:center;font-size:10px}.risk{background:#fff2d9;color:#70521e;border-radius:9px;padding:6px;font-size:7px;position:absolute;bottom:5px;left:5px;right:32px}
+  .actions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.actions div{text-align:center;font-size:8px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 3px}
+  .mask{height:220px;border-radius:17px;background:linear-gradient(145deg,#d0c5d2,#716479);position:relative;overflow:hidden}.mask:before{content:'';position:absolute;left:35%;top:22%;width:42%;height:50%;border-radius:45% 42% 30% 35%;background:rgba(122,64,174,.48);border:2px solid rgba(255,255,255,.7)}.mask:after{content:'目标衣物区域';position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:9px;color:#fff;font-weight:700}.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.tool{text-align:center;background:#fff;border-radius:11px;border:1px solid var(--line);padding:8px 2px;font-size:8px}.tool.on{background:var(--accent-soft);color:var(--accent);border-color:#cbb8e8}.provider-change{background:#f1edf8;color:#584477;border-radius:10px;padding:8px;font-size:8px;line-height:1.35}
+  .feedback{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}.feedback .option{background:#fff;border:1px solid #dce1e8;border-radius:14px;padding:14px}.feedback .option.selected{border:2px solid #6750a4;background:#f8f5ff}.feedback h3{margin:0 0 4px}.feedback p{font-size:12px;color:#6e6774;margin:0}
+  @media(max-width:1000px){.phone-grid{grid-template-columns:repeat(3,minmax(210px,1fr))}}
+  @media(max-width:760px){.phone-grid{grid-template-columns:repeat(2,minmax(210px,1fr))}}
+  @media(max-width:500px){.phone-grid{grid-template-columns:1fr}.feedback{grid-template-columns:1fr}}
+</style>
+
+<h2>V1 核心页面中保真原型</h2>
+<p class="subtitle">任务导向导航；素材、任务和结果组件可直接复用于 V1.1。</p>
+<div class="design-note"><span>Material 3 交互骨架</span><span>低饱和紫作为生成主色</span><span>图片优先、状态文字优先于图标</span><span>风险提示不默认阻断</span></div>
+
+<div class="phone-grid">
+  <section class="frame-wrap"><h3>01 · 首次连接</h3>
+    <div class="phone"><div class="sys">9:41</div><div class="bar"><b>连接私人服务器</b></div><div class="body"><div class="eyebrow">仅需设置一次</div><div class="title">连接你的<br>私人试衣间</div><div class="desc">人物、衣物和生成记录都保存在你配置的固定服务器。App 不保存模型密钥。</div><div class="field"><label>服务器地址</label><b>https://tryon.example.com</b></div><div class="field"><label>App Token</label><code>••••••••••••••••••</code></div><div class="warning">连接信息会加密保存在此设备。令牌失效时仍会保留服务器地址。</div></div><div class="foot"><div class="button">验证并连接</div><div class="helper">无法连接？检查地址、HTTPS 和令牌</div></div></div>
+    <p>验证成功后进入首页；失效令牌复用同一骨架，仅锁定服务器地址。</p>
+  </section>
+
+  <section class="frame-wrap"><h3>02 · 首页</h3>
+    <div class="phone"><div class="sys">9:41</div><div class="bar"><b>我的试衣间</b><span class="icon">⚙</span></div><div class="body"><div class="hero"><b>精准换装</b><span>选择一张人物图和一件衣物，生成最多 4 个候选</span></div><div class="button">开始换装</div><div class="mode-row"><div class="mode future"><b>分层穿搭</b><span>V1.1 即将开放</span></div><div class="mode future"><b>创意写真</b><span>规划中</span></div></div><div class="section-head">最近任务 <span>查看全部</span></div><div class="task-row"><div class="thumb"></div><div><b>米色风衣</b><span>2 个候选 · 生成中</span></div><div class="state">62%</div></div><div class="task-row"><div class="thumb" style="background:linear-gradient(145deg,#dbcfc5,#8d7566)"></div><div><b>黑色连衣裙</b><span>昨天 · 已完成</span></div><div class="state">查看</div></div></div><div class="nav"><div class="active">⌂<br>首页</div><div>◇<br>素材</div><div>◷<br>历史</div></div></div>
+    <p>模式入口集中在首页；底部导航不会因 V1.1 增加新 Tab。</p>
+  </section>
+
+  <section class="frame-wrap"><h3>03 · 创建 / 选择人物</h3>
+    <div class="phone"><div class="sys">9:41</div><div class="bar"><span class="back">‹</span><b>选择人物</b><span>1 / 3</span></div><div class="stepper"><i class="on"></i><i></i><i></i></div><div class="body"><div class="desc">选择一张已上传照片，或从相册导入新照片。</div><div class="asset-grid"><div class="asset selected"></div><div class="asset" style="background:linear-gradient(155deg,#d5cfc9,#8c8077)"></div><div class="asset add">＋</div><div class="asset" style="background:linear-gradient(155deg,#ced4d8,#75808a)"></div><div class="asset" style="background:linear-gradient(155deg,#d7c9c2,#8d756e)"></div></div><div class="warning">这张照片的下半身不完整。用于上衣换装通常没有问题；连衣裙或下装结果可能受影响。</div></div><div class="foot"><div class="button">继续选择衣物</div></div></div>
+    <p>质量检测只解释风险；不把半身照误判为不可用。</p>
+  </section>
+
+  <section class="frame-wrap"><h3>04 · 创建 / 选择衣物</h3>
+    <div class="phone"><div class="sys">9:41</div><div class="bar"><span class="back">‹</span><b>选择衣物</b><span>2 / 3</span></div><div class="stepper"><i class="on"></i><i class="on"></i><i></i></div><div class="body"><div class="chips"><div class="chip on">全部</div><div class="chip">上衣</div><div class="chip">下装</div><div class="chip">连衣裙</div></div><div class="asset-grid"><div class="asset garment selected"></div><div class="asset garment" style="background:linear-gradient(155deg,#dad8d1,#787670)"></div><div class="asset add">＋</div><div class="asset garment" style="background:linear-gradient(155deg,#d8c2aa,#9a7651)"><span class="experimental">实验性</span></div><div class="asset garment" style="background:linear-gradient(155deg,#d2d9df,#6e8190)"></div></div><div class="warning">“他人穿着图”会尝试提取衣物；被遮挡的纹理、版型或 Logo 可能由模型推测。</div></div><div class="foot"><div class="button">继续生成设置</div></div></div>
+    <p>类别筛选服务于当前任务；实验性来源始终显式标记。</p>
+  </section>
+
+  <section class="frame-wrap"><h3>05 · 创建 / 生成设置</h3>
+    <div class="phone"><div class="sys">9:41</div><div class="bar"><span class="back">‹</span><b>确认生成</b><span>3 / 3</span></div><div class="stepper"><i class="on"></i><i class="on"></i><i class="on"></i></div><div class="body"><div class="summary"><div class="preview"></div><div><b>人物 + 米色风衣</b><span>上衣 · 商品图</span></div></div><div class="field"><label>生成后端</label><b>大模型（默认）　⌄</b></div><div class="field"><label>候选数量</label><div class="chips"><div class="chip on">1</div><div class="chip">2</div><div class="chip">3</div><div class="chip">4</div></div></div><div class="desc">提交时将锁定当前 Provider、模型参数与工作流版本。离开页面不会影响任务执行。</div><div class="warning">人物照片下半身不完整。本次为上衣换装，可继续生成。</div></div><div class="foot"><div class="button">生成 1 个候选</div></div></div>
+    <p>只展示后端实际支持的选项；永久配置错误在此阻止提交。</p>
+  </section>
+
+  <section class="frame-wrap"><h3>06 · 任务详情</h3>
+    <div class="phone"><div class="sys">9:41</div><div class="bar"><span class="back">‹</span><b>生成任务</b><span>•••</span></div><div class="body"><div class="eyebrow">正在生成</div><div class="progress-ring"></div><div class="desc" style="text-align:center">已锁定：大模型 · 配置 v12<br>可以离开此页，任务会继续执行</div><div class="candidate"><div class="dot"></div><div><b>候选 1</b><span>正在生成 · 已用时 01:28</span></div><span>取消</span></div><div class="candidate wait"><div class="dot"></div><div><b>候选 2</b><span>排队中</span></div><span>取消</span></div><div class="attention"><b>若状态无法确认</b><br>任务会停止自动推进，并提供“重新查询 / 明确重试 / 结束”操作，不会盲目重复生成。</div></div><div class="foot"><div class="button secondary">取消整个任务</div></div></div>
+    <p>同一详情骨架承载 queued、waiting_provider、running 与 needs_attention。</p>
+  </section>
+
+  <section class="frame-wrap"><h3>07 · 候选结果</h3>
+    <div class="phone"><div class="sys">9:41</div><div class="bar"><span class="back">‹</span><b>候选结果</b><span>部分成功</span></div><div class="body"><div class="warning">2 个候选成功，1 个失败。成功结果已保留，可只重试失败项。</div><div class="result-grid"><div class="result"><span class="badge">候选 1</span><span class="heart">♡</span></div><div class="result"><span class="badge">候选 2</span><span class="risk">袖口可能漂移</span><span class="heart">♡</span></div></div><div class="section-head">所选候选 <span>查看大图</span></div><div class="actions"><div>对比原图</div><div>下载</div><div>收藏</div></div><div class="actions"><div>修正遮罩</div><div>同参数重试</div><div>删除图片</div></div><div class="candidate wait"><div class="dot" style="background:#c15b55"></div><div><b>候选 3 · 失败</b><span>请求超时 · 已保留错误记录</span></div><span>重试</span></div></div></div>
+    <p>先保住成功结果，再处理失败项；删除图片不删除任务历史。</p>
+  </section>
+
+  <section class="frame-wrap"><h3>08 · 遮罩修正</h3>
+    <div class="phone"><div class="sys">9:41</div><div class="bar"><span class="back">‹</span><b>修正遮罩</b><span>撤销</span></div><div class="body"><div class="mask"></div><div class="tools"><div class="tool on">画笔</div><div class="tool">擦除</div><div class="tool">大小</div><div class="tool">预览</div></div><div class="provider-change"><b>生成后端将更改</b><br>原 Provider 不支持手动遮罩。将改用“ComfyUI · Mask v4”，提交前会记录配置变化。</div><div class="desc">遮罩改变后会创建关联的新主任务；原任务和结果保持不变。</div></div><div class="foot"><div class="button">检查并重新生成</div></div></div>
+    <p>把“输入已变化”和“Provider 已切换”同时讲清楚，避免误认为原任务被覆盖。</p>
+  </section>
+</div>
+
+<div class="feedback">
+  <div class="option" data-choice="approve-core-prototypes" onclick="toggleSelect(this)"><h3>确认页面结构</h3><p>下一步补齐任务异常状态、结果对比与交互规则。</p></div>
+  <div class="option" data-choice="revise-core-prototypes" onclick="toggleSelect(this)"><h3>需要调整</h3><p>告诉我希望修改的页面、信息层级或视觉方向。</p></div>
+</div>

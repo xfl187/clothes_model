@@ -1,0 +1,178 @@
+openapi: 3.0.3
+info:
+  title: Clothes Model API
+  version: 1.0.0
+  description: >-
+    Canonical V1 HTTP contract shared by the Backend, Android application,
+    and Web Admin. Product behavior remains authoritative in the Product Spec.
+  license:
+    name: Proprietary
+servers:
+  - url: https://localhost
+    description: Local or deployment origin
+tags:
+  - name: Health
+    description: Process liveness and local dependency readiness.
+  - name: Authentication
+    description: App Token validation and Admin browser session lifecycle.
+  - name: Uploads
+    description: Resumable private file upload sessions.
+  - name: Assets
+    description: Private person, garment, mask, and generated-output metadata and content.
+  - name: Jobs
+    description: Try-on jobs, candidate JobItems, outputs, cancellation, and recovery commands.
+  - name: Providers
+    description: Provider availability, capabilities, and redacted Admin configuration.
+  - name: Workflows
+    description: Immutable ComfyUI Workflow versions and lifecycle actions.
+  - name: Admin Configuration
+    description: Explicit runtime configuration resources maintained by Web Admin.
+  - name: Storage
+    description: Capacity status, cleanup preview, and confirmed cleanup commands.
+  - name: Diagnostics
+    description: Redacted, timestamped operational diagnostics for administrators.
+paths:
+  /health/live:
+    $ref: ./paths/health.yaml#/Live
+  /health/ready:
+    $ref: ./paths/health.yaml#/Ready
+  /api/v1/auth/status:
+    $ref: ./paths/auth.yaml#/AppAuthStatus
+  /api/v1/admin/auth/session:
+    $ref: ./paths/auth.yaml#/AdminSession
+  /api/v1/uploads:
+    $ref: ./paths/uploads.yaml#/Collection
+  /api/v1/uploads/{upload_id}:
+    $ref: ./paths/uploads.yaml#/Item
+  /api/v1/uploads/{upload_id}/content:
+    $ref: ./paths/uploads.yaml#/Content
+  /api/v1/uploads/{upload_id}/complete:
+    $ref: ./paths/uploads.yaml#/Complete
+  /api/v1/assets:
+    $ref: ./paths/assets.yaml#/Collection
+  /api/v1/assets/{asset_id}:
+    $ref: ./paths/assets.yaml#/Item
+  /api/v1/assets/{asset_id}/content:
+    $ref: ./paths/assets.yaml#/Content
+  /api/v1/jobs:
+    $ref: ./paths/jobs.yaml#/Collection
+  /api/v1/jobs/{job_id}:
+    $ref: ./paths/jobs.yaml#/Item
+  /api/v1/jobs/{job_id}/cancel:
+    $ref: ./paths/jobs.yaml#/CancelJob
+  /api/v1/job-items/{job_item_id}:
+    $ref: ./paths/jobs.yaml#/JobItem
+  /api/v1/job-items/{job_item_id}/cancel:
+    $ref: ./paths/jobs.yaml#/CancelJobItem
+  /api/v1/job-items/{job_item_id}/retry:
+    $ref: ./paths/jobs.yaml#/RetryJobItem
+  /api/v1/job-items/{job_item_id}/requery:
+    $ref: ./paths/jobs.yaml#/RequeryJobItem
+  /api/v1/job-items/{job_item_id}/finish-failed:
+    $ref: ./paths/jobs.yaml#/FinishFailedJobItem
+  /api/v1/providers:
+    $ref: ./paths/providers.yaml#/AvailableProviders
+  /api/v1/admin/provider-configs:
+    $ref: ./paths/providers.yaml#/ConfigCollection
+  /api/v1/admin/provider-configs/{provider_id}:
+    $ref: ./paths/providers.yaml#/ConfigItem
+  /api/v1/admin/provider-configs/{provider_id}/validate:
+    $ref: ./paths/providers.yaml#/ValidateConfig
+  /api/v1/admin/provider-configs/{provider_id}/enable:
+    $ref: ./paths/providers.yaml#/EnableConfig
+  /api/v1/admin/workflows:
+    $ref: ./paths/workflows.yaml#/Collection
+  /api/v1/admin/workflows/{workflow_version_id}:
+    $ref: ./paths/workflows.yaml#/Item
+  /api/v1/admin/workflows/{workflow_version_id}/validate:
+    $ref: ./paths/workflows.yaml#/Validate
+  /api/v1/admin/workflows/{workflow_version_id}/activate:
+    $ref: ./paths/workflows.yaml#/Activate
+  /api/v1/admin/configuration/default-provider:
+    $ref: ./paths/admin.yaml#/DefaultProvider
+  /api/v1/admin/configuration/comfy-node:
+    $ref: ./paths/admin.yaml#/ComfyNode
+  /api/v1/admin/configuration/comfy-node/test:
+    $ref: ./paths/admin.yaml#/TestComfyNode
+  /api/v1/admin/configuration/retention:
+    $ref: ./paths/admin.yaml#/Retention
+  /api/v1/admin/storage:
+    $ref: ./paths/storage.yaml#/Status
+  /api/v1/admin/storage/scan:
+    $ref: ./paths/storage.yaml#/Scan
+  /api/v1/admin/storage/cleanup:
+    $ref: ./paths/storage.yaml#/Cleanup
+  /api/v1/admin/diagnostics/jobs:
+    $ref: ./paths/diagnostics.yaml#/Jobs
+  /api/v1/admin/diagnostics/jobs/{job_id}:
+    $ref: ./paths/diagnostics.yaml#/JobDetail
+components:
+  securitySchemes:
+    AppBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-app-token
+      description: High-entropy App Token used only by the Android application.
+    AdminSession:
+      type: apiKey
+      in: cookie
+      name: clothes_admin_session
+      description: Secure HttpOnly SameSite admin session cookie.
+    AdminCsrf:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Required with the admin session for state-changing requests.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Opaque client-generated key. Reusing a key with a different payload
+        returns idempotency_key_reused.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Opaque cursor returned by the previous page.
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    Problem:
+      description: Request failed with a stable machine-readable error code.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+    Unauthorized:
+      description: Authentication is missing or invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            invalidToken:
+              $ref: ./examples/errors.yaml#/Unauthorized
+    StorageBlocked:
+      description: New uploads or jobs are blocked because storage capacity is insufficient.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            storageCapacity:
+              $ref: ./examples/errors.yaml#/StorageCapacity

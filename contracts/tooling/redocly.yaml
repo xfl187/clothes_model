@@ -1,0 +1,12 @@
+apis:
+  clothes-model@v1:
+    root: ../openapi/openapi.yaml
+
+extends:
+  - recommended
+
+rules:
+  operation-description: off
+  operation-4xx-response: off
+  no-server-example.com: off
+  info-license-strict: off

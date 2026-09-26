@@ -1,0 +1,144 @@
+<meta charset="utf-8">
+<style>
+  :root{
+    --qa-bg:#f3efe9;--qa-paper:#fbf8f3;--qa-ink:#241f23;--qa-muted:#716970;
+    --qa-plum:#69465f;--qa-plum-dark:#4a3043;--qa-blush:#dcc5cf;--qa-line:#dfd7d2;
+    --qa-warm:#f3dfb7;--qa-warm-ink:#6b4b18;--qa-danger:#a7433f;--qa-success:#426c56;
+  }
+  .qa-page{color:var(--qa-ink);font-family:Inter,"Noto Sans SC",system-ui,sans-serif;padding:26px;background:#ece7e1;border-radius:30px}
+  .qa-brief{display:grid;grid-template-columns:1.2fr .8fr;gap:28px;align-items:end;margin:2px 0 26px;padding:24px 26px;border-radius:24px 24px 8px 24px;background:var(--qa-ink);color:#fff;overflow:hidden;position:relative}
+  .qa-brief:after{content:"";position:absolute;width:190px;height:190px;right:-65px;top:-75px;border:1px solid rgba(255,255,255,.18);border-radius:50%}
+  .qa-kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#d9bfcc;font-weight:750}
+  .qa-brief h2{font-family:Georgia,"Noto Serif SC",serif;font-size:36px;line-height:1.05;letter-spacing:-.035em;margin:9px 0 10px;font-weight:500}
+  .qa-brief p{font-size:13px;line-height:1.65;color:#d9d2d6;margin:0;max-width:720px}
+  .qa-principles{display:grid;grid-template-columns:1fr 1fr;gap:9px;position:relative;z-index:1}
+  .qa-principles div{padding:11px 12px;background:rgba(255,255,255,.065);border-top:1px solid rgba(255,255,255,.2);font-size:11px;line-height:1.35;color:#e7dfe3}
+  .qa-principles b{display:block;color:#fff;margin-bottom:3px;font-size:12px}
+  .qa-title-row{display:flex;justify-content:space-between;align-items:end;gap:18px;margin:0 2px 16px}
+  .qa-title-row h3{font-family:Georgia,"Noto Serif SC",serif;font-size:24px;margin:0;font-weight:500}
+  .qa-title-row p{font-size:12px;color:var(--qa-muted);margin:0;max-width:510px;line-height:1.55;text-align:right}
+  .qa-grid{display:grid;grid-template-columns:repeat(3,minmax(278px,1fr));gap:24px;align-items:start}
+  .qa-case h4{font-size:13px;margin:0 0 9px 3px}.qa-case>p{font-size:11px;line-height:1.55;color:var(--qa-muted);margin:10px 5px 0}
+  .qa-phone{width:100%;max-width:334px;aspect-ratio:390/844;margin:auto;border:8px solid #19171a;border-radius:38px;background:var(--qa-paper);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 22px 52px rgba(40,29,36,.18),0 3px 10px rgba(40,29,36,.12);position:relative}
+  .qa-status{height:25px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:8px;font-weight:750;flex:none;position:relative;z-index:5}.qa-status:after{content:"●  5G  ▰";font-size:7px;letter-spacing:.75px}
+  .qa-top{min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:4px 18px 10px;gap:10px;flex:none}.qa-brand{font-family:Georgia,"Noto Serif SC",serif;font-size:17px;font-weight:600;letter-spacing:-.02em}.qa-icon{width:33px;height:33px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--qa-line);background:rgba(255,255,255,.62);font-size:12px}.qa-back{font-size:20px;width:32px;height:32px;display:grid;place-items:center}.qa-step{font-size:9px;color:var(--qa-muted);font-weight:650}
+  .qa-content{padding:0 17px 13px;display:flex;flex:1;min-height:0;overflow:hidden;flex-direction:column;gap:10px}.qa-overline{font-size:8px;color:var(--qa-plum);font-weight:800;letter-spacing:.16em;text-transform:uppercase}.qa-display{font-family:Georgia,"Noto Serif SC",serif;font-size:27px;line-height:1.02;letter-spacing:-.035em;font-weight:500}.qa-copy{font-size:9px;line-height:1.5;color:var(--qa-muted)}
+  .qa-hero{height:218px;border-radius:27px 27px 8px 27px;background:linear-gradient(180deg,rgba(27,20,25,.01) 30%,rgba(27,20,25,.79)),url('https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?auto=format&fit=crop&w=900&q=88');background-size:cover;background-position:center 29%;position:relative;overflow:hidden;flex:none}.qa-hero:before{content:"PRIVATE / 01";position:absolute;top:14px;left:14px;padding:5px 7px;border-radius:3px;background:rgba(250,247,243,.88);color:var(--qa-ink);font-size:7px;letter-spacing:.12em;font-weight:800}.qa-hero-copy{position:absolute;left:16px;right:16px;bottom:15px;color:#fff}.qa-hero-copy b{font-family:Georgia,"Noto Serif SC",serif;font-size:24px;line-height:1.03;font-weight:500;letter-spacing:-.03em}.qa-hero-copy span{display:block;margin-top:5px;font-size:8.5px;color:rgba(255,255,255,.8)}
+  .qa-primary{height:44px;border-radius:15px 15px 5px 15px;background:var(--qa-plum-dark);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 15px;font-size:10px;font-weight:750;letter-spacing:.01em}.qa-primary i{font-style:normal;font-size:15px}.qa-secondary-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qa-mode{min-height:56px;padding:10px 11px;border-top:1px solid var(--qa-line);background:rgba(255,255,255,.38)}.qa-mode b{display:block;font-size:9px}.qa-mode span{font-size:7.5px;color:var(--qa-muted);line-height:1.35}.qa-mode em{display:inline-block;margin-top:4px;font-size:7px;color:var(--qa-plum);font-style:normal;font-weight:750}
+  .qa-section{display:flex;justify-content:space-between;align-items:center;margin-top:2px}.qa-section b{font-family:Georgia,"Noto Serif SC",serif;font-size:13px}.qa-section span{font-size:8px;color:var(--qa-plum);font-weight:700}.qa-task{display:grid;grid-template-columns:43px 1fr auto;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--qa-line)}.qa-task-img{height:48px;border-radius:12px 12px 4px 12px;background:url('https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=300&q=82') center/cover}.qa-task b{display:block;font-size:9px}.qa-task small{font-size:7.5px;color:var(--qa-muted)}.qa-state{font-size:8px;color:var(--qa-plum);font-weight:800}
+  .qa-nav{height:54px;border-top:1px solid var(--qa-line);display:grid;grid-template-columns:repeat(3,1fr);padding:5px 7px 7px;flex:none;background:rgba(251,248,243,.95)}.qa-nav div{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;font-size:7.5px;color:#777075}.qa-nav i{font-style:normal;font-size:14px;line-height:1}.qa-nav .active{color:var(--qa-plum-dark);font-weight:800}.qa-nav .active i{width:25px;height:20px;border-radius:10px 10px 3px 10px;background:var(--qa-blush);display:grid;place-items:center}
+  .qa-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:0 18px 9px;flex:none}.qa-progress i{height:2px;background:#d9d1cd;border-radius:2px}.qa-progress i.on{background:var(--qa-plum)}
+  .qa-filter{display:flex;gap:6px;overflow:hidden;flex:none}.qa-chip{border:1px solid var(--qa-line);border-radius:999px;padding:6px 10px;background:rgba(255,255,255,.45);font-size:8px;white-space:nowrap}.qa-chip.on{border-color:var(--qa-plum);color:var(--qa-plum-dark);font-weight:800;background:#efe4ea}
+  .qa-assets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.qa-asset{aspect-ratio:3/4;border-radius:17px 17px 6px 17px;background:#eee;position:relative;overflow:hidden}.qa-asset img{width:100%;height:100%;object-fit:cover;display:block}.qa-asset.selected{outline:2px solid var(--qa-plum-dark);outline-offset:2px}.qa-check{position:absolute;right:6px;top:6px;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:var(--qa-plum-dark);color:#fff;font-size:9px;border:2px solid #fff}.qa-add{display:grid;place-items:center;background:#eee8e3;border:1px dashed #aa9c9f;color:var(--qa-plum-dark)}.qa-add span{text-align:center;font-size:8px;line-height:1.35}.qa-add b{display:block;font-size:20px;line-height:1.1}.qa-source{position:absolute;left:5px;bottom:5px;padding:3px 5px;background:rgba(31,25,28,.78);color:#fff;font-size:6.5px;border-radius:4px}.qa-selected-line{display:grid;grid-template-columns:45px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--qa-line);border-bottom:1px solid var(--qa-line)}.qa-selected-line img{width:45px;height:50px;object-fit:cover;border-radius:11px 11px 4px 11px}.qa-selected-line b{display:block;font-size:9px}.qa-selected-line span{font-size:7.5px;color:var(--qa-muted)}.qa-selected-line em{font-size:7px;color:var(--qa-plum);font-style:normal;font-weight:800}.qa-warning{display:grid;grid-template-columns:21px 1fr;gap:7px;padding:8px 9px;background:#f6e9cf;color:var(--qa-warm-ink);border-radius:11px 11px 4px 11px;font-size:7.5px;line-height:1.4}.qa-warning i{font-style:normal;width:19px;height:19px;border:1px solid #c2974a;border-radius:50%;display:grid;place-items:center;font-weight:800}.qa-foot{padding:8px 17px 13px;flex:none;background:linear-gradient(180deg,rgba(251,248,243,0),var(--qa-paper) 22%)}
+  .qa-result-lead{display:flex;justify-content:space-between;align-items:flex-start}.qa-result-lead .qa-display{font-size:24px}.qa-status-label{font-size:7.5px;color:var(--qa-success);font-weight:800;padding:5px 7px;border:1px solid #a8bcae;border-radius:999px;background:#edf3ef}.qa-result-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:7px;height:260px;flex:none}.qa-result-main,.qa-result-side{position:relative;overflow:hidden;background:#ddd}.qa-result-main{border-radius:24px 24px 7px 24px}.qa-result-side{border-radius:7px 17px 7px 17px}.qa-result-main img,.qa-result-side img{width:100%;height:100%;object-fit:cover}.qa-result-side-wrap{display:grid;grid-template-rows:1fr 1fr;gap:7px}.qa-result-badge{position:absolute;left:7px;top:7px;background:rgba(250,247,243,.91);color:var(--qa-ink);padding:4px 6px;border-radius:4px;font-size:6.5px;font-weight:800}.qa-fav{position:absolute;right:8px;bottom:8px;width:29px;height:29px;border-radius:50%;display:grid;place-items:center;background:rgba(250,247,243,.92);font-size:13px;color:var(--qa-plum)}.qa-risk-dot{position:absolute;left:7px;right:7px;bottom:7px;padding:5px 6px;background:rgba(246,233,207,.94);font-size:6.5px;color:var(--qa-warm-ink);border-radius:7px}
+  .qa-selected{display:flex;align-items:center;justify-content:space-between}.qa-selected b{font-size:9px}.qa-selected span{font-size:7.5px;color:var(--qa-muted)}.qa-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.qa-action{height:42px;border-top:1px solid var(--qa-line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:7px;gap:2px;color:var(--qa-ink)}.qa-action i{font-style:normal;font-size:13px;color:var(--qa-plum)}.qa-failed{display:grid;grid-template-columns:8px 1fr auto;gap:7px;align-items:center;padding:7px 0;border-top:1px solid var(--qa-line)}.qa-failed i{width:6px;height:6px;border-radius:50%;background:var(--qa-danger)}.qa-failed b{font-size:8px;display:block}.qa-failed span{font-size:7px;color:var(--qa-muted)}.qa-failed em{font-style:normal;color:var(--qa-plum);font-weight:800;font-size:7.5px}
+  .qa-review{margin-top:24px;display:grid;grid-template-columns:1.25fr .75fr;gap:18px}.qa-review-card{padding:17px 18px;border:1px solid var(--qa-line);border-radius:18px;background:#fff}.qa-review-card h3{font-family:Georgia,"Noto Serif SC",serif;font-size:18px;margin:0 0 8px}.qa-review-card p,.qa-review-card li{font-size:11px;line-height:1.55;color:var(--qa-muted)}.qa-review-card ul{margin:0;padding-left:17px}.qa-token-row{display:flex;gap:8px;flex-wrap:wrap}.qa-token{min-width:60px}.qa-token i{display:block;height:31px;border-radius:10px 10px 3px 10px;margin-bottom:5px;border:1px solid rgba(0,0,0,.07)}.qa-token span{font-size:8px;color:var(--qa-muted)}
+  @media(max-width:980px){.qa-grid{grid-template-columns:repeat(2,minmax(270px,1fr))}.qa-grid .qa-case:last-child{grid-column:1/-1}.qa-brief{grid-template-columns:1fr}.qa-review{grid-template-columns:1fr}}
+  @media(max-width:660px){.qa-page{padding:14px}.qa-grid{grid-template-columns:1fr}.qa-grid .qa-case:last-child{grid-column:auto}.qa-title-row{align-items:start;flex-direction:column}.qa-title-row p{text-align:left}.qa-brief h2{font-size:30px}.qa-phone{max-width:345px}}
+</style>
+
+<div class="qa-page">
+  <section class="qa-brief">
+    <div>
+      <div class="qa-kicker">Visual direction · Round 01</div>
+      <h2>Quiet Atelier<br>私人时装工作室</h2>
+      <p>把生成工具藏进一间安静、可信的私人试衣空间。摄影承担情绪与结果证明，界面用编辑式留白、深浅层级和少量深梅紫组织动作；AI 通过状态与过渡被感知，而不是通过霓虹、光效或“未来感”装饰被强调。</p>
+    </div>
+    <div class="qa-principles">
+      <div><b>图片是主角</b>大幅裁切、克制覆层，不用卡片包住每张图</div>
+      <div><b>编辑式层级</b>衬线标题 + 清晰无衬线正文，形成杂志般节奏</div>
+      <div><b>有节制的形状</b>图像使用单角收紧，按钮与导航不共享同一圆角</div>
+      <div><b>安静的智能</b>生成、选择、风险都靠状态变化表达，不使用 AI 光晕</div>
+    </div>
+  </section>
+
+  <div class="qa-title-row">
+    <h3>三个代表页面</h3>
+    <p>沿用已确认的信息架构、步骤顺序与操作边界；本轮只验证视觉语言，不扩展 Screen Inventory。</p>
+  </div>
+
+  <div class="qa-grid">
+    <section class="qa-case">
+      <h4>01 · 首页 / 视觉锚点</h4>
+      <div class="qa-phone">
+        <div class="qa-status">9:41</div>
+        <div class="qa-top"><div class="qa-brand">我的试衣间</div><div class="qa-icon">⚙</div></div>
+        <div class="qa-content">
+          <div class="qa-overline">Private fitting studio</div>
+          <div class="qa-hero"><div class="qa-hero-copy"><b>今天，试一件<br>更适合你的衣服</b><span>保留你的样子，只改变想换的衣服</span></div></div>
+          <div class="qa-primary">开始精准换装 <i>→</i></div>
+          <div class="qa-secondary-modes"><div class="qa-mode"><b>分层穿搭</b><span>逐件完成一套穿搭</span><em>V1.1 即将开放</em></div><div class="qa-mode"><b>创意写真</b><span>尝试新的造型场景</span><em>规划中</em></div></div>
+          <div class="qa-section"><b>最近任务</b><span>查看全部</span></div>
+          <div class="qa-task"><div class="qa-task-img"></div><div><b>米色风衣</b><small>2 个候选 · 正在生成</small></div><div class="qa-state">62%</div></div>
+        </div>
+        <div class="qa-nav"><div class="active"><i>⌂</i>首页</div><div><i>◇</i>素材</div><div><i>◷</i>历史</div></div>
+      </div>
+      <p>以一张有情绪的真实人物照片建立产品气质；主操作独占一层，未来模式退居次要，最近任务保持可恢复但不抢视觉中心。</p>
+    </section>
+
+    <section class="qa-case">
+      <h4>02 · 人物/衣物素材选择（衣物步骤）</h4>
+      <div class="qa-phone">
+        <div class="qa-status">9:41</div>
+        <div class="qa-top"><div class="qa-back">‹</div><div class="qa-brand">选择衣物</div><div class="qa-step">2 / 3</div></div>
+        <div class="qa-progress"><i class="on"></i><i class="on"></i><i></i></div>
+        <div class="qa-content">
+          <div class="qa-overline">Garment library</div>
+          <div class="qa-display">选一件，<br>看看穿上后的样子</div>
+          <div class="qa-filter"><div class="qa-chip on">全部</div><div class="qa-chip">上衣</div><div class="qa-chip">下装</div><div class="qa-chip">连衣裙</div></div>
+          <div class="qa-assets">
+            <div class="qa-asset selected"><img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=450&q=86" alt="米色外套"><span class="qa-check">✓</span></div>
+            <div class="qa-asset"><img src="https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=450&q=86" alt="黑色夹克"></div>
+            <div class="qa-asset qa-add"><span><b>＋</b>从相册导入</span></div>
+            <div class="qa-asset"><img src="https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=450&q=86" alt="衣架上的衣物"><span class="qa-source">他人穿着图 · 实验性</span></div>
+            <div class="qa-asset"><img src="https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=450&q=86" alt="白色上衣"></div>
+            <div class="qa-asset"><img src="https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&w=450&q=86" alt="米色针织衫"></div>
+          </div>
+          <div class="qa-selected-line"><img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=220&q=84" alt="已选米色风衣"><div><b>已选 · 米色风衣</b><span>上衣 · 商品图</span></div><em>更换</em></div>
+          <div class="qa-warning"><i>!</i><div>“他人穿着图”可能需要模型推测被遮挡的纹理与 Logo；选择后仍可继续。</div></div>
+        </div>
+        <div class="qa-foot"><div class="qa-primary">继续生成设置 <i>→</i></div></div>
+      </div>
+      <p>素材直接成为版面，不再被统一白卡包裹；选中态同时使用轮廓、勾选和文字摘要。人物步骤复用同一组件语言，但保留原来的独立步骤。</p>
+    </section>
+
+    <section class="qa-case">
+      <h4>03 · 候选结果 / 结果与状态语言</h4>
+      <div class="qa-phone">
+        <div class="qa-status">9:41</div>
+        <div class="qa-top"><div class="qa-back">‹</div><div class="qa-brand">候选结果</div><div class="qa-icon">•••</div></div>
+        <div class="qa-content">
+          <div class="qa-result-lead"><div><div class="qa-overline">2 of 3 preserved</div><div class="qa-display">选一个你<br>最喜欢的结果</div></div><div class="qa-status-label">部分成功</div></div>
+          <div class="qa-copy">成功结果已保留。候选 3 失败，可单独再次尝试。</div>
+          <div class="qa-result-grid">
+            <div class="qa-result-main"><img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=88" alt="候选 1"><span class="qa-result-badge">候选 1 · 已选择</span><span class="qa-fav">♡</span></div>
+            <div class="qa-result-side-wrap"><div class="qa-result-side"><img src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=420&q=86" alt="候选 2"><span class="qa-result-badge">候选 2</span><span class="qa-risk-dot">袖口可能漂移</span></div><div class="qa-result-side"><img src="https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=420&q=86" alt="原图"><span class="qa-result-badge">原图</span></div></div>
+          </div>
+          <div class="qa-selected"><div><b>候选 1</b><span>已选中 · 质量检查通过</span></div><div class="qa-state">查看大图</div></div>
+          <div class="qa-actions"><div class="qa-action"><i>◐</i>对比原图</div><div class="qa-action"><i>↓</i>下载</div><div class="qa-action"><i>♡</i>收藏</div></div>
+          <div class="qa-actions"><div class="qa-action"><i>✎</i>修正遮罩</div><div class="qa-action"><i>↻</i>同参数重试</div><div class="qa-action"><i>⋯</i>更多</div></div>
+          <div class="qa-failed"><i></i><div><b>候选 3 · 生成失败</b><span>请求超时 · 错误记录已保留</span></div><em>再次尝试</em></div>
+        </div>
+      </div>
+      <p>用主次不等的画幅体现“选择”，而非等权卡片网格；部分成功以文案、位置与语义色共同呈现，失败候选保留但不压过成功结果。</p>
+    </section>
+  </div>
+
+  <section class="qa-review">
+    <div class="qa-review-card">
+      <h3>Android 落地校验</h3>
+      <ul><li>系统状态栏、手势底部安全区、返回层级与三步流程均保留。</li><li>主按钮、导航与图片操作目标按 48dp 设计；图标操作需要 TalkBack 具体标签。</li><li>衬线字体只用于标题；正文与状态使用高可读无衬线，支持字体放大和自然换行。</li><li>结果网格在窄屏或大字号下改为单列；动效遵循系统“减少动态效果”。</li></ul>
+    </div>
+    <div class="qa-review-card">
+      <h3>方向色彩样本</h3>
+      <div class="qa-token-row">
+        <div class="qa-token"><i style="background:#f3efe9"></i><span>Canvas</span></div>
+        <div class="qa-token"><i style="background:#fbf8f3"></i><span>Paper</span></div>
+        <div class="qa-token"><i style="background:#69465f"></i><span>Plum</span></div>
+        <div class="qa-token"><i style="background:#241f23"></i><span>Ink</span></div>
+        <div class="qa-token"><i style="background:#f3dfb7"></i><span>Warning</span></div>
+      </div>
+      <p>仅作为本轮视觉方向样本；在你确认之前不写入最终 DESIGN.md。</p>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,142 @@
+Collection:
+  post:
+    tags: [Uploads]
+    operationId: createUploadSession
+    summary: Create a resumable upload session
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/assets/schemas.yaml#/UploadCreateRequest
+    responses:
+      '201':
+        description: Upload session created.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/UploadSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '507':
+        $ref: ../openapi.yaml#/components/responses/StorageBlocked
+Item:
+  parameters:
+    - name: upload_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Uploads]
+    operationId: getUploadSession
+    summary: Read resumable upload progress
+    security:
+      - AppBearer: []
+    responses:
+      '200':
+        description: Current upload state.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/UploadSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+  delete:
+    tags: [Uploads]
+    operationId: cancelUploadSession
+    summary: Cancel an incomplete upload and discard temporary bytes
+    security:
+      - AppBearer: []
+    responses:
+      '200':
+        description: Upload cancelled or already terminal.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/UploadSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Content:
+  parameters:
+    - name: upload_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  patch:
+    tags: [Uploads]
+    operationId: appendUploadContent
+    summary: Append bytes at the server-confirmed upload offset
+    security:
+      - AppBearer: []
+    parameters:
+      - name: Upload-Offset
+        in: header
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 0
+    requestBody:
+      required: true
+      content:
+        application/offset+octet-stream:
+          schema:
+            type: string
+            format: binary
+    responses:
+      '200':
+        description: Bytes appended.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/UploadChunkResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Complete:
+  parameters:
+    - name: upload_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Uploads]
+    operationId: completeUploadSession
+    summary: Validate an uploaded file and create its Asset
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/assets/schemas.yaml#/UploadCompleteRequest
+    responses:
+      '201':
+        description: Upload completed and Asset created.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/Asset
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '422':
+        $ref: ../openapi.yaml#/components/responses/Problem

@@ -1,0 +1,261 @@
+DefaultProviderConfiguration:
+  type: object
+  additionalProperties: false
+  required: [provider_id, config_ref, updated_at]
+  properties:
+    provider_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    config_ref:
+      $ref: ../common/schemas.yaml#/ProviderConfigRef
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+DefaultProviderUpdateRequest:
+  type: object
+  additionalProperties: false
+  required: [provider_id, confirm_new_jobs_only]
+  properties:
+    provider_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    confirm_new_jobs_only:
+      type: boolean
+      enum: [true]
+
+ComfyNodeConfigurationRequest:
+  type: object
+  additionalProperties: false
+  required: [endpoint, timeout_seconds, enabled]
+  properties:
+    endpoint:
+      type: string
+      format: uri
+    credential:
+      type: string
+      writeOnly: true
+      nullable: true
+      description: Omit to retain the configured credential; supply only to create or overwrite it.
+    timeout_seconds:
+      type: integer
+      minimum: 1
+      maximum: 3600
+    enabled:
+      type: boolean
+
+ComfyNodeConfiguration:
+  type: object
+  additionalProperties: false
+  required:
+    - endpoint
+    - timeout_seconds
+    - enabled
+    - credential_configured
+    - health
+    - updated_at
+  properties:
+    endpoint:
+      type: string
+      format: uri
+    timeout_seconds:
+      type: integer
+    enabled:
+      type: boolean
+    credential_configured:
+      type: boolean
+    credential_updated_at:
+      type: string
+      format: date-time
+    health:
+      type: string
+      enum: [healthy, offline, unchecked, incompatible, unknown]
+    last_checked_at:
+      type: string
+      format: date-time
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+ConnectionTestResult:
+  type: object
+  additionalProperties: false
+  required: [status, checked_at, detail]
+  properties:
+    status:
+      type: string
+      enum: [passed, failed]
+    checked_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    detail:
+      type: string
+
+RetentionPolicy:
+  type: object
+  additionalProperties: false
+  required: [unfavorited_output_days, intermediate_file_days, updated_at]
+  properties:
+    unfavorited_output_days:
+      type: integer
+      minimum: 1
+    intermediate_file_days:
+      type: integer
+      minimum: 1
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+RetentionPolicyUpdateRequest:
+  type: object
+  additionalProperties: false
+  required: [unfavorited_output_days, intermediate_file_days]
+  properties:
+    unfavorited_output_days:
+      type: integer
+      minimum: 1
+    intermediate_file_days:
+      type: integer
+      minimum: 1
+
+StorageStatus:
+  type: object
+  additionalProperties: false
+  required:
+    - state
+    - capacity_bytes
+    - used_bytes
+    - available_bytes
+    - accepting_new_work
+    - checked_at
+  properties:
+    state:
+      type: string
+      enum: [healthy, warning, blocked, unknown]
+    capacity_bytes:
+      type: integer
+      format: int64
+      minimum: 0
+    used_bytes:
+      type: integer
+      format: int64
+      minimum: 0
+    available_bytes:
+      type: integer
+      format: int64
+      minimum: 0
+    accepting_new_work:
+      type: boolean
+    block_reason:
+      type: string
+      nullable: true
+    checked_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+StorageScanRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    include_intermediate_files:
+      type: boolean
+      default: true
+
+StorageScanResult:
+  type: object
+  additionalProperties: false
+  required: [scan_id, reclaimable_bytes, reclaimable_files, protected_files, completed_at]
+  properties:
+    scan_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    reclaimable_bytes:
+      type: integer
+      format: int64
+      minimum: 0
+    reclaimable_files:
+      type: integer
+      minimum: 0
+    protected_files:
+      type: integer
+      minimum: 0
+    completed_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+CleanupRequest:
+  type: object
+  additionalProperties: false
+  required: [scan_id, confirm_irreversible]
+  properties:
+    scan_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    confirm_irreversible:
+      type: boolean
+      enum: [true]
+
+CleanupResult:
+  type: object
+  additionalProperties: false
+  required: [deleted_files, reclaimed_bytes, skipped_protected_files, completed_at]
+  properties:
+    deleted_files:
+      type: integer
+      minimum: 0
+    reclaimed_bytes:
+      type: integer
+      format: int64
+      minimum: 0
+    skipped_protected_files:
+      type: integer
+      minimum: 0
+    completed_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+DiagnosticJobSummary:
+  type: object
+  additionalProperties: false
+  required: [job_id, state, provider_label, item_count, updated_at]
+  properties:
+    job_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    state:
+      $ref: ../jobs/schemas.yaml#/JobState
+    provider_label:
+      type: string
+    item_count:
+      type: integer
+      minimum: 1
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+DiagnosticJobPage:
+  type: object
+  additionalProperties: false
+  required: [items, next_cursor, has_more, snapshot_at]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/DiagnosticJobSummary'
+    next_cursor:
+      type: string
+      nullable: true
+    has_more:
+      type: boolean
+    snapshot_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+DiagnosticJobDetail:
+  type: object
+  additionalProperties: false
+  required: [job, snapshot_at, redacted_external_events]
+  properties:
+    job:
+      $ref: ../jobs/schemas.yaml#/TryOnJob
+    snapshot_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    redacted_external_events:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [at, category, conclusion]
+        properties:
+          at:
+            $ref: ../common/schemas.yaml#/Timestamp
+          category:
+            type: string
+          conclusion:
+            type: string

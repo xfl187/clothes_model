@@ -1,0 +1,119 @@
+Identifier:
+  type: string
+  format: uuid
+  description: Server-issued UUIDv7 represented as a canonical UUID string.
+
+Timestamp:
+  type: string
+  format: date-time
+  description: UTC RFC 3339 timestamp.
+
+FieldError:
+  type: object
+  additionalProperties: false
+  required: [field, code, detail]
+  properties:
+    field:
+      type: string
+    code:
+      type: string
+    detail:
+      type: string
+
+ProblemDetails:
+  type: object
+  additionalProperties: false
+  required: [type, title, status, code, detail, trace_id, retryable, field_errors, context]
+  properties:
+    type:
+      type: string
+      format: uri
+    title:
+      type: string
+    status:
+      type: integer
+      minimum: 400
+      maximum: 599
+    code:
+      type: string
+      pattern: ^[a-z][a-z0-9_]*$
+      description: Stable machine-readable error code. Clients must not branch on detail text.
+    detail:
+      type: string
+      description: Safe Chinese user-facing explanation.
+    trace_id:
+      type: string
+    retryable:
+      type: boolean
+    field_errors:
+      type: array
+      items:
+        $ref: '#/FieldError'
+    context:
+      type: object
+      additionalProperties: true
+      description: Safe structured context only; never contains secrets or raw provider payloads.
+
+PageMetadata:
+  type: object
+  additionalProperties: false
+  required: [next_cursor, has_more]
+  properties:
+    next_cursor:
+      type: string
+      nullable: true
+    has_more:
+      type: boolean
+
+HealthStatus:
+  type: object
+  additionalProperties: false
+  required: [status, checked_at]
+  properties:
+    status:
+      type: string
+      enum: [ok, unavailable]
+    checked_at:
+      $ref: '#/Timestamp'
+    checks:
+      type: object
+      additionalProperties:
+        type: string
+      description: Safe component conclusions without filesystem paths or secrets.
+
+ProviderConfigRef:
+  type: object
+  additionalProperties: false
+  required: [provider_id, config_version_id, revision]
+  properties:
+    provider_id:
+      $ref: '#/Identifier'
+    config_version_id:
+      $ref: '#/Identifier'
+    revision:
+      type: integer
+      minimum: 1
+
+WorkflowVersionRef:
+  type: object
+  additionalProperties: false
+  required: [workflow_id, workflow_version_id, version]
+  properties:
+    workflow_id:
+      type: string
+      minLength: 1
+      maxLength: 100
+    workflow_version_id:
+      $ref: '#/Identifier'
+    version:
+      type: integer
+      minimum: 1
+
+VersionSnapshot:
+  type: object
+  additionalProperties: false
+  required: [label]
+  properties:
+    label:
+      type: string
+      description: Read-only display label captured when the owning resource was created.

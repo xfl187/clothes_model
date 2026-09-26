@@ -1,0 +1,124 @@
+ComfyCapabilities:
+  summary: Verified ComfyUI provider capabilities
+  value:
+    schema_version: 1
+    garment_categories:
+      values: [upper_body, lower_body, dress]
+      source: workflow_declared
+      verification: verified
+    manual_mask:
+      supported: true
+      source: workflow_declared
+      verification: verified
+    multiple_candidates:
+      supported: true
+      source: derived
+      verification: verified
+    multi_person_reference:
+      supported: false
+      source: workflow_declared
+      verification: declared
+    batch_input:
+      supported: false
+      source: workflow_declared
+      verification: declared
+    interrupt_running:
+      supported: true
+      source: adapter
+      verification: verified
+    sequential_layering:
+      supported: false
+      source: workflow_declared
+      verification: declared
+    supported_layer_roles:
+      values: []
+      source: workflow_declared
+      verification: declared
+    preserve_existing_garments:
+      supported: false
+      source: workflow_declared
+      verification: declared
+    outfit_context:
+      supported: false
+      source: workflow_declared
+      verification: declared
+    region_mask:
+      supported: true
+      source: workflow_declared
+      verification: verified
+    input_constraints:
+      content_types: [image/jpeg, image/png]
+      max_size_bytes: 20971520
+      max_width: 4096
+      max_height: 4096
+    output_constraints:
+      max_candidates: 4
+
+AvailableProviderPage:
+  summary: Available ComfyUI provider with a verified capability snapshot
+  value:
+    items:
+      - id: 01992b5a-0000-7000-8000-000000000201
+        display_name: ComfyUI · precise-vton
+        type: comfyui
+        availability: available
+        is_default: true
+        config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        capabilities:
+          schema_version: 1
+          garment_categories:
+            values: [upper_body, lower_body, dress]
+            source: workflow_declared
+            verification: verified
+          manual_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          multiple_candidates:
+            supported: true
+            source: derived
+            verification: verified
+          multi_person_reference:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          batch_input:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          interrupt_running:
+            supported: true
+            source: adapter
+            verification: verified
+          sequential_layering:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          supported_layer_roles:
+            values: []
+            source: workflow_declared
+            verification: declared
+          preserve_existing_garments:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          outfit_context:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          region_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          input_constraints:
+            content_types: [image/jpeg, image/png]
+            max_size_bytes: 20971520
+            max_width: 4096
+            max_height: 4096
+          output_constraints:
+            max_candidates: 4
+    next_cursor: null
+    has_more: false

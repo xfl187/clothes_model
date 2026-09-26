@@ -1,0 +1,71 @@
+Status:
+  get:
+    tags: [Storage]
+    operationId: getStorageStatus
+    summary: Read capacity and whether new uploads and jobs are accepted
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: Storage status.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/StorageStatus
+            examples:
+              blocked:
+                $ref: ../examples/storage.yaml#/Blocked
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+Scan:
+  post:
+    tags: [Storage]
+    operationId: scanStorage
+    summary: Preview reclaimable files without deleting content
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: ../components/admin/schemas.yaml#/StorageScanRequest
+    responses:
+      '200':
+        description: Cleanup preview including protected references.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/StorageScanResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+Cleanup:
+  post:
+    tags: [Storage]
+    operationId: cleanupStorage
+    summary: Delete files from a confirmed scan while preserving protected references
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/admin/schemas.yaml#/CleanupRequest
+    responses:
+      '200':
+        description: Cleanup result.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/CleanupResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem

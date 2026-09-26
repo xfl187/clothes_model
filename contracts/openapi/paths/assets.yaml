@@ -1,0 +1,78 @@
+Collection:
+  get:
+    tags: [Assets]
+    operationId: listAssets
+    summary: List reusable person, garment, result, or mask assets
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/Cursor
+      - $ref: ../openapi.yaml#/components/parameters/Limit
+      - name: kind
+        in: query
+        required: false
+        schema:
+          $ref: ../components/assets/schemas.yaml#/AssetKind
+    responses:
+      '200':
+        description: Asset page ordered by created_at and id.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/AssetPage
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+Item:
+  parameters:
+    - name: asset_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Assets]
+    operationId: getAsset
+    summary: Read asset metadata, including deleted-content placeholders
+    security:
+      - AppBearer: []
+    responses:
+      '200':
+        description: Asset metadata.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/Asset
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Content:
+  parameters:
+    - name: asset_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Assets]
+    operationId: downloadAssetContent
+    summary: Download private asset content through an authenticated endpoint
+    security:
+      - AppBearer: []
+      - AdminSession: []
+    responses:
+      '200':
+        description: Private image bytes.
+        content:
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem

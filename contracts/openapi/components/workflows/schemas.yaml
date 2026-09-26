@@ -1,0 +1,117 @@
+WorkflowState:
+  type: string
+  enum: [draft, validated, active, retired, unknown]
+
+WorkflowCreateRequest:
+  type: object
+  additionalProperties: false
+  required: [workflow_id, version, mode, workflow_json, manifest]
+  properties:
+    workflow_id:
+      type: string
+      minLength: 1
+      maxLength: 100
+    version:
+      type: integer
+      minimum: 1
+    mode:
+      type: string
+      enum: [precise_try_on]
+    workflow_json:
+      type: object
+      additionalProperties: true
+      description: Immutable ComfyUI API-format workflow JSON.
+    manifest:
+      type: object
+      additionalProperties: true
+      description: Versioned bindings, outputs, and declared capabilities.
+
+WorkflowVersion:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - workflow_id
+    - version
+    - mode
+    - state
+    - capabilities
+    - created_at
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    workflow_id:
+      type: string
+    version:
+      type: integer
+      minimum: 1
+    mode:
+      type: string
+      enum: [precise_try_on]
+    state:
+      $ref: '#/WorkflowState'
+    capabilities:
+      $ref: ../providers/schemas.yaml#/ProviderCapabilities
+    validation_status:
+      type: string
+      enum: [not_run, passed, failed]
+    validation_messages:
+      type: array
+      items:
+        type: string
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    activated_at:
+      type: string
+      format: date-time
+
+WorkflowPage:
+  type: object
+  additionalProperties: false
+  required: [items, next_cursor, has_more]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/WorkflowVersion'
+    next_cursor:
+      type: string
+      nullable: true
+    has_more:
+      type: boolean
+
+WorkflowValidationResult:
+  type: object
+  additionalProperties: false
+  required: [status, checked_at, checks]
+  properties:
+    status:
+      type: string
+      enum: [passed, failed]
+    checked_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    checks:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [key, status]
+        properties:
+          key:
+            type: string
+          status:
+            type: string
+            enum: [passed, failed, skipped]
+          detail:
+            type: string
+            nullable: true
+
+WorkflowActivateRequest:
+  type: object
+  additionalProperties: false
+  required: [confirm_new_jobs_only]
+  properties:
+    confirm_new_jobs_only:
+      type: boolean
+      enum: [true]
+      description: Confirms that activation affects new jobs only.

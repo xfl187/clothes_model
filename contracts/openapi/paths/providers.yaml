@@ -1,0 +1,171 @@
+AvailableProviders:
+  get:
+    tags: [Providers]
+    operationId: listAvailableProviders
+    summary: List providers and capability snapshots available for new jobs
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/Cursor
+      - $ref: ../openapi.yaml#/components/parameters/Limit
+    responses:
+      '200':
+        description: Provider page.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/providers/schemas.yaml#/ProviderPage
+            examples:
+              availableProviders:
+                $ref: ../examples/providers.yaml#/AvailableProviderPage
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+ConfigCollection:
+  get:
+    tags: [Providers]
+    operationId: listProviderConfigs
+    summary: List redacted provider configurations
+    security:
+      - AdminSession: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/Cursor
+      - $ref: ../openapi.yaml#/components/parameters/Limit
+    responses:
+      '200':
+        description: Provider configuration page.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/providers/schemas.yaml#/ProviderConfigPage
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+  post:
+    tags: [Providers]
+    operationId: createProviderConfig
+    summary: Save a new inactive provider configuration without changing the default
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/providers/schemas.yaml#/ProviderConfigRequest
+    responses:
+      '201':
+        description: Inactive provider configuration created; secret value is not returned.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/providers/schemas.yaml#/ProviderConfig
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+ConfigItem:
+  parameters:
+    - name: provider_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Providers]
+    operationId: getProviderConfig
+    summary: Read a redacted provider configuration and capability snapshot
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: Redacted provider configuration.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/providers/schemas.yaml#/ProviderConfig
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+  patch:
+    tags: [Providers]
+    operationId: updateProviderConfig
+    summary: Create the next immutable configuration revision
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/providers/schemas.yaml#/ProviderConfigRequest
+    responses:
+      '200':
+        description: New configuration revision saved without changing the default.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/providers/schemas.yaml#/ProviderConfig
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+ValidateConfig:
+  parameters:
+    - name: provider_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Providers]
+    operationId: validateProviderConfig
+    summary: Run connection, capability, and minimal generation checks
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Validation result; testing does not enable or select the provider.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/providers/schemas.yaml#/ProviderValidationResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+EnableConfig:
+  parameters:
+    - name: provider_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Providers]
+    operationId: enableProviderConfig
+    summary: Enable a validated provider configuration without changing the default
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Provider configuration enabled.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/providers/schemas.yaml#/ProviderConfig
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem

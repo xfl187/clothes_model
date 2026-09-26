@@ -1,0 +1,277 @@
+JobState:
+  type: string
+  enum:
+    - queued
+    - waiting_provider
+    - preparing
+    - running
+    - needs_attention
+    - succeeded
+    - partially_succeeded
+    - failed
+    - cancelled
+    - unknown
+
+JobItemState:
+  type: string
+  enum:
+    - queued
+    - waiting_provider
+    - preparing
+    - running
+    - needs_attention
+    - succeeded
+    - failed
+    - cancelled
+    - unknown
+
+JobBlockReason:
+  type: string
+  enum:
+    - provider_offline
+    - storage_capacity
+    - retry_backoff
+    - locked_configuration_unavailable
+    - external_state_unknown
+    - configuration_invalid
+    - unknown
+
+TryOnMode:
+  type: string
+  enum: [precise_try_on, unknown]
+
+GenerationOptions:
+  type: object
+  additionalProperties: false
+  required: [candidate_count]
+  properties:
+    candidate_count:
+      type: integer
+      minimum: 1
+      maximum: 4
+    seed:
+      type: integer
+      format: int64
+      nullable: true
+    advanced_parameters:
+      type: object
+      additionalProperties: true
+
+CreateJobRequest:
+  type: object
+  additionalProperties: false
+  required:
+    - person_asset_ids
+    - garment_asset_id
+    - provider_id
+    - mode
+    - generation_options
+  properties:
+    person_asset_ids:
+      type: array
+      minItems: 1
+      maxItems: 1
+      description: V1 submits one person asset while preserving the future-safe list shape.
+      items:
+        $ref: ../common/schemas.yaml#/Identifier
+    garment_asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    mask_asset_id:
+      type: string
+      format: uuid
+    provider_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    mode:
+      $ref: '#/TryOnMode'
+    generation_options:
+      $ref: '#/GenerationOptions'
+    related_job_id:
+      type: string
+      format: uuid
+      description: Links a mask-correction job to the original job without overwriting it.
+
+GeneratedOutput:
+  type: object
+  additionalProperties: false
+  required: [id, job_item_id, asset_id, favorite, content_available, created_at]
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    job_item_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    favorite:
+      type: boolean
+    content_available:
+      type: boolean
+    seed:
+      type: integer
+      format: int64
+      nullable: true
+    actual_parameters:
+      type: object
+      additionalProperties: true
+    quality_warnings:
+      type: array
+      items:
+        type: string
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+JobItem:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - job_id
+    - person_asset_id
+    - candidate_index
+    - state
+    - attempt
+    - outputs
+    - created_at
+    - updated_at
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    job_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    person_asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    candidate_index:
+      type: integer
+      minimum: 0
+    state:
+      $ref: '#/JobItemState'
+    block_reason:
+      $ref: '#/JobBlockReason'
+    attempt:
+      type: integer
+      minimum: 1
+    retry_of_job_item_id:
+      type: string
+      format: uuid
+    external_execution_id:
+      type: string
+      nullable: true
+      description: Safe provider execution identifier; provider credentials are never included.
+    next_attempt_at:
+      type: string
+      format: date-time
+    error:
+      $ref: ../common/schemas.yaml#/ProblemDetails
+    outputs:
+      type: array
+      items:
+        $ref: '#/GeneratedOutput'
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+TryOnJob:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - person_asset_ids
+    - garment_asset_id
+    - mode
+    - generation_options
+    - state
+    - provider_config_ref
+    - provider_snapshot
+    - items
+    - created_at
+    - updated_at
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    person_asset_ids:
+      type: array
+      items:
+        $ref: ../common/schemas.yaml#/Identifier
+    garment_asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    mask_asset_id:
+      type: string
+      format: uuid
+    related_job_id:
+      type: string
+      format: uuid
+    mode:
+      $ref: '#/TryOnMode'
+    generation_options:
+      $ref: '#/GenerationOptions'
+    state:
+      $ref: '#/JobState'
+    block_reason:
+      $ref: '#/JobBlockReason'
+    blocked_detail:
+      type: string
+      nullable: true
+    provider_config_ref:
+      $ref: ../common/schemas.yaml#/ProviderConfigRef
+    provider_snapshot:
+      $ref: ../common/schemas.yaml#/VersionSnapshot
+    workflow_version_ref:
+      $ref: ../common/schemas.yaml#/WorkflowVersionRef
+    workflow_snapshot:
+      $ref: ../common/schemas.yaml#/VersionSnapshot
+    items:
+      type: array
+      items:
+        $ref: '#/JobItem'
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+JobPage:
+  type: object
+  additionalProperties: false
+  required: [items, next_cursor, has_more]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/TryOnJob'
+    next_cursor:
+      type: string
+      nullable: true
+    has_more:
+      type: boolean
+
+RetryJobItemRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    provider_id:
+      type: string
+      format: uuid
+      description: Explicit compatible provider selection when the locked provider cannot be reused.
+    reason:
+      type: string
+      nullable: true
+
+FinishFailedRequest:
+  type: object
+  additionalProperties: false
+  required: [reason]
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 500
+
+JobCommandResult:
+  type: object
+  additionalProperties: false
+  required: [job]
+  properties:
+    job:
+      $ref: '#/TryOnJob'
+    created_job_item_id:
+      type: string
+      format: uuid

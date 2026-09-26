@@ -1,0 +1,131 @@
+Collection:
+  get:
+    tags: [Workflows]
+    operationId: listWorkflowVersions
+    summary: List immutable Workflow versions
+    security:
+      - AdminSession: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/Cursor
+      - $ref: ../openapi.yaml#/components/parameters/Limit
+    responses:
+      '200':
+        description: Workflow version page.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/workflows/schemas.yaml#/WorkflowPage
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+  post:
+    tags: [Workflows]
+    operationId: createWorkflowVersion
+    summary: Upload a new immutable draft Workflow version
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/workflows/schemas.yaml#/WorkflowCreateRequest
+    responses:
+      '201':
+        description: Draft Workflow version created; existing versions are unchanged.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/workflows/schemas.yaml#/WorkflowVersion
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Item:
+  parameters:
+    - name: workflow_version_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Workflows]
+    operationId: getWorkflowVersion
+    summary: Read an immutable Workflow version and its validation state
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: Workflow version.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/workflows/schemas.yaml#/WorkflowVersion
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Validate:
+  parameters:
+    - name: workflow_version_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Workflows]
+    operationId: validateWorkflowVersion
+    summary: Validate bindings, capabilities, compatibility, and minimal test execution
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Workflow validation result.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/workflows/schemas.yaml#/WorkflowValidationResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Activate:
+  parameters:
+    - name: workflow_version_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Workflows]
+    operationId: activateWorkflowVersion
+    summary: Activate a validated version for new jobs and retire the previous active version
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/workflows/schemas.yaml#/WorkflowActivateRequest
+    responses:
+      '200':
+        description: Workflow version activated; existing jobs retain their locked version.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/workflows/schemas.yaml#/WorkflowVersion
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem

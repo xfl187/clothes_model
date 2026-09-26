@@ -1,0 +1,297 @@
+ProviderType:
+  type: string
+  enum: [llm_image_edit, comfyui, unknown]
+
+ProviderAvailability:
+  type: string
+  enum: [available, temporarily_offline, unavailable_configuration, disabled, unknown]
+
+CapabilitySource:
+  type: string
+  enum: [adapter, workflow_declared, derived, unknown]
+
+CapabilityVerification:
+  type: string
+  enum: [verified, declared, unavailable, unknown]
+
+CapabilityFlag:
+  type: object
+  additionalProperties: false
+  required: [supported, source, verification]
+  properties:
+    supported:
+      type: boolean
+    source:
+      $ref: '#/CapabilitySource'
+    verification:
+      $ref: '#/CapabilityVerification'
+    note:
+      type: string
+      nullable: true
+
+CapabilityValues:
+  type: object
+  additionalProperties: false
+  required: [values, source, verification]
+  properties:
+    values:
+      type: array
+      items:
+        type: string
+    source:
+      $ref: '#/CapabilitySource'
+    verification:
+      $ref: '#/CapabilityVerification'
+    note:
+      type: string
+      nullable: true
+
+ImageConstraints:
+  type: object
+  additionalProperties: false
+  required: [content_types, max_size_bytes]
+  properties:
+    content_types:
+      type: array
+      minItems: 1
+      items:
+        type: string
+    min_width:
+      type: integer
+      minimum: 1
+      nullable: true
+    min_height:
+      type: integer
+      minimum: 1
+      nullable: true
+    max_width:
+      type: integer
+      minimum: 1
+      nullable: true
+    max_height:
+      type: integer
+      minimum: 1
+      nullable: true
+    max_size_bytes:
+      type: integer
+      format: int64
+      minimum: 1
+
+OutputConstraints:
+  type: object
+  additionalProperties: false
+  required: [max_candidates]
+  properties:
+    max_candidates:
+      type: integer
+      minimum: 1
+      maximum: 4
+
+ProviderCapabilities:
+  type: object
+  additionalProperties: false
+  required:
+    - schema_version
+    - garment_categories
+    - manual_mask
+    - multiple_candidates
+    - multi_person_reference
+    - batch_input
+    - interrupt_running
+    - sequential_layering
+    - supported_layer_roles
+    - preserve_existing_garments
+    - outfit_context
+    - region_mask
+    - input_constraints
+    - output_constraints
+  properties:
+    schema_version:
+      type: integer
+      enum: [1]
+    garment_categories:
+      $ref: '#/CapabilityValues'
+    manual_mask:
+      $ref: '#/CapabilityFlag'
+    multiple_candidates:
+      $ref: '#/CapabilityFlag'
+    multi_person_reference:
+      $ref: '#/CapabilityFlag'
+    batch_input:
+      $ref: '#/CapabilityFlag'
+    interrupt_running:
+      $ref: '#/CapabilityFlag'
+    sequential_layering:
+      $ref: '#/CapabilityFlag'
+    supported_layer_roles:
+      $ref: '#/CapabilityValues'
+    preserve_existing_garments:
+      $ref: '#/CapabilityFlag'
+    outfit_context:
+      $ref: '#/CapabilityFlag'
+    region_mask:
+      $ref: '#/CapabilityFlag'
+    input_constraints:
+      $ref: '#/ImageConstraints'
+    output_constraints:
+      $ref: '#/OutputConstraints'
+
+ProviderSummary:
+  type: object
+  additionalProperties: false
+  required: [id, display_name, type, availability, capabilities, config_ref]
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    display_name:
+      type: string
+    type:
+      $ref: '#/ProviderType'
+    availability:
+      $ref: '#/ProviderAvailability'
+    unavailable_reason:
+      type: string
+      nullable: true
+    is_default:
+      type: boolean
+    config_ref:
+      $ref: ../common/schemas.yaml#/ProviderConfigRef
+    capabilities:
+      $ref: '#/ProviderCapabilities'
+
+ProviderPage:
+  type: object
+  additionalProperties: false
+  required: [items, next_cursor, has_more]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/ProviderSummary'
+    next_cursor:
+      type: string
+      nullable: true
+    has_more:
+      type: boolean
+
+ProviderConfigState:
+  type: string
+  enum: [inactive, validated, active, disabled, unknown]
+
+ProviderConfigRequest:
+  type: object
+  additionalProperties: false
+  required: [display_name, type, adapter_type, endpoint, model, timeout_seconds]
+  properties:
+    display_name:
+      type: string
+    type:
+      $ref: '#/ProviderType'
+    adapter_type:
+      type: string
+    endpoint:
+      type: string
+      format: uri
+    api_key:
+      type: string
+      writeOnly: true
+      nullable: true
+      description: Omit to retain an existing secret; supply only to create or overwrite it.
+    model:
+      type: string
+    timeout_seconds:
+      type: integer
+      minimum: 1
+      maximum: 3600
+    vendor_parameters:
+      type: object
+      additionalProperties: true
+
+ProviderConfig:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - display_name
+    - type
+    - adapter_type
+    - endpoint
+    - model
+    - timeout_seconds
+    - state
+    - secret_configured
+    - config_ref
+    - capabilities
+    - updated_at
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    display_name:
+      type: string
+    type:
+      $ref: '#/ProviderType'
+    adapter_type:
+      type: string
+    endpoint:
+      type: string
+      format: uri
+    model:
+      type: string
+    timeout_seconds:
+      type: integer
+    state:
+      $ref: '#/ProviderConfigState'
+    secret_configured:
+      type: boolean
+    secret_updated_at:
+      type: string
+      format: date-time
+    config_ref:
+      $ref: ../common/schemas.yaml#/ProviderConfigRef
+    capabilities:
+      $ref: '#/ProviderCapabilities'
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+ProviderConfigPage:
+  type: object
+  additionalProperties: false
+  required: [items, next_cursor, has_more]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/ProviderConfig'
+    next_cursor:
+      type: string
+      nullable: true
+    has_more:
+      type: boolean
+
+ProviderValidationResult:
+  type: object
+  additionalProperties: false
+  required: [status, checked_at, steps, capabilities]
+  properties:
+    status:
+      type: string
+      enum: [passed, failed]
+    checked_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    steps:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [key, status]
+        properties:
+          key:
+            type: string
+          status:
+            type: string
+            enum: [passed, failed, skipped]
+          detail:
+            type: string
+            nullable: true
+    capabilities:
+      $ref: '#/ProviderCapabilities'

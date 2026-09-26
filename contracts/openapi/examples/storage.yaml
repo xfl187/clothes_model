@@ -1,0 +1,10 @@
+Blocked:
+  summary: Storage blocks new uploads and jobs
+  value:
+    state: blocked
+    capacity_bytes: 107374182400
+    used_bytes: 106300440576
+    available_bytes: 1073741824
+    accepting_new_work: false
+    block_reason: storage_capacity
+    checked_at: '2026-09-24T06:10:00Z'

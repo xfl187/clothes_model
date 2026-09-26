@@ -1,0 +1,263 @@
+Collection:
+  get:
+    tags: [Jobs]
+    operationId: listJobs
+    summary: List jobs ordered by created_at and id
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/Cursor
+      - $ref: ../openapi.yaml#/components/parameters/Limit
+      - name: state
+        in: query
+        required: false
+        schema:
+          $ref: ../components/jobs/schemas.yaml#/JobState
+    responses:
+      '200':
+        description: Job page.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobPage
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+  post:
+    tags: [Jobs]
+    operationId: createJob
+    summary: Create a try-on job and lock generation configuration versions
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/jobs/schemas.yaml#/CreateJobRequest
+    responses:
+      '201':
+        description: Persisted job, including locked Provider and Workflow references.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/TryOnJob
+            examples:
+              waitingProvider:
+                $ref: ../examples/jobs.yaml#/WaitingProvider
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '422':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '507':
+        $ref: ../openapi.yaml#/components/responses/StorageBlocked
+Item:
+  parameters:
+    - name: job_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Jobs]
+    operationId: getJob
+    summary: Read authoritative job, item, output, and locked-version state
+    security:
+      - AppBearer: []
+    responses:
+      '200':
+        description: Job details.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/TryOnJob
+            examples:
+              waitingProvider:
+                $ref: ../examples/jobs.yaml#/WaitingProvider
+              partiallySucceeded:
+                $ref: ../examples/jobs.yaml#/PartiallySucceeded
+              needsAttention:
+                $ref: ../examples/jobs.yaml#/NeedsAttention
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+CancelJob:
+  parameters:
+    - name: job_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Jobs]
+    operationId: cancelJob
+    summary: Best-effort cancel every unfinished candidate while retaining successful outputs
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Updated aggregate job state.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+JobItem:
+  parameters:
+    - name: job_item_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Jobs]
+    operationId: getJobItem
+    summary: Read one candidate execution and its immutable attempt lineage
+    security:
+      - AppBearer: []
+    responses:
+      '200':
+        description: Job item.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobItem
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+CancelJobItem:
+  parameters:
+    - name: job_item_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Jobs]
+    operationId: cancelJobItem
+    summary: Best-effort cancel one unfinished candidate without affecting others
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Updated aggregate job state.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+RetryJobItem:
+  parameters:
+    - name: job_item_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Jobs]
+    operationId: retryJobItem
+    summary: Create a new traceable JobItem attempt without overwriting the original
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: ../components/jobs/schemas.yaml#/RetryJobItemRequest
+    responses:
+      '201':
+        description: New JobItem created in queued state and aggregate job recalculated.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+RequeryJobItem:
+  parameters:
+    - name: job_item_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Jobs]
+    operationId: requeryJobItem
+    summary: Requery an uncertain external execution without starting a new one
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Job synchronized with the known external state.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+FinishFailedJobItem:
+  parameters:
+    - name: job_item_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Jobs]
+    operationId: finishJobItemAsFailed
+    summary: End needs_attention processing as a retained failure
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/jobs/schemas.yaml#/FinishFailedRequest
+    responses:
+      '200':
+        description: JobItem ended as failed and aggregate job recalculated.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem

@@ -1,0 +1,2963 @@
+openapi: 3.0.3
+info:
+  title: Clothes Model API
+  version: 1.0.0
+  description: Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+  license:
+    name: Proprietary
+servers:
+  - url: https://localhost
+    description: Local or deployment origin
+tags:
+  - name: Health
+    description: Process liveness and local dependency readiness.
+  - name: Authentication
+    description: App Token validation and Admin browser session lifecycle.
+  - name: Uploads
+    description: Resumable private file upload sessions.
+  - name: Assets
+    description: Private person, garment, mask, and generated-output metadata and content.
+  - name: Jobs
+    description: Try-on jobs, candidate JobItems, outputs, cancellation, and recovery commands.
+  - name: Providers
+    description: Provider availability, capabilities, and redacted Admin configuration.
+  - name: Workflows
+    description: Immutable ComfyUI Workflow versions and lifecycle actions.
+  - name: Admin Configuration
+    description: Explicit runtime configuration resources maintained by Web Admin.
+  - name: Storage
+    description: Capacity status, cleanup preview, and confirmed cleanup commands.
+  - name: Diagnostics
+    description: Redacted, timestamped operational diagnostics for administrators.
+paths:
+  /health/live:
+    get:
+      tags:
+        - Health
+      operationId: getLiveness
+      summary: Report whether the process is alive
+      security: []
+      responses:
+        '200':
+          description: Process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /health/ready:
+    get:
+      tags:
+        - Health
+      operationId: getReadiness
+      summary: Report whether required local dependencies are ready
+      security: []
+      responses:
+        '200':
+          description: Required dependencies are ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /api/v1/auth/status:
+    get:
+      tags:
+        - Authentication
+      operationId: getAppAuthStatus
+      summary: Validate the App Token without returning secret material
+      security:
+        - AppBearer: []
+      responses:
+        '200':
+          description: App Token is valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppAuthStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/admin/auth/session:
+    post:
+      tags:
+        - Authentication
+      operationId: createAdminSession
+      summary: Exchange the Admin Token for a secure browser session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminSessionCreateRequest'
+      responses:
+        '201':
+          description: Session created. The session identifier is set in an HttpOnly cookie.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags:
+        - Authentication
+      operationId: deleteAdminSession
+      summary: End the current admin browser session
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      responses:
+        '204':
+          description: Session ended.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/uploads:
+    post:
+      tags:
+        - Uploads
+      operationId: createUploadSession
+      summary: Create a resumable upload session
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadCreateRequest'
+      responses:
+        '201':
+          description: Upload session created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '507':
+          $ref: '#/components/responses/StorageBlocked'
+  /api/v1/uploads/{upload_id}:
+    parameters:
+      - name: upload_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Uploads
+      operationId: getUploadSession
+      summary: Read resumable upload progress
+      security:
+        - AppBearer: []
+      responses:
+        '200':
+          description: Current upload state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags:
+        - Uploads
+      operationId: cancelUploadSession
+      summary: Cancel an incomplete upload and discard temporary bytes
+      security:
+        - AppBearer: []
+      responses:
+        '200':
+          description: Upload cancelled or already terminal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/uploads/{upload_id}/content:
+    parameters:
+      - name: upload_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    patch:
+      tags:
+        - Uploads
+      operationId: appendUploadContent
+      summary: Append bytes at the server-confirmed upload offset
+      security:
+        - AppBearer: []
+      parameters:
+        - name: Upload-Offset
+          in: header
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+      requestBody:
+        required: true
+        content:
+          application/offset+octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Bytes appended.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadChunkResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/uploads/{upload_id}/complete:
+    parameters:
+      - name: upload_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Uploads
+      operationId: completeUploadSession
+      summary: Validate an uploaded file and create its Asset
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadCompleteRequest'
+      responses:
+        '201':
+          description: Upload completed and Asset created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /api/v1/assets:
+    get:
+      tags:
+        - Assets
+      operationId: listAssets
+      summary: List reusable person, garment, result, or mask assets
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: kind
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/AssetKind'
+      responses:
+        '200':
+          description: Asset page ordered by created_at and id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/assets/{asset_id}:
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Assets
+      operationId: getAsset
+      summary: Read asset metadata, including deleted-content placeholders
+      security:
+        - AppBearer: []
+      responses:
+        '200':
+          description: Asset metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/assets/{asset_id}/content:
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Assets
+      operationId: downloadAssetContent
+      summary: Download private asset content through an authenticated endpoint
+      security:
+        - AppBearer: []
+        - AdminSession: []
+      responses:
+        '200':
+          description: Private image bytes.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/jobs:
+    get:
+      tags:
+        - Jobs
+      operationId: listJobs
+      summary: List jobs ordered by created_at and id
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: state
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/JobState'
+      responses:
+        '200':
+          description: Job page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Jobs
+      operationId: createJob
+      summary: Create a try-on job and lock generation configuration versions
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobRequest'
+      responses:
+        '201':
+          description: Persisted job, including locked Provider and Workflow references.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TryOnJob'
+              examples:
+                waitingProvider:
+                  $ref: '#/components/examples/WaitingProvider'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '507':
+          $ref: '#/components/responses/StorageBlocked'
+  /api/v1/jobs/{job_id}:
+    parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Jobs
+      operationId: getJob
+      summary: Read authoritative job, item, output, and locked-version state
+      security:
+        - AppBearer: []
+      responses:
+        '200':
+          description: Job details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TryOnJob'
+              examples:
+                waitingProvider:
+                  $ref: '#/components/examples/WaitingProvider'
+                partiallySucceeded:
+                  $ref: '#/components/examples/PartiallySucceeded'
+                needsAttention:
+                  $ref: '#/components/examples/NeedsAttention'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/jobs/{job_id}/cancel:
+    parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Jobs
+      operationId: cancelJob
+      summary: Best-effort cancel every unfinished candidate while retaining successful outputs
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Updated aggregate job state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/job-items/{job_item_id}:
+    parameters:
+      - name: job_item_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Jobs
+      operationId: getJobItem
+      summary: Read one candidate execution and its immutable attempt lineage
+      security:
+        - AppBearer: []
+      responses:
+        '200':
+          description: Job item.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/job-items/{job_item_id}/cancel:
+    parameters:
+      - name: job_item_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Jobs
+      operationId: cancelJobItem
+      summary: Best-effort cancel one unfinished candidate without affecting others
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Updated aggregate job state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/job-items/{job_item_id}/retry:
+    parameters:
+      - name: job_item_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Jobs
+      operationId: retryJobItem
+      summary: Create a new traceable JobItem attempt without overwriting the original
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetryJobItemRequest'
+      responses:
+        '201':
+          description: New JobItem created in queued state and aggregate job recalculated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/job-items/{job_item_id}/requery:
+    parameters:
+      - name: job_item_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Jobs
+      operationId: requeryJobItem
+      summary: Requery an uncertain external execution without starting a new one
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Job synchronized with the known external state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/job-items/{job_item_id}/finish-failed:
+    parameters:
+      - name: job_item_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Jobs
+      operationId: finishJobItemAsFailed
+      summary: End needs_attention processing as a retained failure
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinishFailedRequest'
+      responses:
+        '200':
+          description: JobItem ended as failed and aggregate job recalculated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/providers:
+    get:
+      tags:
+        - Providers
+      operationId: listAvailableProviders
+      summary: List providers and capability snapshots available for new jobs
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Provider page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderPage'
+              examples:
+                availableProviders:
+                  $ref: '#/components/examples/AvailableProviderPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/admin/provider-configs:
+    get:
+      tags:
+        - Providers
+      operationId: listProviderConfigs
+      summary: List redacted provider configurations
+      security:
+        - AdminSession: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Provider configuration page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderConfigPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Providers
+      operationId: createProviderConfig
+      summary: Save a new inactive provider configuration without changing the default
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderConfigRequest'
+      responses:
+        '201':
+          description: Inactive provider configuration created; secret value is not returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/provider-configs/{provider_id}:
+    parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Providers
+      operationId: getProviderConfig
+      summary: Read a redacted provider configuration and capability snapshot
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Redacted provider configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+    patch:
+      tags:
+        - Providers
+      operationId: updateProviderConfig
+      summary: Create the next immutable configuration revision
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderConfigRequest'
+      responses:
+        '200':
+          description: New configuration revision saved without changing the default.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/provider-configs/{provider_id}/validate:
+    parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Providers
+      operationId: validateProviderConfig
+      summary: Run connection, capability, and minimal generation checks
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Validation result; testing does not enable or select the provider.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderValidationResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/provider-configs/{provider_id}/enable:
+    parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Providers
+      operationId: enableProviderConfig
+      summary: Enable a validated provider configuration without changing the default
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Provider configuration enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/workflows:
+    get:
+      tags:
+        - Workflows
+      operationId: listWorkflowVersions
+      summary: List immutable Workflow versions
+      security:
+        - AdminSession: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Workflow version page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Workflows
+      operationId: createWorkflowVersion
+      summary: Upload a new immutable draft Workflow version
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowCreateRequest'
+      responses:
+        '201':
+          description: Draft Workflow version created; existing versions are unchanged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowVersion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/workflows/{workflow_version_id}:
+    parameters:
+      - name: workflow_version_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Workflows
+      operationId: getWorkflowVersion
+      summary: Read an immutable Workflow version and its validation state
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Workflow version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowVersion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/workflows/{workflow_version_id}/validate:
+    parameters:
+      - name: workflow_version_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Workflows
+      operationId: validateWorkflowVersion
+      summary: Validate bindings, capabilities, compatibility, and minimal test execution
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Workflow validation result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowValidationResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/workflows/{workflow_version_id}/activate:
+    parameters:
+      - name: workflow_version_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Workflows
+      operationId: activateWorkflowVersion
+      summary: Activate a validated version for new jobs and retire the previous active version
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowActivateRequest'
+      responses:
+        '200':
+          description: Workflow version activated; existing jobs retain their locked version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowVersion'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/configuration/default-provider:
+    get:
+      tags:
+        - Admin Configuration
+      operationId: getDefaultProviderConfiguration
+      summary: Read the Provider selection applied to new jobs
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Current default Provider configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultProviderConfiguration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Admin Configuration
+      operationId: updateDefaultProviderConfiguration
+      summary: Change the default for new jobs without modifying existing locked jobs
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DefaultProviderUpdateRequest'
+      responses:
+        '200':
+          description: Default Provider updated for new jobs only.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefaultProviderConfiguration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/configuration/comfy-node:
+    get:
+      tags:
+        - Admin Configuration
+      operationId: getComfyNodeConfiguration
+      summary: Read the single redacted ComfyUI node configuration
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Redacted node configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComfyNodeConfiguration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Admin Configuration
+      operationId: updateComfyNodeConfiguration
+      summary: Replace the single ComfyUI physical-node configuration
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComfyNodeConfigurationRequest'
+      responses:
+        '200':
+          description: Node configuration saved; credentials are not returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComfyNodeConfiguration'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/admin/configuration/comfy-node/test:
+    post:
+      tags:
+        - Admin Configuration
+      operationId: testComfyNodeConnection
+      summary: Test connectivity without enabling the node or changing locked jobs
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Connection test result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTestResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/admin/configuration/retention:
+    get:
+      tags:
+        - Admin Configuration
+      operationId: getRetentionPolicy
+      summary: Read runtime retention policy
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Current retention policy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetentionPolicy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags:
+        - Admin Configuration
+      operationId: updateRetentionPolicy
+      summary: Update future cleanup eligibility rules
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetentionPolicyUpdateRequest'
+      responses:
+        '200':
+          description: Retention policy updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetentionPolicy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/admin/storage:
+    get:
+      tags:
+        - Storage
+      operationId: getStorageStatus
+      summary: Read capacity and whether new uploads and jobs are accepted
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Storage status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorageStatus'
+              examples:
+                blocked:
+                  $ref: '#/components/examples/Blocked'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/admin/storage/scan:
+    post:
+      tags:
+        - Storage
+      operationId: scanStorage
+      summary: Preview reclaimable files without deleting content
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StorageScanRequest'
+      responses:
+        '200':
+          description: Cleanup preview including protected references.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorageScanResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/admin/storage/cleanup:
+    post:
+      tags:
+        - Storage
+      operationId: cleanupStorage
+      summary: Delete files from a confirmed scan while preserving protected references
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CleanupRequest'
+      responses:
+        '200':
+          description: Cleanup result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/diagnostics/jobs:
+    get:
+      tags:
+        - Diagnostics
+      operationId: listDiagnosticJobs
+      summary: List redacted job diagnostics from a timestamped snapshot
+      security:
+        - AdminSession: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: state
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/JobState'
+      responses:
+        '200':
+          description: Diagnostic job page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnosticJobPage'
+              examples:
+                snapshot:
+                  $ref: '#/components/examples/JobPageSnapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/admin/diagnostics/jobs/{job_id}:
+    parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Diagnostics
+      operationId: getDiagnosticJob
+      summary: Read redacted lineage, locked versions, errors, and external execution metadata
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Redacted diagnostic details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnosticJobDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+components:
+  securitySchemes:
+    AppBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-app-token
+      description: High-entropy App Token used only by the Android application.
+    AdminSession:
+      type: apiKey
+      in: cookie
+      name: clothes_admin_session
+      description: Secure HttpOnly SameSite admin session cookie.
+    AdminCsrf:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Required with the admin session for state-changing requests.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Opaque cursor returned by the previous page.
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    Problem:
+      description: Request failed with a stable machine-readable error code.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Unauthorized:
+      description: Authentication is missing or invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            invalidToken:
+              $ref: '#/components/examples/Unauthorized'
+    StorageBlocked:
+      description: New uploads or jobs are blocked because storage capacity is insufficient.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            storageCapacity:
+              $ref: '#/components/examples/StorageCapacity'
+  schemas:
+    Timestamp:
+      type: string
+      format: date-time
+      description: UTC RFC 3339 timestamp.
+    HealthStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - checked_at
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - unavailable
+        checked_at:
+          $ref: '#/components/schemas/Timestamp'
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+          description: Safe component conclusions without filesystem paths or secrets.
+    FieldError:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - code
+        - detail
+      properties:
+        field:
+          type: string
+        code:
+          type: string
+        detail:
+          type: string
+    ProblemDetails:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - code
+        - detail
+        - trace_id
+        - retryable
+        - field_errors
+        - context
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        code:
+          type: string
+          pattern: ^[a-z][a-z0-9_]*$
+          description: Stable machine-readable error code. Clients must not branch on detail text.
+        detail:
+          type: string
+          description: Safe Chinese user-facing explanation.
+        trace_id:
+          type: string
+        retryable:
+          type: boolean
+        field_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+        context:
+          type: object
+          additionalProperties: true
+          description: Safe structured context only; never contains secrets or raw provider payloads.
+    AppAuthStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - authenticated
+        - token_id
+        - server_time
+      properties:
+        authenticated:
+          type: boolean
+          enum:
+            - true
+        token_id:
+          type: string
+          description: Non-secret token identifier; never the token value.
+        server_time:
+          $ref: '#/components/schemas/Timestamp'
+    AdminSessionCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - admin_token
+      properties:
+        admin_token:
+          type: string
+          minLength: 32
+          writeOnly: true
+    AdminSession:
+      type: object
+      additionalProperties: false
+      required:
+        - authenticated
+        - csrf_token
+        - created_at
+        - expires_at
+      properties:
+        authenticated:
+          type: boolean
+          enum:
+            - true
+        csrf_token:
+          type: string
+          writeOnly: true
+          description: Returned in the login response and required for subsequent admin writes.
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        expires_at:
+          $ref: '#/components/schemas/Timestamp'
+    AssetKind:
+      type: string
+      enum:
+        - person
+        - garment
+        - generated_output
+        - mask
+        - workflow_file
+        - unknown
+    GarmentCategory:
+      type: string
+      enum:
+        - upper_body
+        - lower_body
+        - dress
+        - unknown
+    GarmentSource:
+      type: string
+      enum:
+        - photo
+        - screenshot
+        - product_image
+        - experimental
+        - unknown
+    UploadCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - asset_kind
+        - filename
+        - content_type
+        - size_bytes
+      properties:
+        asset_kind:
+          $ref: '#/components/schemas/AssetKind'
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 255
+        content_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+        garment_category:
+          $ref: '#/components/schemas/GarmentCategory'
+        garment_source:
+          $ref: '#/components/schemas/GarmentSource'
+    Identifier:
+      type: string
+      format: uuid
+      description: Server-issued UUIDv7 represented as a canonical UUID string.
+    UploadState:
+      type: string
+      enum:
+        - created
+        - uploading
+        - completed
+        - failed
+        - cancelled
+        - unknown
+    UploadSession:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - state
+        - asset_kind
+        - filename
+        - content_type
+        - size_bytes
+        - uploaded_bytes
+        - created_at
+        - expires_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        state:
+          $ref: '#/components/schemas/UploadState'
+        asset_kind:
+          $ref: '#/components/schemas/AssetKind'
+        filename:
+          type: string
+        content_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        uploaded_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+        asset_id:
+          type: string
+          format: uuid
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        expires_at:
+          $ref: '#/components/schemas/Timestamp'
+        error:
+          $ref: '#/components/schemas/ProblemDetails'
+    UploadChunkResult:
+      type: object
+      additionalProperties: false
+      required:
+        - upload_id
+        - state
+        - uploaded_bytes
+      properties:
+        upload_id:
+          $ref: '#/components/schemas/Identifier'
+        state:
+          $ref: '#/components/schemas/UploadState'
+        uploaded_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+    UploadCompleteRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - sha256
+      properties:
+        sha256:
+          type: string
+          pattern: ^[A-Fa-f0-9]{64}$
+    Asset:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - content_type
+        - size_bytes
+        - width
+        - height
+        - favorite
+        - lifecycle
+        - created_at
+        - content_available
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        kind:
+          $ref: '#/components/schemas/AssetKind'
+        content_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+        favorite:
+          type: boolean
+        lifecycle:
+          type: string
+          enum:
+            - active
+            - deleted_content
+            - expired
+            - unknown
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        content_available:
+          type: boolean
+        quality_warnings:
+          type: array
+          items:
+            type: string
+        garment_category:
+          $ref: '#/components/schemas/GarmentCategory'
+        garment_source:
+          $ref: '#/components/schemas/GarmentSource'
+    AssetPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+    JobState:
+      type: string
+      enum:
+        - queued
+        - waiting_provider
+        - preparing
+        - running
+        - needs_attention
+        - succeeded
+        - partially_succeeded
+        - failed
+        - cancelled
+        - unknown
+    TryOnMode:
+      type: string
+      enum:
+        - precise_try_on
+        - unknown
+    GenerationOptions:
+      type: object
+      additionalProperties: false
+      required:
+        - candidate_count
+      properties:
+        candidate_count:
+          type: integer
+          minimum: 1
+          maximum: 4
+        seed:
+          type: integer
+          format: int64
+          nullable: true
+        advanced_parameters:
+          type: object
+          additionalProperties: true
+    JobBlockReason:
+      type: string
+      enum:
+        - provider_offline
+        - storage_capacity
+        - retry_backoff
+        - locked_configuration_unavailable
+        - external_state_unknown
+        - configuration_invalid
+        - unknown
+    ProviderConfigRef:
+      type: object
+      additionalProperties: false
+      required:
+        - provider_id
+        - config_version_id
+        - revision
+      properties:
+        provider_id:
+          $ref: '#/components/schemas/Identifier'
+        config_version_id:
+          $ref: '#/components/schemas/Identifier'
+        revision:
+          type: integer
+          minimum: 1
+    VersionSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - label
+      properties:
+        label:
+          type: string
+          description: Read-only display label captured when the owning resource was created.
+    WorkflowVersionRef:
+      type: object
+      additionalProperties: false
+      required:
+        - workflow_id
+        - workflow_version_id
+        - version
+      properties:
+        workflow_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        workflow_version_id:
+          $ref: '#/components/schemas/Identifier'
+        version:
+          type: integer
+          minimum: 1
+    JobItemState:
+      type: string
+      enum:
+        - queued
+        - waiting_provider
+        - preparing
+        - running
+        - needs_attention
+        - succeeded
+        - failed
+        - cancelled
+        - unknown
+    GeneratedOutput:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - job_item_id
+        - asset_id
+        - favorite
+        - content_available
+        - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        job_item_id:
+          $ref: '#/components/schemas/Identifier'
+        asset_id:
+          $ref: '#/components/schemas/Identifier'
+        favorite:
+          type: boolean
+        content_available:
+          type: boolean
+        seed:
+          type: integer
+          format: int64
+          nullable: true
+        actual_parameters:
+          type: object
+          additionalProperties: true
+        quality_warnings:
+          type: array
+          items:
+            type: string
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    JobItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - job_id
+        - person_asset_id
+        - candidate_index
+        - state
+        - attempt
+        - outputs
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        job_id:
+          $ref: '#/components/schemas/Identifier'
+        person_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        candidate_index:
+          type: integer
+          minimum: 0
+        state:
+          $ref: '#/components/schemas/JobItemState'
+        block_reason:
+          $ref: '#/components/schemas/JobBlockReason'
+        attempt:
+          type: integer
+          minimum: 1
+        retry_of_job_item_id:
+          type: string
+          format: uuid
+        external_execution_id:
+          type: string
+          nullable: true
+          description: Safe provider execution identifier; provider credentials are never included.
+        next_attempt_at:
+          type: string
+          format: date-time
+        error:
+          $ref: '#/components/schemas/ProblemDetails'
+        outputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratedOutput'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    TryOnJob:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - person_asset_ids
+        - garment_asset_id
+        - mode
+        - generation_options
+        - state
+        - provider_config_ref
+        - provider_snapshot
+        - items
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        person_asset_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        garment_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        mask_asset_id:
+          type: string
+          format: uuid
+        related_job_id:
+          type: string
+          format: uuid
+        mode:
+          $ref: '#/components/schemas/TryOnMode'
+        generation_options:
+          $ref: '#/components/schemas/GenerationOptions'
+        state:
+          $ref: '#/components/schemas/JobState'
+        block_reason:
+          $ref: '#/components/schemas/JobBlockReason'
+        blocked_detail:
+          type: string
+          nullable: true
+        provider_config_ref:
+          $ref: '#/components/schemas/ProviderConfigRef'
+        provider_snapshot:
+          $ref: '#/components/schemas/VersionSnapshot'
+        workflow_version_ref:
+          $ref: '#/components/schemas/WorkflowVersionRef'
+        workflow_snapshot:
+          $ref: '#/components/schemas/VersionSnapshot'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobItem'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    JobPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TryOnJob'
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+    CreateJobRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - person_asset_ids
+        - garment_asset_id
+        - provider_id
+        - mode
+        - generation_options
+      properties:
+        person_asset_ids:
+          type: array
+          minItems: 1
+          maxItems: 1
+          description: V1 submits one person asset while preserving the future-safe list shape.
+          items:
+            $ref: '#/components/schemas/Identifier'
+        garment_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        mask_asset_id:
+          type: string
+          format: uuid
+        provider_id:
+          $ref: '#/components/schemas/Identifier'
+        mode:
+          $ref: '#/components/schemas/TryOnMode'
+        generation_options:
+          $ref: '#/components/schemas/GenerationOptions'
+        related_job_id:
+          type: string
+          format: uuid
+          description: Links a mask-correction job to the original job without overwriting it.
+    JobCommandResult:
+      type: object
+      additionalProperties: false
+      required:
+        - job
+      properties:
+        job:
+          $ref: '#/components/schemas/TryOnJob'
+        created_job_item_id:
+          type: string
+          format: uuid
+    RetryJobItemRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        provider_id:
+          type: string
+          format: uuid
+          description: Explicit compatible provider selection when the locked provider cannot be reused.
+        reason:
+          type: string
+          nullable: true
+    FinishFailedRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    ProviderType:
+      type: string
+      enum:
+        - llm_image_edit
+        - comfyui
+        - unknown
+    ProviderAvailability:
+      type: string
+      enum:
+        - available
+        - temporarily_offline
+        - unavailable_configuration
+        - disabled
+        - unknown
+    CapabilitySource:
+      type: string
+      enum:
+        - adapter
+        - workflow_declared
+        - derived
+        - unknown
+    CapabilityVerification:
+      type: string
+      enum:
+        - verified
+        - declared
+        - unavailable
+        - unknown
+    CapabilityValues:
+      type: object
+      additionalProperties: false
+      required:
+        - values
+        - source
+        - verification
+      properties:
+        values:
+          type: array
+          items:
+            type: string
+        source:
+          $ref: '#/components/schemas/CapabilitySource'
+        verification:
+          $ref: '#/components/schemas/CapabilityVerification'
+        note:
+          type: string
+          nullable: true
+    CapabilityFlag:
+      type: object
+      additionalProperties: false
+      required:
+        - supported
+        - source
+        - verification
+      properties:
+        supported:
+          type: boolean
+        source:
+          $ref: '#/components/schemas/CapabilitySource'
+        verification:
+          $ref: '#/components/schemas/CapabilityVerification'
+        note:
+          type: string
+          nullable: true
+    ImageConstraints:
+      type: object
+      additionalProperties: false
+      required:
+        - content_types
+        - max_size_bytes
+      properties:
+        content_types:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        min_width:
+          type: integer
+          minimum: 1
+          nullable: true
+        min_height:
+          type: integer
+          minimum: 1
+          nullable: true
+        max_width:
+          type: integer
+          minimum: 1
+          nullable: true
+        max_height:
+          type: integer
+          minimum: 1
+          nullable: true
+        max_size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+    OutputConstraints:
+      type: object
+      additionalProperties: false
+      required:
+        - max_candidates
+      properties:
+        max_candidates:
+          type: integer
+          minimum: 1
+          maximum: 4
+    ProviderCapabilities:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - garment_categories
+        - manual_mask
+        - multiple_candidates
+        - multi_person_reference
+        - batch_input
+        - interrupt_running
+        - sequential_layering
+        - supported_layer_roles
+        - preserve_existing_garments
+        - outfit_context
+        - region_mask
+        - input_constraints
+        - output_constraints
+      properties:
+        schema_version:
+          type: integer
+          enum:
+            - 1
+        garment_categories:
+          $ref: '#/components/schemas/CapabilityValues'
+        manual_mask:
+          $ref: '#/components/schemas/CapabilityFlag'
+        multiple_candidates:
+          $ref: '#/components/schemas/CapabilityFlag'
+        multi_person_reference:
+          $ref: '#/components/schemas/CapabilityFlag'
+        batch_input:
+          $ref: '#/components/schemas/CapabilityFlag'
+        interrupt_running:
+          $ref: '#/components/schemas/CapabilityFlag'
+        sequential_layering:
+          $ref: '#/components/schemas/CapabilityFlag'
+        supported_layer_roles:
+          $ref: '#/components/schemas/CapabilityValues'
+        preserve_existing_garments:
+          $ref: '#/components/schemas/CapabilityFlag'
+        outfit_context:
+          $ref: '#/components/schemas/CapabilityFlag'
+        region_mask:
+          $ref: '#/components/schemas/CapabilityFlag'
+        input_constraints:
+          $ref: '#/components/schemas/ImageConstraints'
+        output_constraints:
+          $ref: '#/components/schemas/OutputConstraints'
+    ProviderSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - display_name
+        - type
+        - availability
+        - capabilities
+        - config_ref
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        display_name:
+          type: string
+        type:
+          $ref: '#/components/schemas/ProviderType'
+        availability:
+          $ref: '#/components/schemas/ProviderAvailability'
+        unavailable_reason:
+          type: string
+          nullable: true
+        is_default:
+          type: boolean
+        config_ref:
+          $ref: '#/components/schemas/ProviderConfigRef'
+        capabilities:
+          $ref: '#/components/schemas/ProviderCapabilities'
+    ProviderPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderSummary'
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+    ProviderConfigState:
+      type: string
+      enum:
+        - inactive
+        - validated
+        - active
+        - disabled
+        - unknown
+    ProviderConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - display_name
+        - type
+        - adapter_type
+        - endpoint
+        - model
+        - timeout_seconds
+        - state
+        - secret_configured
+        - config_ref
+        - capabilities
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        display_name:
+          type: string
+        type:
+          $ref: '#/components/schemas/ProviderType'
+        adapter_type:
+          type: string
+        endpoint:
+          type: string
+          format: uri
+        model:
+          type: string
+        timeout_seconds:
+          type: integer
+        state:
+          $ref: '#/components/schemas/ProviderConfigState'
+        secret_configured:
+          type: boolean
+        secret_updated_at:
+          type: string
+          format: date-time
+        config_ref:
+          $ref: '#/components/schemas/ProviderConfigRef'
+        capabilities:
+          $ref: '#/components/schemas/ProviderCapabilities'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    ProviderConfigPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderConfig'
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+    ProviderConfigRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - display_name
+        - type
+        - adapter_type
+        - endpoint
+        - model
+        - timeout_seconds
+      properties:
+        display_name:
+          type: string
+        type:
+          $ref: '#/components/schemas/ProviderType'
+        adapter_type:
+          type: string
+        endpoint:
+          type: string
+          format: uri
+        api_key:
+          type: string
+          writeOnly: true
+          nullable: true
+          description: Omit to retain an existing secret; supply only to create or overwrite it.
+        model:
+          type: string
+        timeout_seconds:
+          type: integer
+          minimum: 1
+          maximum: 3600
+        vendor_parameters:
+          type: object
+          additionalProperties: true
+    ProviderValidationResult:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - checked_at
+        - steps
+        - capabilities
+      properties:
+        status:
+          type: string
+          enum:
+            - passed
+            - failed
+        checked_at:
+          $ref: '#/components/schemas/Timestamp'
+        steps:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - key
+              - status
+            properties:
+              key:
+                type: string
+              status:
+                type: string
+                enum:
+                  - passed
+                  - failed
+                  - skipped
+              detail:
+                type: string
+                nullable: true
+        capabilities:
+          $ref: '#/components/schemas/ProviderCapabilities'
+    WorkflowState:
+      type: string
+      enum:
+        - draft
+        - validated
+        - active
+        - retired
+        - unknown
+    WorkflowVersion:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - workflow_id
+        - version
+        - mode
+        - state
+        - capabilities
+        - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        workflow_id:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        mode:
+          type: string
+          enum:
+            - precise_try_on
+        state:
+          $ref: '#/components/schemas/WorkflowState'
+        capabilities:
+          $ref: '#/components/schemas/ProviderCapabilities'
+        validation_status:
+          type: string
+          enum:
+            - not_run
+            - passed
+            - failed
+        validation_messages:
+          type: array
+          items:
+            type: string
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        activated_at:
+          type: string
+          format: date-time
+    WorkflowPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowVersion'
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+    WorkflowCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - workflow_id
+        - version
+        - mode
+        - workflow_json
+        - manifest
+      properties:
+        workflow_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        version:
+          type: integer
+          minimum: 1
+        mode:
+          type: string
+          enum:
+            - precise_try_on
+        workflow_json:
+          type: object
+          additionalProperties: true
+          description: Immutable ComfyUI API-format workflow JSON.
+        manifest:
+          type: object
+          additionalProperties: true
+          description: Versioned bindings, outputs, and declared capabilities.
+    WorkflowValidationResult:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - checked_at
+        - checks
+      properties:
+        status:
+          type: string
+          enum:
+            - passed
+            - failed
+        checked_at:
+          $ref: '#/components/schemas/Timestamp'
+        checks:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - key
+              - status
+            properties:
+              key:
+                type: string
+              status:
+                type: string
+                enum:
+                  - passed
+                  - failed
+                  - skipped
+              detail:
+                type: string
+                nullable: true
+    WorkflowActivateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - confirm_new_jobs_only
+      properties:
+        confirm_new_jobs_only:
+          type: boolean
+          enum:
+            - true
+          description: Confirms that activation affects new jobs only.
+    DefaultProviderConfiguration:
+      type: object
+      additionalProperties: false
+      required:
+        - provider_id
+        - config_ref
+        - updated_at
+      properties:
+        provider_id:
+          $ref: '#/components/schemas/Identifier'
+        config_ref:
+          $ref: '#/components/schemas/ProviderConfigRef'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    DefaultProviderUpdateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - provider_id
+        - confirm_new_jobs_only
+      properties:
+        provider_id:
+          $ref: '#/components/schemas/Identifier'
+        confirm_new_jobs_only:
+          type: boolean
+          enum:
+            - true
+    ComfyNodeConfiguration:
+      type: object
+      additionalProperties: false
+      required:
+        - endpoint
+        - timeout_seconds
+        - enabled
+        - credential_configured
+        - health
+        - updated_at
+      properties:
+        endpoint:
+          type: string
+          format: uri
+        timeout_seconds:
+          type: integer
+        enabled:
+          type: boolean
+        credential_configured:
+          type: boolean
+        credential_updated_at:
+          type: string
+          format: date-time
+        health:
+          type: string
+          enum:
+            - healthy
+            - offline
+            - unchecked
+            - incompatible
+            - unknown
+        last_checked_at:
+          type: string
+          format: date-time
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    ComfyNodeConfigurationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - endpoint
+        - timeout_seconds
+        - enabled
+      properties:
+        endpoint:
+          type: string
+          format: uri
+        credential:
+          type: string
+          writeOnly: true
+          nullable: true
+          description: Omit to retain the configured credential; supply only to create or overwrite it.
+        timeout_seconds:
+          type: integer
+          minimum: 1
+          maximum: 3600
+        enabled:
+          type: boolean
+    ConnectionTestResult:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - checked_at
+        - detail
+      properties:
+        status:
+          type: string
+          enum:
+            - passed
+            - failed
+        checked_at:
+          $ref: '#/components/schemas/Timestamp'
+        detail:
+          type: string
+    RetentionPolicy:
+      type: object
+      additionalProperties: false
+      required:
+        - unfavorited_output_days
+        - intermediate_file_days
+        - updated_at
+      properties:
+        unfavorited_output_days:
+          type: integer
+          minimum: 1
+        intermediate_file_days:
+          type: integer
+          minimum: 1
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    RetentionPolicyUpdateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - unfavorited_output_days
+        - intermediate_file_days
+      properties:
+        unfavorited_output_days:
+          type: integer
+          minimum: 1
+        intermediate_file_days:
+          type: integer
+          minimum: 1
+    StorageStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - state
+        - capacity_bytes
+        - used_bytes
+        - available_bytes
+        - accepting_new_work
+        - checked_at
+      properties:
+        state:
+          type: string
+          enum:
+            - healthy
+            - warning
+            - blocked
+            - unknown
+        capacity_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+        used_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+        available_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+        accepting_new_work:
+          type: boolean
+        block_reason:
+          type: string
+          nullable: true
+        checked_at:
+          $ref: '#/components/schemas/Timestamp'
+    StorageScanRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        include_intermediate_files:
+          type: boolean
+          default: true
+    StorageScanResult:
+      type: object
+      additionalProperties: false
+      required:
+        - scan_id
+        - reclaimable_bytes
+        - reclaimable_files
+        - protected_files
+        - completed_at
+      properties:
+        scan_id:
+          $ref: '#/components/schemas/Identifier'
+        reclaimable_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+        reclaimable_files:
+          type: integer
+          minimum: 0
+        protected_files:
+          type: integer
+          minimum: 0
+        completed_at:
+          $ref: '#/components/schemas/Timestamp'
+    CleanupRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - scan_id
+        - confirm_irreversible
+      properties:
+        scan_id:
+          $ref: '#/components/schemas/Identifier'
+        confirm_irreversible:
+          type: boolean
+          enum:
+            - true
+    CleanupResult:
+      type: object
+      additionalProperties: false
+      required:
+        - deleted_files
+        - reclaimed_bytes
+        - skipped_protected_files
+        - completed_at
+      properties:
+        deleted_files:
+          type: integer
+          minimum: 0
+        reclaimed_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+        skipped_protected_files:
+          type: integer
+          minimum: 0
+        completed_at:
+          $ref: '#/components/schemas/Timestamp'
+    DiagnosticJobSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - job_id
+        - state
+        - provider_label
+        - item_count
+        - updated_at
+      properties:
+        job_id:
+          $ref: '#/components/schemas/Identifier'
+        state:
+          $ref: '#/components/schemas/JobState'
+        provider_label:
+          type: string
+        item_count:
+          type: integer
+          minimum: 1
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    DiagnosticJobPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+        - has_more
+        - snapshot_at
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiagnosticJobSummary'
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+        snapshot_at:
+          $ref: '#/components/schemas/Timestamp'
+    DiagnosticJobDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - job
+        - snapshot_at
+        - redacted_external_events
+      properties:
+        job:
+          $ref: '#/components/schemas/TryOnJob'
+        snapshot_at:
+          $ref: '#/components/schemas/Timestamp'
+        redacted_external_events:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - at
+              - category
+              - conclusion
+            properties:
+              at:
+                $ref: '#/components/schemas/Timestamp'
+              category:
+                type: string
+              conclusion:
+                type: string
+  examples:
+    Unauthorized:
+      summary: App token is invalid or has been rotated
+      value:
+        type: https://clothes-model.local/problems/authentication-required
+        title: 需要重新认证
+        status: 401
+        code: authentication_required
+        detail: App Token 已失效，请输入新的令牌后重试。
+        trace_id: tr_01K5AUTHFAIL
+        retryable: false
+        field_errors: []
+        context: {}
+    StorageCapacity:
+      summary: New work is blocked by storage capacity
+      value:
+        type: https://clothes-model.local/problems/storage-capacity
+        title: 存储空间不足
+        status: 507
+        code: storage_capacity
+        detail: 当前存储空间不足，暂时不能上传素材或创建任务。
+        trace_id: tr_01K5STORAGE
+        retryable: true
+        field_errors: []
+        context:
+          required_action: admin_cleanup
+    WaitingProvider:
+      summary: Job waits indefinitely for a compatible provider node
+      value:
+        id: 01992b5a-0000-7000-8000-000000000001
+        person_asset_ids:
+          - 01992b5a-0000-7000-8000-000000000101
+        garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+        mode: precise_try_on
+        generation_options:
+          candidate_count: 1
+          seed: null
+          advanced_parameters: {}
+        state: waiting_provider
+        block_reason: provider_offline
+        blocked_detail: ComfyUI 节点暂时离线，恢复后任务会自动继续。
+        provider_config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        provider_snapshot:
+          label: ComfyUI · precise-vton
+        workflow_version_ref:
+          workflow_id: precise-vton
+          workflow_version_id: 01992b5a-0000-7000-8000-000000000203
+          version: 2
+        workflow_snapshot:
+          label: precise-vton v2
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000301
+            job_id: 01992b5a-0000-7000-8000-000000000001
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 0
+            state: waiting_provider
+            block_reason: provider_offline
+            attempt: 1
+            outputs: []
+            created_at: '2026-09-24T06:00:00Z'
+            updated_at: '2026-09-24T06:01:00Z'
+        created_at: '2026-09-24T06:00:00Z'
+        updated_at: '2026-09-24T06:01:00Z'
+    PartiallySucceeded:
+      summary: Successful output is retained while another candidate failed
+      value:
+        id: 01992b5a-0000-7000-8000-000000000002
+        person_asset_ids:
+          - 01992b5a-0000-7000-8000-000000000101
+        garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+        mode: precise_try_on
+        generation_options:
+          candidate_count: 2
+          seed: 42
+          advanced_parameters: {}
+        state: partially_succeeded
+        provider_config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        provider_snapshot:
+          label: Image Edit Provider · model-a
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000302
+            job_id: 01992b5a-0000-7000-8000-000000000002
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 0
+            state: succeeded
+            attempt: 1
+            external_execution_id: safe-execution-1
+            outputs:
+              - id: 01992b5a-0000-7000-8000-000000000401
+                job_item_id: 01992b5a-0000-7000-8000-000000000302
+                asset_id: 01992b5a-0000-7000-8000-000000000402
+                favorite: false
+                content_available: true
+                seed: 42
+                actual_parameters: {}
+                quality_warnings: []
+                created_at: '2026-09-24T06:05:00Z'
+            created_at: '2026-09-24T06:00:00Z'
+            updated_at: '2026-09-24T06:05:00Z'
+          - id: 01992b5a-0000-7000-8000-000000000303
+            job_id: 01992b5a-0000-7000-8000-000000000002
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 1
+            state: failed
+            attempt: 3
+            external_execution_id: safe-execution-2
+            error:
+              type: https://clothes-model.local/problems/provider-rate-limit
+              title: 生成失败
+              status: 502
+              code: provider_retry_exhausted
+              detail: 临时故障重试次数已耗尽，可单独重试此候选。
+              trace_id: tr_01K5PARTIAL
+              retryable: true
+              field_errors: []
+              context: {}
+            outputs: []
+            created_at: '2026-09-24T06:00:00Z'
+            updated_at: '2026-09-24T06:06:00Z'
+        created_at: '2026-09-24T06:00:00Z'
+        updated_at: '2026-09-24T06:06:00Z'
+    NeedsAttention:
+      summary: Original external execution is uncertain and automatic progress stopped
+      value:
+        id: 01992b5a-0000-7000-8000-000000000003
+        person_asset_ids:
+          - 01992b5a-0000-7000-8000-000000000101
+        garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+        mode: precise_try_on
+        generation_options:
+          candidate_count: 1
+          seed: null
+          advanced_parameters: {}
+        state: needs_attention
+        block_reason: external_state_unknown
+        blocked_detail: 外部执行状态无法确认，自动推进已停止。
+        provider_config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        provider_snapshot:
+          label: ComfyUI · precise-vton
+        workflow_version_ref:
+          workflow_id: precise-vton
+          workflow_version_id: 01992b5a-0000-7000-8000-000000000203
+          version: 2
+        workflow_snapshot:
+          label: precise-vton v2
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000304
+            job_id: 01992b5a-0000-7000-8000-000000000003
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 0
+            state: needs_attention
+            block_reason: external_state_unknown
+            attempt: 1
+            external_execution_id: comfy-prompt-safe-id
+            outputs: []
+            created_at: '2026-09-24T06:00:00Z'
+            updated_at: '2026-09-24T06:08:00Z'
+        created_at: '2026-09-24T06:00:00Z'
+        updated_at: '2026-09-24T06:08:00Z'
+    AvailableProviderPage:
+      summary: Available ComfyUI provider with a verified capability snapshot
+      value:
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000201
+            display_name: ComfyUI · precise-vton
+            type: comfyui
+            availability: available
+            is_default: true
+            config_ref:
+              provider_id: 01992b5a-0000-7000-8000-000000000201
+              config_version_id: 01992b5a-0000-7000-8000-000000000202
+              revision: 3
+            capabilities:
+              schema_version: 1
+              garment_categories:
+                values:
+                  - upper_body
+                  - lower_body
+                  - dress
+                source: workflow_declared
+                verification: verified
+              manual_mask:
+                supported: true
+                source: workflow_declared
+                verification: verified
+              multiple_candidates:
+                supported: true
+                source: derived
+                verification: verified
+              multi_person_reference:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              batch_input:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              interrupt_running:
+                supported: true
+                source: adapter
+                verification: verified
+              sequential_layering:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              supported_layer_roles:
+                values: []
+                source: workflow_declared
+                verification: declared
+              preserve_existing_garments:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              outfit_context:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              region_mask:
+                supported: true
+                source: workflow_declared
+                verification: verified
+              input_constraints:
+                content_types:
+                  - image/jpeg
+                  - image/png
+                max_size_bytes: 20971520
+                max_width: 4096
+                max_height: 4096
+              output_constraints:
+                max_candidates: 4
+        next_cursor: null
+        has_more: false
+    Blocked:
+      summary: Storage blocks new uploads and jobs
+      value:
+        state: blocked
+        capacity_bytes: 107374182400
+        used_bytes: 106300440576
+        available_bytes: 1073741824
+        accepting_new_work: false
+        block_reason: storage_capacity
+        checked_at: '2026-09-24T06:10:00Z'
+    JobPageSnapshot:
+      summary: Redacted diagnostic job snapshot
+      value:
+        items:
+          - job_id: 01992b5a-0000-7000-8000-000000000003
+            state: needs_attention
+            provider_label: ComfyUI · precise-vton
+            item_count: 1
+            updated_at: '2026-09-24T06:08:00Z'
+        next_cursor: null
+        has_more: false
+        snapshot_at: '2026-09-24T06:10:00Z'

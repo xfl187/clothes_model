@@ -1,0 +1,51 @@
+Jobs:
+  get:
+    tags: [Diagnostics]
+    operationId: listDiagnosticJobs
+    summary: List redacted job diagnostics from a timestamped snapshot
+    security:
+      - AdminSession: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/Cursor
+      - $ref: ../openapi.yaml#/components/parameters/Limit
+      - name: state
+        in: query
+        required: false
+        schema:
+          $ref: ../components/jobs/schemas.yaml#/JobState
+    responses:
+      '200':
+        description: Diagnostic job page.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/DiagnosticJobPage
+            examples:
+              snapshot:
+                $ref: ../examples/diagnostics.yaml#/JobPageSnapshot
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+JobDetail:
+  parameters:
+    - name: job_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Diagnostics]
+    operationId: getDiagnosticJob
+    summary: Read redacted lineage, locked versions, errors, and external execution metadata
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: Redacted diagnostic details.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/DiagnosticJobDetail
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem

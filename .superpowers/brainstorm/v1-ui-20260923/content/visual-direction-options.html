@@ -1,0 +1,65 @@
+<style>
+  .vd-intro{max-width:760px;margin-bottom:22px}.vd-intro p{color:#736d78;line-height:1.55}
+  .vd-grid{display:grid;grid-template-columns:repeat(3,minmax(250px,1fr));gap:22px;align-items:start}
+  .vd-option{border:1px solid #dcdfe5;border-radius:22px;padding:16px;background:#fff;transition:.18s ease}
+  .vd-option:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(35,28,43,.10)}
+  .vd-option.selected{border:2px solid #62468b;background:#faf8fd}
+  .vd-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}.vd-head h3{margin:0}.vd-head span{font-size:11px;color:#746c79;line-height:1.4}.recommended{background:#5c3f80;color:#fff;border-radius:999px;padding:4px 8px;font-size:10px;white-space:nowrap}
+  .vd-phone{width:100%;max-width:290px;aspect-ratio:9/19.2;margin:auto;border:7px solid #201d22;border-radius:35px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 16px 34px rgba(28,23,32,.18);font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+  .vd-status{height:22px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:8px;font-weight:650;flex:none}.vd-status:after{content:'●  4G  ▰';letter-spacing:.8px}
+  .vd-top{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 12px;flex:none}.vd-top b{font-size:16px;letter-spacing:-.02em}.vd-avatar{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;font-size:11px}
+  .vd-body{display:flex;flex-direction:column;gap:11px;padding:0 14px 12px;min-height:0;flex:1;overflow:hidden}.vd-eyebrow{font-size:8px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}.vd-hero{height:190px;border-radius:24px;overflow:hidden;position:relative;background-image:linear-gradient(180deg,rgba(22,16,24,.02),rgba(22,16,24,.72)),url('https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=82');background-size:cover;background-position:center 30%}.vd-hero-copy{position:absolute;left:15px;right:15px;bottom:14px;color:#fff}.vd-hero-copy b{display:block;font-size:21px;line-height:1.05;letter-spacing:-.03em}.vd-hero-copy span{display:block;font-size:9px;line-height:1.4;margin-top:5px;color:rgba(255,255,255,.84)}
+  .vd-primary{padding:11px 13px;border-radius:15px;text-align:center;font-size:11px;font-weight:700}.vd-mode-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.vd-mode{padding:10px;border-radius:15px;min-height:53px}.vd-mode b{display:block;font-size:10px;margin-bottom:3px}.vd-mode span{display:block;font-size:8px;line-height:1.25}.vd-section{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:700}.vd-section span{font-size:8px;font-weight:600}.vd-task{display:grid;grid-template-columns:42px 1fr auto;gap:8px;align-items:center;padding:7px;border-radius:14px}.vd-thumb{width:42px;height:48px;border-radius:10px;background-image:url('https://images.unsplash.com/photo-1681991724832-56e4ccc04415?auto=format&fit=crop&w=200&q=75');background-size:cover;background-position:center}.vd-task b{display:block;font-size:9px}.vd-task small{display:block;font-size:7.5px;margin-top:2px}.vd-progress{font-size:8px;font-weight:700}
+  .vd-nav{display:grid;grid-template-columns:repeat(3,1fr);padding:8px 5px 11px;flex:none}.vd-nav div{text-align:center;font-size:8px}.vd-nav strong{display:block;font-size:14px;line-height:1.15;font-weight:500}
+  .vd-swatches{display:flex;gap:6px;margin:13px 0 9px}.vd-swatches i{width:27px;height:27px;border-radius:50%;border:1px solid rgba(20,16,24,.10)}.vd-notes{font-size:11px;line-height:1.5;color:#68616d;margin:0}.vd-label{display:block;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#8a838e;margin-top:10px}
+  .atelier{background:#f8f4ef;color:#292329}.atelier .vd-avatar{background:#eaddea;color:#5c3d5f}.atelier .vd-eyebrow{color:#7c5475}.atelier .vd-primary{background:#653f63;color:#fff}.atelier .vd-mode{background:#fffaf6;border:1px solid #e8dfd7}.atelier .vd-mode span,.atelier .vd-task small{color:#7b7278}.atelier .vd-section span,.atelier .vd-progress{color:#764e70}.atelier .vd-task{background:#fffaf6}.atelier .vd-nav{background:#eee5e7;color:#71666e}.atelier .vd-nav .active{color:#5f3d5c}.atelier .vd-hero{border-radius:24px 24px 9px 24px}
+  .studio{background:#f5f6f8;color:#1f2630}.studio .vd-avatar{background:#dde5f0;color:#2d537b}.studio .vd-eyebrow{color:#2f5e8c}.studio .vd-primary{background:#244f79;color:#fff;border-radius:10px}.studio .vd-mode{background:#fff;border:1px solid #dce2e8;border-radius:10px}.studio .vd-mode span,.studio .vd-task small{color:#6d7580}.studio .vd-section span,.studio .vd-progress{color:#2d5c88}.studio .vd-task{background:#fff;border:1px solid #e0e4e9;border-radius:10px}.studio .vd-nav{background:#e9edf2;color:#66717d}.studio .vd-nav .active{color:#244f79}.studio .vd-hero{border-radius:12px}.studio .vd-hero-copy b{font-size:19px}
+  .wardrobe{background:#fbf5f1;color:#34282a}.wardrobe .vd-avatar{background:#f3deda;color:#8b554f}.wardrobe .vd-eyebrow{color:#a46159}.wardrobe .vd-primary{background:#9d5f58;color:#fff;border-radius:19px}.wardrobe .vd-mode{background:#fff;border:1px solid #f0ddd7;border-radius:20px}.wardrobe .vd-mode span,.wardrobe .vd-task small{color:#806f70}.wardrobe .vd-section span,.wardrobe .vd-progress{color:#9a5e57}.wardrobe .vd-task{background:#fff;border-radius:20px}.wardrobe .vd-nav{background:#f2e5e1;color:#796a6c}.wardrobe .vd-nav .active{color:#985c55}.wardrobe .vd-hero{border-radius:28px}.wardrobe .vd-hero-copy b{font-size:20px}
+  .token-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:24px;padding:16px;border-radius:16px;background:#f5f3f7}.token-strip div{font-size:10px;color:#6d6571}.token-strip b{display:block;color:#2e2931;margin-bottom:3px;font-size:11px}
+  @media(max-width:930px){.vd-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:650px){.vd-grid{grid-template-columns:1fr}.token-strip{grid-template-columns:1fr 1fr}.vd-phone{max-width:300px}}
+</style>
+
+<div class="vd-intro">
+  <h2>Visual Direction</h2>
+  <p>三种方向使用同一个已确认首页结构，只比较视觉语言。请选择最符合“私人、可信、图片优先”的方向。</p>
+</div>
+
+<div class="vd-grid">
+  <section class="vd-option" data-choice="quiet-atelier" onclick="toggleSelect(this)">
+    <div class="vd-head"><div><h3>A · Quiet Atelier</h3><span>安静的私人时装工作室</span></div><i class="recommended">推荐</i></div>
+    <div class="vd-phone atelier">
+      <div class="vd-status">9:41</div><div class="vd-top"><b>我的试衣间</b><div class="vd-avatar">YL</div></div>
+      <div class="vd-body"><div class="vd-eyebrow">Private fitting studio</div><div class="vd-hero"><div class="vd-hero-copy"><b>今天，试一件<br>更适合你的衣服</b><span>选择人物和衣物，生成最多 4 个候选</span></div></div><div class="vd-primary">开始精准换装</div><div class="vd-mode-row"><div class="vd-mode"><b>分层穿搭</b><span>V1.1 即将开放</span></div><div class="vd-mode"><b>创意写真</b><span>规划中</span></div></div><div class="vd-section">最近任务 <span>查看全部</span></div><div class="vd-task"><div class="vd-thumb"></div><div><b>米色风衣</b><small>2 个候选 · 生成中</small></div><div class="vd-progress">62%</div></div></div>
+      <div class="vd-nav"><div class="active"><strong>⌂</strong>首页</div><div><strong>◇</strong>素材</div><div><strong>◷</strong>历史</div></div>
+    </div>
+    <div class="vd-swatches"><i style="background:#f8f4ef"></i><i style="background:#653f63"></i><i style="background:#d8b9c9"></i><i style="background:#292329"></i></div>
+    <p class="vd-notes">温暖象牙白、深梅子色、编辑式留白和轻微非对称圆角。亲密但不甜腻，适合长期私人使用。</p>
+  </section>
+
+  <section class="vd-option" data-choice="modern-studio" onclick="toggleSelect(this)">
+    <div class="vd-head"><div><h3>B · Modern Studio</h3><span>清晰、高效的生成工具</span></div></div>
+    <div class="vd-phone studio">
+      <div class="vd-status">9:41</div><div class="vd-top"><b>我的试衣间</b><div class="vd-avatar">YL</div></div>
+      <div class="vd-body"><div class="vd-eyebrow">AI try-on workspace</div><div class="vd-hero"><div class="vd-hero-copy"><b>精准换装，<br>从一张照片开始</b><span>人物、衣物、任务状态都清晰可追踪</span></div></div><div class="vd-primary">开始精准换装</div><div class="vd-mode-row"><div class="vd-mode"><b>分层穿搭</b><span>V1.1 即将开放</span></div><div class="vd-mode"><b>创意写真</b><span>规划中</span></div></div><div class="vd-section">最近任务 <span>查看全部</span></div><div class="vd-task"><div class="vd-thumb"></div><div><b>米色风衣</b><small>2 个候选 · 生成中</small></div><div class="vd-progress">62%</div></div></div>
+      <div class="vd-nav"><div class="active"><strong>⌂</strong>首页</div><div><strong>◇</strong>素材</div><div><strong>◷</strong>历史</div></div>
+    </div>
+    <div class="vd-swatches"><i style="background:#f5f6f8"></i><i style="background:#244f79"></i><i style="background:#b9c8d8"></i><i style="background:#1f2630"></i></div>
+    <p class="vd-notes">冷静中性、低圆角、清晰边界和更强的信息密度。任务状态最醒目，但时尚感较弱。</p>
+  </section>
+
+  <section class="vd-option" data-choice="soft-wardrobe" onclick="toggleSelect(this)">
+    <div class="vd-head"><div><h3>C · Soft Wardrobe</h3><span>温和、生活化的个人衣橱</span></div></div>
+    <div class="vd-phone wardrobe">
+      <div class="vd-status">9:41</div><div class="vd-top"><b>我的试衣间</b><div class="vd-avatar">YL</div></div>
+      <div class="vd-body"><div class="vd-eyebrow">Your private wardrobe</div><div class="vd-hero"><div class="vd-hero-copy"><b>看看这件衣服，<br>穿在你身上的样子</b><span>保存喜欢的人物和衣物，随时再次尝试</span></div></div><div class="vd-primary">开始精准换装</div><div class="vd-mode-row"><div class="vd-mode"><b>分层穿搭</b><span>V1.1 即将开放</span></div><div class="vd-mode"><b>创意写真</b><span>规划中</span></div></div><div class="vd-section">最近任务 <span>查看全部</span></div><div class="vd-task"><div class="vd-thumb"></div><div><b>米色风衣</b><small>2 个候选 · 生成中</small></div><div class="vd-progress">62%</div></div></div>
+      <div class="vd-nav"><div class="active"><strong>⌂</strong>首页</div><div><strong>◇</strong>素材</div><div><strong>◷</strong>历史</div></div>
+    </div>
+    <div class="vd-swatches"><i style="background:#fbf5f1"></i><i style="background:#9d5f58"></i><i style="background:#e9c4bc"></i><i style="background:#34282a"></i></div>
+    <p class="vd-notes">柔和暖粉、较大圆角和更亲近的语气。容易上手，但更接近生活方式应用，专业生成感较弱。</p>
+  </section>
+</div>
+
+<div class="token-strip">
+  <div><b>共同约束</b>Material 3 可实现</div><div><b>图片</b>占据首要视觉面积</div><div><b>动作</b>每屏一个主操作</div><div><b>状态</b>文字 + 颜色 + 位置</div><div><b>结构</b>沿用已确认中保真布局</div>
+</div>

@@ -1,0 +1,164 @@
+UploadState:
+  type: string
+  enum: [created, uploading, completed, failed, cancelled, unknown]
+
+AssetKind:
+  type: string
+  enum: [person, garment, generated_output, mask, workflow_file, unknown]
+
+GarmentCategory:
+  type: string
+  enum: [upper_body, lower_body, dress, unknown]
+
+GarmentSource:
+  type: string
+  enum: [photo, screenshot, product_image, experimental, unknown]
+
+UploadCreateRequest:
+  type: object
+  additionalProperties: false
+  required: [asset_kind, filename, content_type, size_bytes]
+  properties:
+    asset_kind:
+      $ref: '#/AssetKind'
+    filename:
+      type: string
+      minLength: 1
+      maxLength: 255
+    content_type:
+      type: string
+    size_bytes:
+      type: integer
+      format: int64
+      minimum: 1
+    garment_category:
+      $ref: '#/GarmentCategory'
+    garment_source:
+      $ref: '#/GarmentSource'
+
+UploadSession:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - state
+    - asset_kind
+    - filename
+    - content_type
+    - size_bytes
+    - uploaded_bytes
+    - created_at
+    - expires_at
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    state:
+      $ref: '#/UploadState'
+    asset_kind:
+      $ref: '#/AssetKind'
+    filename:
+      type: string
+    content_type:
+      type: string
+    size_bytes:
+      type: integer
+      format: int64
+    uploaded_bytes:
+      type: integer
+      format: int64
+      minimum: 0
+    asset_id:
+      type: string
+      format: uuid
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    expires_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    error:
+      $ref: ../common/schemas.yaml#/ProblemDetails
+
+UploadChunkResult:
+  type: object
+  additionalProperties: false
+  required: [upload_id, state, uploaded_bytes]
+  properties:
+    upload_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    state:
+      $ref: '#/UploadState'
+    uploaded_bytes:
+      type: integer
+      format: int64
+      minimum: 0
+
+UploadCompleteRequest:
+  type: object
+  additionalProperties: false
+  required: [sha256]
+  properties:
+    sha256:
+      type: string
+      pattern: ^[A-Fa-f0-9]{64}$
+
+Asset:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - kind
+    - content_type
+    - size_bytes
+    - width
+    - height
+    - favorite
+    - lifecycle
+    - created_at
+    - content_available
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    kind:
+      $ref: '#/AssetKind'
+    content_type:
+      type: string
+    size_bytes:
+      type: integer
+      format: int64
+    width:
+      type: integer
+      minimum: 1
+    height:
+      type: integer
+      minimum: 1
+    favorite:
+      type: boolean
+    lifecycle:
+      type: string
+      enum: [active, deleted_content, expired, unknown]
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    content_available:
+      type: boolean
+    quality_warnings:
+      type: array
+      items:
+        type: string
+    garment_category:
+      $ref: '#/GarmentCategory'
+    garment_source:
+      $ref: '#/GarmentSource'
+
+AssetPage:
+  type: object
+  additionalProperties: false
+  required: [items, next_cursor, has_more]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/Asset'
+    next_cursor:
+      type: string
+      nullable: true
+    has_more:
+      type: boolean

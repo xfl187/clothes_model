@@ -1,0 +1,40 @@
+AdminSessionCreateRequest:
+  type: object
+  additionalProperties: false
+  required: [admin_token]
+  properties:
+    admin_token:
+      type: string
+      minLength: 32
+      writeOnly: true
+
+AdminSession:
+  type: object
+  additionalProperties: false
+  required: [authenticated, csrf_token, created_at, expires_at]
+  properties:
+    authenticated:
+      type: boolean
+      enum: [true]
+    csrf_token:
+      type: string
+      writeOnly: true
+      description: Returned in the login response and required for subsequent admin writes.
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    expires_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+AppAuthStatus:
+  type: object
+  additionalProperties: false
+  required: [authenticated, token_id, server_time]
+  properties:
+    authenticated:
+      type: boolean
+      enum: [true]
+    token_id:
+      type: string
+      description: Non-secret token identifier; never the token value.
+    server_time:
+      $ref: ../common/schemas.yaml#/Timestamp

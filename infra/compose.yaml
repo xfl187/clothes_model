@@ -1,0 +1,115 @@
+name: clothes-model
+
+services:
+  contract-mock:
+    profiles: [contract]
+    build:
+      context: ..
+      dockerfile: infra/docker/contract-mock.Dockerfile
+    ports:
+      - "${CLOTHES_MODEL_CONTRACT_MOCK_PORT:-4010}:4010"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:4010/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    profiles: [development]
+    build:
+      context: ..
+      dockerfile: infra/docker/application.Dockerfile
+    environment:
+      CLOTHES_MODEL_ENVIRONMENT: development
+      CLOTHES_MODEL_BIND_HOST: 0.0.0.0
+      CLOTHES_MODEL_BIND_PORT: 8000
+      CLOTHES_MODEL_DATABASE_URL: sqlite+aiosqlite:////var/lib/clothes-model/db/clothes-model.db
+      CLOTHES_MODEL_STORAGE_ROOT: /var/lib/clothes-model/storage
+      CLOTHES_MODEL_CORS_ALLOWLIST: '["http://localhost:5173","http://127.0.0.1:5173"]'
+      CLOTHES_MODEL_SCHEDULER_ENABLED: "false"
+      CLOTHES_MODEL_INSTANCE_LOCK_PATH: /var/lib/clothes-model/runtime/instance.lock
+      CLOTHES_MODEL_ADMIN_SESSION_COOKIE_SECURE: "false"
+      CLOTHES_MODEL_WEB_STATIC_ROOT: /app/web
+    ports:
+      - "${CLOTHES_MODEL_BACKEND_PORT:-8000}:8000"
+    volumes:
+      - backend_dev_db:/var/lib/clothes-model/db
+      - backend_dev_storage:/var/lib/clothes-model/storage
+      - backend_dev_runtime:/var/lib/clothes-model/runtime
+    healthcheck: &backend-healthcheck
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  app:
+    profiles: [production]
+    build:
+      context: ..
+      dockerfile: infra/docker/application.Dockerfile
+    environment:
+      CLOTHES_MODEL_ENVIRONMENT: production
+      CLOTHES_MODEL_BIND_HOST: 0.0.0.0
+      CLOTHES_MODEL_BIND_PORT: 8000
+      CLOTHES_MODEL_DATABASE_URL: sqlite+aiosqlite:////var/lib/clothes-model/db/clothes-model.db
+      CLOTHES_MODEL_SQLITE_BUSY_TIMEOUT_MS: 5000
+      CLOTHES_MODEL_STORAGE_ROOT: /var/lib/clothes-model/storage
+      CLOTHES_MODEL_LOG_LEVEL: INFO
+      CLOTHES_MODEL_CORS_ALLOWLIST: '[]'
+      CLOTHES_MODEL_SCHEDULER_ENABLED: "true"
+      CLOTHES_MODEL_INSTANCE_LOCK_PATH: /var/lib/clothes-model/runtime/instance.lock
+      CLOTHES_MODEL_ENCRYPTION_MASTER_KEY_FILE: /run/secrets/encryption_master_key
+      CLOTHES_MODEL_ADMIN_SESSION_COOKIE_SECURE: "true"
+      CLOTHES_MODEL_WEB_STATIC_ROOT: /app/web
+    expose:
+      - "8000"
+    volumes:
+      - sqlite_data:/var/lib/clothes-model/db
+      - private_storage:/var/lib/clothes-model/storage
+      - instance_runtime:/var/lib/clothes-model/runtime
+    secrets:
+      - encryption_master_key
+    healthcheck: *backend-healthcheck
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+
+  caddy:
+    profiles: [production]
+    image: caddy:2.11.4-alpine
+    environment:
+      CLOTHES_MODEL_SITE_ADDRESS: ${CLOTHES_MODEL_SITE_ADDRESS:-https://localhost}
+    ports:
+      - "${CLOTHES_MODEL_HTTP_PORT:-8080}:80"
+      - "${CLOTHES_MODEL_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+secrets:
+  encryption_master_key:
+    environment: CLOTHES_MODEL_ENCRYPTION_MASTER_KEY
+
+volumes:
+  backend_dev_db:
+  backend_dev_storage:
+  backend_dev_runtime:
+  sqlite_data:
+  private_storage:
+  instance_runtime:
+  caddy_data:
+  caddy_config:

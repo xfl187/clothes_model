@@ -1,0 +1,12 @@
+JobPageSnapshot:
+  summary: Redacted diagnostic job snapshot
+  value:
+    items:
+      - job_id: 01992b5a-0000-7000-8000-000000000003
+        state: needs_attention
+        provider_label: ComfyUI · precise-vton
+        item_count: 1
+        updated_at: '2026-09-24T06:08:00Z'
+    next_cursor: null
+    has_more: false
+    snapshot_at: '2026-09-24T06:10:00Z'

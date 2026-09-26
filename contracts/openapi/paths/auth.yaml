@@ -1,0 +1,55 @@
+AppAuthStatus:
+  get:
+    tags: [Authentication]
+    operationId: getAppAuthStatus
+    summary: Validate the App Token without returning secret material
+    security:
+      - AppBearer: []
+    responses:
+      '200':
+        description: App Token is valid.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/auth/schemas.yaml#/AppAuthStatus
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+AdminSession:
+  post:
+    tags: [Authentication]
+    operationId: createAdminSession
+    summary: Exchange the Admin Token for a secure browser session
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/auth/schemas.yaml#/AdminSessionCreateRequest
+    responses:
+      '201':
+        description: Session created. The session identifier is set in an HttpOnly cookie.
+        headers:
+          Set-Cookie:
+            schema:
+              type: string
+        content:
+          application/json:
+            schema:
+              $ref: ../components/auth/schemas.yaml#/AdminSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '429':
+        $ref: ../openapi.yaml#/components/responses/Problem
+  delete:
+    tags: [Authentication]
+    operationId: deleteAdminSession
+    summary: End the current admin browser session
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    responses:
+      '204':
+        description: Session ended.
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized

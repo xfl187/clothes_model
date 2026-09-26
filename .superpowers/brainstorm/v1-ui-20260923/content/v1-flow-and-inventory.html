@@ -1,0 +1,114 @@
+<style>
+  .scope-banner{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:14px;background:#f3efff;color:#3d2f67;margin:18px 0}
+  .scope-banner b{white-space:nowrap}.scope-banner span{font-size:13px;line-height:1.5}
+  .flow{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));align-items:stretch;gap:10px;margin:18px 0 28px;overflow-x:auto;padding-bottom:6px}
+  .flow-node{position:relative;border-radius:14px;padding:13px;background:#fff;border:1px solid #dce1e8;min-height:74px}
+  .flow-node:not(:last-child)::after{content:'→';position:absolute;right:-9px;top:33%;z-index:2;color:#81788c;font-weight:700}
+  .flow-node strong{display:block;font-size:13px;color:#27242c;margin-bottom:5px}.flow-node span{font-size:11px;color:#716b78;line-height:1.4;display:block}
+  .flow-node.primary{background:#6750a4;border-color:#6750a4}.flow-node.primary strong,.flow-node.primary span{color:#fff}
+  .recovery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:-14px 0 30px}
+  .recovery div{border-left:3px solid #d2c5f6;padding:8px 10px;background:#faf9fc;font-size:12px;line-height:1.45;color:#5f5965}
+  .inventory{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .group{border:1px solid #dce1e8;background:#fff;border-radius:16px;padding:15px}
+  .group h3{margin:0 0 4px}.group-note{font-size:11px;color:#7b7480;margin-bottom:10px}
+  .screen-row{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:start;padding:8px 0;border-top:1px solid #edf0f3}
+  .screen-row:first-of-type{border-top:0}.num{font-size:10px;color:#918a96;padding-top:2px}.screen-row b{display:block;font-size:12px;color:#302c34}.screen-row span{display:block;font-size:10px;color:#7a7480;line-height:1.35;margin-top:2px}
+  .tag{font-size:10px;border-radius:999px;padding:3px 7px;background:#eeeaf8;color:#5c478f;white-space:nowrap}.tag.support{background:#eff1f4;color:#67616c}.tag.future{background:#e9f3ef;color:#356957}
+  .prototype-set{margin-top:22px;border-radius:16px;padding:16px;background:#25222a;color:#fff}
+  .prototype-set h3{margin:0 0 6px}.prototype-set p{margin:0 0 14px;color:#cfc8d5;font-size:12px}
+  .proto-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+  .proto{background:#37323c;border-radius:11px;padding:10px;min-height:64px}.proto b{display:block;font-size:11px;margin-bottom:4px}.proto span{font-size:9px;color:#cfc8d5;line-height:1.35}
+  .decision{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}.decision .option{border:1px solid #d8dee8;border-radius:14px;padding:14px;background:#fff}.decision .option.selected{border:2px solid #6750a4;background:#f8f5ff}.decision h3{margin:0 0 5px}.decision p{font-size:12px;color:#6f6875;margin:0}
+  @media(max-width:900px){.inventory{grid-template-columns:1fr 1fr}.proto-grid{grid-template-columns:repeat(3,1fr)}.recovery{grid-template-columns:1fr 1fr}}
+  @media(max-width:620px){.inventory{grid-template-columns:1fr}.proto-grid{grid-template-columns:1fr 1fr}.decision{grid-template-columns:1fr}.scope-banner{align-items:flex-start;flex-direction:column}}
+</style>
+
+<h2>V1 UI Flow 与 Screen Inventory</h2>
+<p class="subtitle">先覆盖单件精准换装完整闭环；V1.1 只预留稳定扩展点。</p>
+
+<div class="scope-banner"><b>设计原则</b><span>任务是主线，素材是可复用资源，异常恢复属于任务详情而不是新的孤立流程。后续 V1.1 复用素材选择、Provider 设置、任务状态与结果组件。</span></div>
+
+<div class="flow" aria-label="V1 核心用户流程">
+  <div class="flow-node"><strong>01 · 连接与认证</strong><span>首次配置服务器；令牌失效时保留地址并重新认证</span></div>
+  <div class="flow-node"><strong>02 · 首页</strong><span>精准换装主入口、最近任务、V1.1 预留入口</span></div>
+  <div class="flow-node primary"><strong>03 · 创建换装</strong><span>选人物 → 选衣物 → Provider 与候选数 → 确认</span></div>
+  <div class="flow-node"><strong>04 · 任务执行</strong><span>排队、等待节点、准备、生成；允许离开页面</span></div>
+  <div class="flow-node"><strong>05 · 候选结果</strong><span>对比、收藏、下载、候选级重试或取消</span></div>
+  <div class="flow-node"><strong>06 · 修正与留存</strong><span>遮罩编辑创建关联新任务；历史保留执行谱系</span></div>
+</div>
+
+<div class="recovery" aria-label="异常恢复分支">
+  <div><b>上传失败</b><br>保留本地选择，可重试或取消</div>
+  <div><b>Provider 临时离线</b><br>允许提交，进入无限期等待</div>
+  <div><b>配置永久错误</b><br>提交前阻止，说明管理员处理要求</div>
+  <div><b>状态无法确认</b><br>重新查询、明确重试或结束失败</div>
+</div>
+
+<div class="inventory">
+  <section class="group">
+    <h3>系统与首页</h3><div class="group-note">进入产品、恢复连接、开始任务</div>
+    <div class="screen-row"><div class="num">S01</div><div><b>启动路由</b><span>检查服务器配置和令牌状态</span></div><div class="tag support">支撑</div></div>
+    <div class="screen-row"><div class="num">S02</div><div><b>首次连接</b><span>服务器地址、App Token、连接验证</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S03</div><div><b>重新认证</b><span>保留地址，仅更新失效令牌</span></div><div class="tag support">状态</div></div>
+    <div class="screen-row"><div class="num">S04</div><div><b>首页</b><span>精准换装、最近任务、V1.1 预留卡片</span></div><div class="tag">原型</div></div>
+  </section>
+
+  <section class="group">
+    <h3>素材</h3><div class="group-note">人物与衣物统一框架，类型细节分化</div>
+    <div class="screen-row"><div class="num">S05</div><div><b>素材中心</b><span>人物 / 衣物分段页与导入入口</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S06</div><div><b>素材选择器</b><span>创建任务内复用，单选但使用列表结构</span></div><div class="tag support">复用</div></div>
+    <div class="screen-row"><div class="num">S07</div><div><b>导入确认</b><span>预览、类别 / 来源修正、质量提示</span></div><div class="tag support">支撑</div></div>
+    <div class="screen-row"><div class="num">S08</div><div><b>上传进度与恢复</b><span>失败保留本地文件，重试或取消</span></div><div class="tag support">状态</div></div>
+    <div class="screen-row"><div class="num">S09</div><div><b>素材详情</b><span>质量、引用、收藏、删除与阻止说明</span></div><div class="tag support">支撑</div></div>
+  </section>
+
+  <section class="group">
+    <h3>创建精准换装</h3><div class="group-note">全屏分步流程，随时保留已选内容</div>
+    <div class="screen-row"><div class="num">S10</div><div><b>选择人物</b><span>复用 / 导入、质量风险不强制阻断</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S11</div><div><b>选择衣物</b><span>类别、来源、实验性素材提示</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S12</div><div><b>生成设置与确认</b><span>Provider、1–4 候选、能力与配置检查</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S13</div><div><b>提交阻止状态</b><span>永久配置错误、存储不足、能力不足</span></div><div class="tag support">状态</div></div>
+  </section>
+
+  <section class="group">
+    <h3>任务与恢复</h3><div class="group-note">一个详情骨架承载所有执行状态</div>
+    <div class="screen-row"><div class="num">S14</div><div><b>任务详情</b><span>总体进度、候选状态、等待原因、取消</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S15</div><div><b>需人工处理</b><span>重新查询、创建重试、结束失败</span></div><div class="tag">原型状态</div></div>
+    <div class="screen-row"><div class="num">S16</div><div><b>部分成功</b><span>保留成功候选，仅处理失败项</span></div><div class="tag support">状态</div></div>
+    <div class="screen-row"><div class="num">S17</div><div><b>执行谱系</b><span>主任务、子任务、重试及配置版本</span></div><div class="tag support">支撑</div></div>
+  </section>
+
+  <section class="group">
+    <h3>结果与修正</h3><div class="group-note">成功项优先展示，复杂记录按需展开</div>
+    <div class="screen-row"><div class="num">S18</div><div><b>候选结果</b><span>网格浏览、收藏、下载、删除、重试</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S19</div><div><b>结果对比</b><span>原图 / 结果拖动对比与质量风险</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S20</div><div><b>遮罩编辑器</b><span>补画、擦除、撤销和修正范围预览</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S21</div><div><b>兼容 Provider 选择</b><span>原 Provider 不支持遮罩时明确切换</span></div><div class="tag support">状态</div></div>
+  </section>
+
+  <section class="group">
+    <h3>历史与扩展</h3><div class="group-note">长期可追踪，并为 V1.1 保持边界</div>
+    <div class="screen-row"><div class="num">S22</div><div><b>任务历史</b><span>状态分组、任务类型、已删除图片占位</span></div><div class="tag">原型</div></div>
+    <div class="screen-row"><div class="num">S23</div><div><b>连接设置</b><span>服务器信息、重连和同步状态</span></div><div class="tag support">支撑</div></div>
+    <div class="screen-row"><div class="num">X01</div><div><b>分层穿搭入口</b><span>首页可见但标记 V1.1；未来进入独立会话列表</span></div><div class="tag future">扩展位</div></div>
+    <div class="screen-row"><div class="num">X02</div><div><b>共享组件边界</b><span>素材选择、生成设置、任务状态、结果操作</span></div><div class="tag future">V1.1 复用</div></div>
+  </section>
+</div>
+
+<section class="prototype-set">
+  <h3>首轮关键页面原型：6 组</h3>
+  <p>覆盖主闭环与最高风险恢复场景，不铺开全部 23 个页面。</p>
+  <div class="proto-grid">
+    <div class="proto"><b>01 · 首次连接</b><span>连接验证与重新认证状态</span></div>
+    <div class="proto"><b>02 · 首页</b><span>模式入口、最近任务、V1.1 扩展位</span></div>
+    <div class="proto"><b>03 · 创建向导</b><span>人物、衣物、设置三步连续体验</span></div>
+    <div class="proto"><b>04 · 任务详情</b><span>运行、等待与 needs_attention 状态</span></div>
+    <div class="proto"><b>05 · 候选结果</b><span>部分成功、对比与结果操作</span></div>
+    <div class="proto"><b>06 · 遮罩修正</b><span>编辑、兼容 Provider 切换与新任务确认</span></div>
+  </div>
+</section>
+
+<div class="decision">
+  <div class="option" data-choice="approve-flow-inventory" onclick="toggleSelect(this)"><h3>确认此范围</h3><p>下一步进入 6 组关键页面的中保真原型。</p></div>
+  <div class="option" data-choice="revise-flow-inventory" onclick="toggleSelect(this)"><h3>需要调整</h3><p>告诉我需要增删的页面或希望优先验证的流程。</p></div>
+</div>

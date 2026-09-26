@@ -1,0 +1,28 @@
+Live:
+  get:
+    tags: [Health]
+    operationId: getLiveness
+    summary: Report whether the process is alive
+    security: []
+    responses:
+      '200':
+        description: Process is alive.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/common/schemas.yaml#/HealthStatus
+Ready:
+  get:
+    tags: [Health]
+    operationId: getReadiness
+    summary: Report whether required local dependencies are ready
+    security: []
+    responses:
+      '200':
+        description: Required dependencies are ready.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/common/schemas.yaml#/HealthStatus
+      '503':
+        $ref: ../openapi.yaml#/components/responses/Problem

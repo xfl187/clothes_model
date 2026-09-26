@@ -1,0 +1,26 @@
+Unauthorized:
+  summary: App token is invalid or has been rotated
+  value:
+    type: https://clothes-model.local/problems/authentication-required
+    title: 需要重新认证
+    status: 401
+    code: authentication_required
+    detail: App Token 已失效，请输入新的令牌后重试。
+    trace_id: tr_01K5AUTHFAIL
+    retryable: false
+    field_errors: []
+    context: {}
+
+StorageCapacity:
+  summary: New work is blocked by storage capacity
+  value:
+    type: https://clothes-model.local/problems/storage-capacity
+    title: 存储空间不足
+    status: 507
+    code: storage_capacity
+    detail: 当前存储空间不足，暂时不能上传素材或创建任务。
+    trace_id: tr_01K5STORAGE
+    retryable: true
+    field_errors: []
+    context:
+      required_action: admin_cleanup
