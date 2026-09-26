@@ -5,6 +5,9 @@ info:
   description: >-
     Canonical V1 HTTP contract shared by the Backend, Android application,
     and Web Admin. Product behavior remains authoritative in the Product Spec.
+    Cursor values, resource-version values, and ETags are opaque to clients and
+    must only be replayed in the boundary that produced them. Content hashes are
+    internal storage identities and are never exposed as resource versions.
   license:
     name: Proprietary
 servers:
@@ -54,6 +57,8 @@ paths:
     $ref: ./paths/assets.yaml#/Item
   /api/v1/assets/{asset_id}/content:
     $ref: ./paths/assets.yaml#/Content
+  /api/v1/assets/{asset_id}/references:
+    $ref: ./paths/assets.yaml#/References
   /api/v1/jobs:
     $ref: ./paths/jobs.yaml#/Collection
   /api/v1/jobs/{job_id}:
@@ -122,15 +127,21 @@ components:
       type: apiKey
       in: header
       name: X-CSRF-Token
-      description: Required with the admin session for state-changing requests.
+      description: >-
+        Required with the admin session for state-changing requests. The value
+        is returned by session creation or inspection and must remain in Web
+        memory rather than browser storage.
   parameters:
     IdempotencyKey:
       name: Idempotency-Key
       in: header
       required: true
       description: >-
-        Opaque client-generated key. Reusing a key with a different payload
-        returns idempotency_key_reused.
+        Opaque client-generated key bound to the authenticated actor, operation,
+        and canonical request payload. A successful replay returns the original
+        stable result. Reusing a key with a different payload returns
+        idempotency_key_reused. Streaming append is instead guarded by the
+        server-confirmed Upload-Offset.
       schema:
         type: string
         minLength: 16
@@ -167,6 +178,69 @@ components:
           examples:
             invalidToken:
               $ref: ./examples/errors.yaml#/Unauthorized
+    Forbidden:
+      description: The authenticated principal does not have the required scope.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            wrongScope:
+              $ref: ./examples/errors.yaml#/WrongScope
+    CsrfRejected:
+      description: The admin write was rejected by CSRF or same-origin validation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            csrfRejected:
+              $ref: ./examples/errors.yaml#/CsrfRejected
+    RateLimited:
+      description: Authentication attempts are temporarily throttled.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            authenticationThrottled:
+              $ref: ./examples/errors.yaml#/AuthenticationThrottled
+    IdempotencyConflict:
+      description: The idempotency key was already bound to a different request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            idempotencyConflict:
+              $ref: ./examples/errors.yaml#/IdempotencyConflict
+    UploadOffsetConflict:
+      description: The supplied upload offset does not match the confirmed server offset.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            uploadOffsetConflict:
+              $ref: ./examples/errors.yaml#/UploadOffsetConflict
+    AssetReferenced:
+      description: Asset content cannot be deleted while active references exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            assetReferenced:
+              $ref: ./examples/errors.yaml#/AssetReferenced
+    InvalidImage:
+      description: Uploaded bytes do not satisfy the private image boundary.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            invalidImage:
+              $ref: ./examples/errors.yaml#/InvalidImage
     StorageBlocked:
       description: New uploads or jobs are blocked because storage capacity is insufficient.
       content:

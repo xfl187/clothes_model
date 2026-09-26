@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Clothes Model API
- * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+ * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec. Cursor values, resource-version values, and ETags are opaque to clients and must only be replayed in the boundary that produced them. Content hashes are internal storage identities and are never exposed as resource versions.
  *
  * The version of the OpenAPI document: 1.0.0
  * 

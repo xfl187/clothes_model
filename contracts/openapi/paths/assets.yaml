@@ -22,6 +22,8 @@ Collection:
               $ref: ../components/assets/schemas.yaml#/AssetPage
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
 Item:
   parameters:
     - name: asset_id
@@ -45,6 +47,37 @@ Item:
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+  patch:
+    tags: [Assets]
+    operationId: updateAsset
+    summary: Update mutable asset metadata
+    description: V1 Phase 2 permits only favorite-state changes.
+    security:
+      - AppBearer: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/assets/schemas.yaml#/AssetUpdateRequest
+    responses:
+      '200':
+        description: Updated asset metadata.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/Asset
+            examples:
+              favorite:
+                $ref: ../examples/assets.yaml#/FavoriteAsset
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '422':
         $ref: ../openapi.yaml#/components/responses/Problem
 Content:
   parameters:
@@ -74,5 +107,67 @@ Content:
               format: binary
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+  delete:
+    tags: [Assets]
+    operationId: deleteAssetContent
+    summary: Remove private asset content while retaining a metadata placeholder
+    description: >-
+      The operation is safe to repeat. Active references block deletion and can
+      be inspected through the asset references resource.
+    security:
+      - AppBearer: []
+    responses:
+      '200':
+        description: Content was deleted or was already absent.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/AssetContentDeletionResult
+            examples:
+              deleted:
+                $ref: ../examples/assets.yaml#/DeletedContent
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/AssetReferenced
+References:
+  parameters:
+    - name: asset_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Assets]
+    operationId: listAssetReferences
+    summary: List active reference blockers for an asset
+    description: >-
+      Results use the shared opaque cursor convention. Source identifiers are
+      resource identifiers, never filesystem paths or content hashes.
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/Cursor
+      - $ref: ../openapi.yaml#/components/parameters/Limit
+    responses:
+      '200':
+        description: Active reference page in deterministic creation order.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/AssetReferencePage
+            examples:
+              blockers:
+                $ref: ../examples/assets.yaml#/ReferencePage
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem

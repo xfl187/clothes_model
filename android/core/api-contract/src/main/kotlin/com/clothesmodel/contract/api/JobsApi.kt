@@ -29,7 +29,7 @@ interface JobsApi {
      *  - 409: Request failed with a stable machine-readable error code.
      *
      * @param jobId 
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @return [JobCommandResult]
      */
     @POST("api/v1/jobs/{job_id}/cancel")
@@ -46,7 +46,7 @@ interface JobsApi {
      *  - 409: Request failed with a stable machine-readable error code.
      *
      * @param jobItemId 
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @return [JobCommandResult]
      */
     @POST("api/v1/job-items/{job_item_id}/cancel")
@@ -63,7 +63,7 @@ interface JobsApi {
      *  - 422: Request failed with a stable machine-readable error code.
      *  - 507: New uploads or jobs are blocked because storage capacity is insufficient.
      *
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param createJobRequest 
      * @return [TryOnJob]
      */
@@ -81,7 +81,7 @@ interface JobsApi {
      *  - 409: Request failed with a stable machine-readable error code.
      *
      * @param jobItemId 
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param finishFailedRequest 
      * @return [JobCommandResult]
      */
@@ -145,7 +145,7 @@ interface JobsApi {
      *  - 409: Request failed with a stable machine-readable error code.
      *
      * @param jobItemId 
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @return [JobCommandResult]
      */
     @POST("api/v1/job-items/{job_item_id}/requery")
@@ -162,7 +162,7 @@ interface JobsApi {
      *  - 409: Request failed with a stable machine-readable error code.
      *
      * @param jobItemId 
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param retryJobItemRequest  (optional)
      * @return [JobCommandResult]
      */

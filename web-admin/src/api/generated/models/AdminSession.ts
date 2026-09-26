@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Clothes Model API
- * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+ * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec. Cursor values, resource-version values, and ETags are opaque to clients and must only be replayed in the boundary that produced them. Content hashes are internal storage identities and are never exposed as resource versions.
  *
  * The version of the OpenAPI document: 1.0.0
  * 
@@ -24,9 +24,9 @@ export interface AdminSession {
      */
     authenticated: boolean;
     /**
-     * Returned in the login response and required for subsequent admin writes.
+     * Returned by session creation or inspection and required for subsequent admin writes. Web clients keep it in memory only.
      */
-    csrfToken: string;
+    readonly csrfToken: string;
     /**
      * UTC RFC 3339 timestamp.
      */
@@ -69,7 +69,7 @@ export function AdminSessionToJSON(json: any): AdminSession {
     return AdminSessionToJSONTyped(json, false);
 }
 
-export function AdminSessionToJSONTyped(value?: AdminSession | null, ignoreDiscriminator: boolean = false): any {
+export function AdminSessionToJSONTyped(value?: Omit<AdminSession, 'csrfToken'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
@@ -77,7 +77,6 @@ export function AdminSessionToJSONTyped(value?: AdminSession | null, ignoreDiscr
     return {
         
         'authenticated': value['authenticated'],
-        'csrf_token': value['csrfToken'],
         'created_at': value['createdAt'] == null ? value['createdAt'] : serializeDateTime(value['createdAt']),
         'expires_at': value['expiresAt'] == null ? value['expiresAt'] : serializeDateTime(value['expiresAt']),
     };

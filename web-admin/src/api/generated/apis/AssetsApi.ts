@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Clothes Model API
- * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+ * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec. Cursor values, resource-version values, and ETags are opaque to clients and must only be replayed in the boundary that produced them. Content hashes are internal storage identities and are never exposed as resource versions.
  *
  * The version of the OpenAPI document: 1.0.0
  * 
@@ -19,6 +19,11 @@ import {
     AssetToJSON,
 } from '../models/Asset';
 import {
+    type AssetContentDeletionResult,
+    AssetContentDeletionResultFromJSON,
+    AssetContentDeletionResultToJSON,
+} from '../models/AssetContentDeletionResult';
+import {
     type AssetKind,
     AssetKindFromJSON,
     AssetKindToJSON,
@@ -29,10 +34,27 @@ import {
     AssetPageToJSON,
 } from '../models/AssetPage';
 import {
+    type AssetReferencePage,
+    AssetReferencePageFromJSON,
+    AssetReferencePageToJSON,
+} from '../models/AssetReferencePage';
+import {
+    type AssetUpdateRequest,
+    AssetUpdateRequestFromJSON,
+    AssetUpdateRequestToJSON,
+} from '../models/AssetUpdateRequest';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+
+export interface DeleteAssetContentRequest {
+    /**
+     * 
+     */
+    assetId: string;
+}
 
 export interface DownloadAssetContentRequest {
     /**
@@ -46,6 +68,21 @@ export interface GetAssetRequest {
      * 
      */
     assetId: string;
+}
+
+export interface ListAssetReferencesRequest {
+    /**
+     * 
+     */
+    assetId: string;
+    /**
+     * Opaque cursor returned by the previous page.
+     */
+    cursor?: string;
+    /**
+     * 
+     */
+    limit?: number;
 }
 
 export interface ListAssetsRequest {
@@ -63,6 +100,17 @@ export interface ListAssetsRequest {
     kind?: AssetKind;
 }
 
+export interface UpdateAssetRequest {
+    /**
+     * 
+     */
+    assetId: string;
+    /**
+     * 
+     */
+    assetUpdateRequest: AssetUpdateRequest;
+}
+
 /**
  * AssetsApi - interface
  * 
@@ -70,6 +118,30 @@ export interface ListAssetsRequest {
  * @interface AssetsApiInterface
  */
 export interface AssetsApiInterface {
+    /**
+     * Creates request options for deleteAssetContent without sending the request
+     * @param {string} assetId 
+     * @throws {RequiredError}
+     * @memberof AssetsApiInterface
+     */
+    deleteAssetContentRequestOpts(requestParameters: DeleteAssetContentRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * The operation is safe to repeat. Active references block deletion and can be inspected through the asset references resource.
+     * @summary Remove private asset content while retaining a metadata placeholder
+     * @param {string} assetId 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AssetsApiInterface
+     */
+    deleteAssetContentRaw(requestParameters: DeleteAssetContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AssetContentDeletionResult>>;
+
+    /**
+     * The operation is safe to repeat. Active references block deletion and can be inspected through the asset references resource.
+     * Remove private asset content while retaining a metadata placeholder
+     */
+    deleteAssetContent(requestParameters: DeleteAssetContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AssetContentDeletionResult>;
+
     /**
      * Creates request options for downloadAssetContent without sending the request
      * @param {string} assetId 
@@ -117,6 +189,34 @@ export interface AssetsApiInterface {
     getAsset(requestParameters: GetAssetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Asset>;
 
     /**
+     * Creates request options for listAssetReferences without sending the request
+     * @param {string} assetId 
+     * @param {string} [cursor] Opaque cursor returned by the previous page.
+     * @param {number} [limit] 
+     * @throws {RequiredError}
+     * @memberof AssetsApiInterface
+     */
+    listAssetReferencesRequestOpts(requestParameters: ListAssetReferencesRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * Results use the shared opaque cursor convention. Source identifiers are resource identifiers, never filesystem paths or content hashes.
+     * @summary List active reference blockers for an asset
+     * @param {string} assetId 
+     * @param {string} [cursor] Opaque cursor returned by the previous page.
+     * @param {number} [limit] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AssetsApiInterface
+     */
+    listAssetReferencesRaw(requestParameters: ListAssetReferencesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AssetReferencePage>>;
+
+    /**
+     * Results use the shared opaque cursor convention. Source identifiers are resource identifiers, never filesystem paths or content hashes.
+     * List active reference blockers for an asset
+     */
+    listAssetReferences(requestParameters: ListAssetReferencesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AssetReferencePage>;
+
+    /**
      * Creates request options for listAssets without sending the request
      * @param {string} [cursor] Opaque cursor returned by the previous page.
      * @param {number} [limit] 
@@ -143,12 +243,93 @@ export interface AssetsApiInterface {
      */
     listAssets(requestParameters: ListAssetsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AssetPage>;
 
+    /**
+     * Creates request options for updateAsset without sending the request
+     * @param {string} assetId 
+     * @param {AssetUpdateRequest} assetUpdateRequest 
+     * @throws {RequiredError}
+     * @memberof AssetsApiInterface
+     */
+    updateAssetRequestOpts(requestParameters: UpdateAssetRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * V1 Phase 2 permits only favorite-state changes.
+     * @summary Update mutable asset metadata
+     * @param {string} assetId 
+     * @param {AssetUpdateRequest} assetUpdateRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AssetsApiInterface
+     */
+    updateAssetRaw(requestParameters: UpdateAssetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Asset>>;
+
+    /**
+     * V1 Phase 2 permits only favorite-state changes.
+     * Update mutable asset metadata
+     */
+    updateAsset(requestParameters: UpdateAssetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Asset>;
+
 }
 
 /**
  * 
  */
 export class AssetsApi extends runtime.BaseAPI implements AssetsApiInterface {
+
+    /**
+     * Creates request options for deleteAssetContent without sending the request
+     */
+    async deleteAssetContentRequestOpts(requestParameters: DeleteAssetContentRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['assetId'] == null) {
+            throw new runtime.RequiredError(
+                'assetId',
+                'Required parameter "assetId" was null or undefined when calling deleteAssetContent().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("AppBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/v1/assets/{asset_id}/content`;
+        urlPath = urlPath.replace('{asset_id}', encodeURIComponent(String(requestParameters['assetId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The operation is safe to repeat. Active references block deletion and can be inspected through the asset references resource.
+     * Remove private asset content while retaining a metadata placeholder
+     */
+    async deleteAssetContentRaw(requestParameters: DeleteAssetContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AssetContentDeletionResult>> {
+        const requestOptions = await this.deleteAssetContentRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AssetContentDeletionResultFromJSON(jsonValue));
+    }
+
+    /**
+     * The operation is safe to repeat. Active references block deletion and can be inspected through the asset references resource.
+     * Remove private asset content while retaining a metadata placeholder
+     */
+    async deleteAssetContent(requestParameters: DeleteAssetContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AssetContentDeletionResult> {
+        const response = await this.deleteAssetContentRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for downloadAssetContent without sending the request
@@ -257,6 +438,69 @@ export class AssetsApi extends runtime.BaseAPI implements AssetsApiInterface {
     }
 
     /**
+     * Creates request options for listAssetReferences without sending the request
+     */
+    async listAssetReferencesRequestOpts(requestParameters: ListAssetReferencesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['assetId'] == null) {
+            throw new runtime.RequiredError(
+                'assetId',
+                'Required parameter "assetId" was null or undefined when calling listAssetReferences().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("AppBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/v1/assets/{asset_id}/references`;
+        urlPath = urlPath.replace('{asset_id}', encodeURIComponent(String(requestParameters['assetId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Results use the shared opaque cursor convention. Source identifiers are resource identifiers, never filesystem paths or content hashes.
+     * List active reference blockers for an asset
+     */
+    async listAssetReferencesRaw(requestParameters: ListAssetReferencesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AssetReferencePage>> {
+        const requestOptions = await this.listAssetReferencesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AssetReferencePageFromJSON(jsonValue));
+    }
+
+    /**
+     * Results use the shared opaque cursor convention. Source identifiers are resource identifiers, never filesystem paths or content hashes.
+     * List active reference blockers for an asset
+     */
+    async listAssetReferences(requestParameters: ListAssetReferencesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AssetReferencePage> {
+        const response = await this.listAssetReferencesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for listAssets without sending the request
      */
     async listAssetsRequestOpts(requestParameters: ListAssetsRequest): Promise<runtime.RequestOpts> {
@@ -310,6 +554,71 @@ export class AssetsApi extends runtime.BaseAPI implements AssetsApiInterface {
      */
     async listAssets(requestParameters: ListAssetsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AssetPage> {
         const response = await this.listAssetsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateAsset without sending the request
+     */
+    async updateAssetRequestOpts(requestParameters: UpdateAssetRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['assetId'] == null) {
+            throw new runtime.RequiredError(
+                'assetId',
+                'Required parameter "assetId" was null or undefined when calling updateAsset().'
+            );
+        }
+
+        if (requestParameters['assetUpdateRequest'] == null) {
+            throw new runtime.RequiredError(
+                'assetUpdateRequest',
+                'Required parameter "assetUpdateRequest" was null or undefined when calling updateAsset().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("AppBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/v1/assets/{asset_id}`;
+        urlPath = urlPath.replace('{asset_id}', encodeURIComponent(String(requestParameters['assetId'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: AssetUpdateRequestToJSON(requestParameters['assetUpdateRequest']),
+        };
+    }
+
+    /**
+     * V1 Phase 2 permits only favorite-state changes.
+     * Update mutable asset metadata
+     */
+    async updateAssetRaw(requestParameters: UpdateAssetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Asset>> {
+        const requestOptions = await this.updateAssetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AssetFromJSON(jsonValue));
+    }
+
+    /**
+     * V1 Phase 2 permits only favorite-state changes.
+     * Update mutable asset metadata
+     */
+    async updateAsset(requestParameters: UpdateAssetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Asset> {
+        const response = await this.updateAssetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

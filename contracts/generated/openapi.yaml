@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Clothes Model API
   version: 1.0.0
-  description: Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+  description: Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec. Cursor values, resource-version values, and ETags are opaque to clients and must only be replayed in the boundary that produced them. Content hashes are internal storage identities and are never exposed as resource versions.
   license:
     name: Proprietary
 servers:
@@ -77,7 +77,31 @@ paths:
                 $ref: '#/components/schemas/AppAuthStatus'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/admin/auth/session:
+    get:
+      tags:
+        - Authentication
+      operationId: getAdminSession
+      summary: Restore an authenticated Admin browser session and refresh its CSRF value
+      description: Uses the HttpOnly session cookie. The returned CSRF value is short-lived client state for memory-only use and must not be persisted in browser storage.
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: Session is active and a current CSRF value is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSession'
+              examples:
+                active:
+                  $ref: '#/components/examples/ActiveSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       tags:
         - Authentication
@@ -101,10 +125,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdminSession'
+              examples:
+                created:
+                  $ref: '#/components/examples/ActiveSession'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '429':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/RateLimited'
     delete:
       tags:
         - Authentication
@@ -118,6 +145,8 @@ paths:
           description: Session ended.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/CsrfRejected'
   /api/v1/uploads:
     post:
       tags:
@@ -144,7 +173,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/IdempotencyConflict'
         '507':
           $ref: '#/components/responses/StorageBlocked'
   /api/v1/uploads/{upload_id}:
@@ -170,6 +199,8 @@ paths:
                 $ref: '#/components/schemas/UploadSession'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/Problem'
     delete:
@@ -229,7 +260,9 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/UploadOffsetConflict'
+        '507':
+          $ref: '#/components/responses/StorageBlocked'
   /api/v1/uploads/{upload_id}/complete:
     parameters:
       - name: upload_id
@@ -262,9 +295,11 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/IdempotencyConflict'
         '422':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/InvalidImage'
+        '507':
+          $ref: '#/components/responses/StorageBlocked'
   /api/v1/assets:
     get:
       tags:
@@ -290,6 +325,8 @@ paths:
                 $ref: '#/components/schemas/AssetPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /api/v1/assets/{asset_id}:
     parameters:
       - name: asset_id
@@ -314,6 +351,38 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
+          $ref: '#/components/responses/Problem'
+    patch:
+      tags:
+        - Assets
+      operationId: updateAsset
+      summary: Update mutable asset metadata
+      description: V1 Phase 2 permits only favorite-state changes.
+      security:
+        - AppBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetUpdateRequest'
+      responses:
+        '200':
+          description: Updated asset metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+              examples:
+                favorite:
+                  $ref: '#/components/examples/FavoriteAsset'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '422':
           $ref: '#/components/responses/Problem'
   /api/v1/assets/{asset_id}/content:
     parameters:
@@ -344,6 +413,66 @@ paths:
                 format: binary
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags:
+        - Assets
+      operationId: deleteAssetContent
+      summary: Remove private asset content while retaining a metadata placeholder
+      description: The operation is safe to repeat. Active references block deletion and can be inspected through the asset references resource.
+      security:
+        - AppBearer: []
+      responses:
+        '200':
+          description: Content was deleted or was already absent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetContentDeletionResult'
+              examples:
+                deleted:
+                  $ref: '#/components/examples/DeletedContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/AssetReferenced'
+  /api/v1/assets/{asset_id}/references:
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Assets
+      operationId: listAssetReferences
+      summary: List active reference blockers for an asset
+      description: Results use the shared opaque cursor convention. Source identifiers are resource identifiers, never filesystem paths or content hashes.
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Active reference page in deterministic creation order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetReferencePage'
+              examples:
+                blockers:
+                  $ref: '#/components/examples/ReferencePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/Problem'
   /api/v1/jobs:
@@ -1217,13 +1346,13 @@ components:
       type: apiKey
       in: header
       name: X-CSRF-Token
-      description: Required with the admin session for state-changing requests.
+      description: Required with the admin session for state-changing requests. The value is returned by session creation or inspection and must remain in Web memory rather than browser storage.
   parameters:
     IdempotencyKey:
       name: Idempotency-Key
       in: header
       required: true
-      description: Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+      description: Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
       schema:
         type: string
         minLength: 16
@@ -1260,6 +1389,69 @@ components:
           examples:
             invalidToken:
               $ref: '#/components/examples/Unauthorized'
+    Forbidden:
+      description: The authenticated principal does not have the required scope.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            wrongScope:
+              $ref: '#/components/examples/WrongScope'
+    CsrfRejected:
+      description: The admin write was rejected by CSRF or same-origin validation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            csrfRejected:
+              $ref: '#/components/examples/CsrfRejected'
+    RateLimited:
+      description: Authentication attempts are temporarily throttled.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            authenticationThrottled:
+              $ref: '#/components/examples/AuthenticationThrottled'
+    IdempotencyConflict:
+      description: The idempotency key was already bound to a different request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            idempotencyConflict:
+              $ref: '#/components/examples/IdempotencyConflict'
+    UploadOffsetConflict:
+      description: The supplied upload offset does not match the confirmed server offset.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            uploadOffsetConflict:
+              $ref: '#/components/examples/UploadOffsetConflict'
+    AssetReferenced:
+      description: Asset content cannot be deleted while active references exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            assetReferenced:
+              $ref: '#/components/examples/AssetReferenced'
+    InvalidImage:
+      description: Uploaded bytes do not satisfy the private image boundary.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            invalidImage:
+              $ref: '#/components/examples/InvalidImage'
     StorageBlocked:
       description: New uploads or jobs are blocked because storage capacity is insufficient.
       content:
@@ -1366,16 +1558,6 @@ components:
           description: Non-secret token identifier; never the token value.
         server_time:
           $ref: '#/components/schemas/Timestamp'
-    AdminSessionCreateRequest:
-      type: object
-      additionalProperties: false
-      required:
-        - admin_token
-      properties:
-        admin_token:
-          type: string
-          minLength: 32
-          writeOnly: true
     AdminSession:
       type: object
       additionalProperties: false
@@ -1391,12 +1573,23 @@ components:
             - true
         csrf_token:
           type: string
-          writeOnly: true
-          description: Returned in the login response and required for subsequent admin writes.
+          readOnly: true
+          minLength: 32
+          description: Returned by session creation or inspection and required for subsequent admin writes. Web clients keep it in memory only.
         created_at:
           $ref: '#/components/schemas/Timestamp'
         expires_at:
           $ref: '#/components/schemas/Timestamp'
+    AdminSessionCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - admin_token
+      properties:
+        admin_token:
+          type: string
+          minLength: 32
+          writeOnly: true
     AssetKind:
       type: string
       enum:
@@ -1587,6 +1780,85 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Asset'
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+    AssetUpdateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - favorite
+      properties:
+        favorite:
+          type: boolean
+    AssetContentDeletionOutcome:
+      type: string
+      enum:
+        - content_deleted
+        - already_deleted
+        - unknown
+    AssetContentDeletionResult:
+      type: object
+      additionalProperties: false
+      required:
+        - outcome
+        - asset
+      properties:
+        outcome:
+          $ref: '#/components/schemas/AssetContentDeletionOutcome'
+        asset:
+          $ref: '#/components/schemas/Asset'
+    AssetReferenceKind:
+      type: string
+      description: Stable source family. Unknown values remain safe for older clients.
+      enum:
+        - job
+        - job_item
+        - outfit
+        - generated_output
+        - unknown
+    AssetReference:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - asset_id
+        - source_kind
+        - source_id
+        - active
+        - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        asset_id:
+          $ref: '#/components/schemas/Identifier'
+        source_kind:
+          $ref: '#/components/schemas/AssetReferenceKind'
+        source_id:
+          $ref: '#/components/schemas/Identifier'
+        label:
+          type: string
+          nullable: true
+          maxLength: 200
+          description: Safe display label captured by the referencing module.
+        active:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    AssetReferencePage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetReference'
         next_cursor:
           type: string
           nullable: true
@@ -2711,6 +2983,62 @@ components:
         retryable: false
         field_errors: []
         context: {}
+    WrongScope:
+      summary: Credential is valid but cannot access this resource family
+      value:
+        type: https://clothes-model.local/problems/insufficient-scope
+        title: 权限不足
+        status: 403
+        code: insufficient_scope
+        detail: 当前凭据不能访问此资源。
+        trace_id: tr_01K5SCOPE
+        retryable: false
+        field_errors: []
+        context: {}
+    ActiveSession:
+      summary: Active Admin browser session
+      value:
+        authenticated: true
+        csrf_token: contract-csrf-placeholder-value-0000000000000000
+        created_at: '2026-09-26T08:00:00Z'
+        expires_at: '2026-09-26T20:00:00Z'
+    AuthenticationThrottled:
+      summary: Too many failed authentication attempts
+      value:
+        type: https://clothes-model.local/problems/authentication-throttled
+        title: 尝试次数过多
+        status: 429
+        code: authentication_throttled
+        detail: 认证尝试过于频繁，请稍后再试。
+        trace_id: tr_01K5THROTTLE
+        retryable: true
+        field_errors: []
+        context:
+          retry_after_seconds: 60
+    CsrfRejected:
+      summary: Admin write did not pass browser request validation
+      value:
+        type: https://clothes-model.local/problems/csrf-rejected
+        title: 请求验证失败
+        status: 403
+        code: csrf_rejected
+        detail: 管理会话请求验证失败，请刷新页面后重试。
+        trace_id: tr_01K5CSRF
+        retryable: false
+        field_errors: []
+        context: {}
+    IdempotencyConflict:
+      summary: Idempotency key was reused with a different request
+      value:
+        type: https://clothes-model.local/problems/idempotency-key-reused
+        title: 请求标识冲突
+        status: 409
+        code: idempotency_key_reused
+        detail: 此请求标识已用于不同内容，请生成新的请求标识。
+        trace_id: tr_01K5IDEMPOTENCY
+        retryable: false
+        field_errors: []
+        context: {}
     StorageCapacity:
       summary: New work is blocked by storage capacity
       value:
@@ -2724,6 +3052,87 @@ components:
         field_errors: []
         context:
           required_action: admin_cleanup
+    UploadOffsetConflict:
+      summary: Client offset differs from the confirmed server offset
+      value:
+        type: https://clothes-model.local/problems/upload-offset-conflict
+        title: 上传进度不一致
+        status: 409
+        code: upload_offset_conflict
+        detail: 请先获取服务器确认的上传进度，然后继续上传。
+        trace_id: tr_01K5OFFSET
+        retryable: true
+        field_errors: []
+        context:
+          confirmed_offset: 1048576
+    InvalidImage:
+      summary: Uploaded content is not an accepted private image
+      value:
+        type: https://clothes-model.local/problems/invalid-image
+        title: 图片无效
+        status: 422
+        code: invalid_image
+        detail: 图片无法解析或不符合大小、格式或尺寸要求。
+        trace_id: tr_01K5IMAGE
+        retryable: false
+        field_errors: []
+        context: {}
+    FavoriteAsset:
+      summary: Favorite person asset
+      value:
+        id: 01992b5a-0000-7000-8000-000000000101
+        kind: person
+        content_type: image/jpeg
+        size_bytes: 245760
+        width: 1536
+        height: 2048
+        favorite: true
+        lifecycle: active
+        created_at: '2026-09-26T08:05:00Z'
+        content_available: true
+        quality_warnings: []
+    DeletedContent:
+      summary: Asset placeholder after private content deletion
+      value:
+        outcome: content_deleted
+        asset:
+          id: 01992b5a-0000-7000-8000-000000000101
+          kind: person
+          content_type: image/jpeg
+          size_bytes: 245760
+          width: 1536
+          height: 2048
+          favorite: false
+          lifecycle: deleted_content
+          created_at: '2026-09-26T08:05:00Z'
+          content_available: false
+          quality_warnings: []
+    AssetReferenced:
+      summary: Active references prevent content deletion
+      value:
+        type: https://clothes-model.local/problems/asset-referenced
+        title: 素材仍被引用
+        status: 409
+        code: asset_referenced
+        detail: 此素材仍被任务或作品引用，暂时不能删除内容。
+        trace_id: tr_01K5REFERENCE
+        retryable: false
+        field_errors: []
+        context:
+          reference_count: 1
+    ReferencePage:
+      summary: Active reference blocking asset-content deletion
+      value:
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000111
+            asset_id: 01992b5a-0000-7000-8000-000000000101
+            source_kind: job
+            source_id: 01992b5a-0000-7000-8000-000000000002
+            label: 试穿任务 2026-09-26 16:10
+            active: true
+            created_at: '2026-09-26T08:10:00Z'
+        next_cursor: null
+        has_more: false
     WaitingProvider:
       summary: Job waits indefinitely for a compatible provider node
       value:

@@ -77,13 +77,6 @@ class AppAuthStatus(BaseModel):
     server_time: Timestamp
 
 
-class AdminSessionCreateRequest(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    admin_token: str = Field(..., min_length=32)
-
-
 class AdminSession(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -91,10 +84,18 @@ class AdminSession(BaseModel):
     authenticated: Authenticated
     csrf_token: str = Field(
         ...,
-        description='Returned in the login response and required for subsequent admin writes.',
+        description='Returned by session creation or inspection and required for subsequent admin writes. Web clients keep it in memory only.',
+        min_length=32,
     )
     created_at: Timestamp
     expires_at: Timestamp
+
+
+class AdminSessionCreateRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    admin_token: str = Field(..., min_length=32)
 
 
 class AssetKind(Enum):
@@ -212,6 +213,65 @@ class AssetPage(BaseModel):
         extra='forbid',
     )
     items: list[Asset]
+    next_cursor: str
+    has_more: bool
+
+
+class AssetUpdateRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    favorite: bool
+
+
+class AssetContentDeletionOutcome(Enum):
+    content_deleted = 'content_deleted'
+    already_deleted = 'already_deleted'
+    unknown = 'unknown'
+
+
+class AssetContentDeletionResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    outcome: AssetContentDeletionOutcome
+    asset: Asset
+
+
+class AssetReferenceKind(Enum):
+    """
+    Stable source family. Unknown values remain safe for older clients.
+    """
+
+    job = 'job'
+    job_item = 'job_item'
+    outfit = 'outfit'
+    generated_output = 'generated_output'
+    unknown = 'unknown'
+
+
+class AssetReference(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Identifier
+    asset_id: Identifier
+    source_kind: AssetReferenceKind
+    source_id: Identifier
+    label: str | None = Field(
+        None,
+        description='Safe display label captured by the referencing module.',
+        max_length=200,
+    )
+    active: bool
+    created_at: Timestamp
+
+
+class AssetReferencePage(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    items: list[AssetReference]
     next_cursor: str
     has_more: bool
 

@@ -9,3 +9,5 @@ Current records:
 - [ADR-0003: SQLite, SQLAlchemy, and Alembic](0003-sqlite-sqlalchemy-alembic.md)
 - [ADR-0004: OpenAPI contract ownership](0004-openapi-contract-ownership.md)
 - [ADR-0005: V1 single-instance runtime](0005-v1-single-instance-runtime.md)
+- [ADR-0006: Token, browser session, and secret protection](0006-token-session-and-secret-protection.md)
+- [ADR-0007: Private local content-addressed storage](0007-private-content-addressed-storage.md)

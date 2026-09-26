@@ -1,0 +1,45 @@
+FavoriteAsset:
+  summary: Favorite person asset
+  value:
+    id: 01992b5a-0000-7000-8000-000000000101
+    kind: person
+    content_type: image/jpeg
+    size_bytes: 245760
+    width: 1536
+    height: 2048
+    favorite: true
+    lifecycle: active
+    created_at: '2026-09-26T08:05:00Z'
+    content_available: true
+    quality_warnings: []
+
+DeletedContent:
+  summary: Asset placeholder after private content deletion
+  value:
+    outcome: content_deleted
+    asset:
+      id: 01992b5a-0000-7000-8000-000000000101
+      kind: person
+      content_type: image/jpeg
+      size_bytes: 245760
+      width: 1536
+      height: 2048
+      favorite: false
+      lifecycle: deleted_content
+      created_at: '2026-09-26T08:05:00Z'
+      content_available: false
+      quality_warnings: []
+
+ReferencePage:
+  summary: Active reference blocking asset-content deletion
+  value:
+    items:
+      - id: 01992b5a-0000-7000-8000-000000000111
+        asset_id: 01992b5a-0000-7000-8000-000000000101
+        source_kind: job
+        source_id: 01992b5a-0000-7000-8000-000000000002
+        label: 试穿任务 2026-09-26 16:10
+        active: true
+        created_at: '2026-09-26T08:10:00Z'
+    next_cursor: null
+    has_more: false

@@ -24,7 +24,7 @@ interface ProvidersApi {
      *  - 401: Authentication is missing or invalid.
      *  - 409: Request failed with a stable machine-readable error code.
      *
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param providerConfigRequest 
      * @return [ProviderConfig]
      */
@@ -42,7 +42,7 @@ interface ProvidersApi {
      *  - 409: Request failed with a stable machine-readable error code.
      *
      * @param providerId 
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @return [ProviderConfig]
      */
     @POST("api/v1/admin/provider-configs/{provider_id}/enable")
@@ -119,7 +119,7 @@ interface ProvidersApi {
      *  - 404: Request failed with a stable machine-readable error code.
      *
      * @param providerId 
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @return [ProviderValidationResult]
      */
     @POST("api/v1/admin/provider-configs/{provider_id}/validate")

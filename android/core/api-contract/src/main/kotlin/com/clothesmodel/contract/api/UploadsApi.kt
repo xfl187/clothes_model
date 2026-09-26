@@ -24,7 +24,8 @@ interface UploadsApi {
      * Responses:
      *  - 200: Bytes appended.
      *  - 401: Authentication is missing or invalid.
-     *  - 409: Request failed with a stable machine-readable error code.
+     *  - 409: The supplied upload offset does not match the confirmed server offset.
+     *  - 507: New uploads or jobs are blocked because storage capacity is insufficient.
      *
      * @param uploadId 
      * @param uploadOffset 
@@ -56,11 +57,12 @@ interface UploadsApi {
      * Responses:
      *  - 201: Upload completed and Asset created.
      *  - 401: Authentication is missing or invalid.
-     *  - 409: Request failed with a stable machine-readable error code.
-     *  - 422: Request failed with a stable machine-readable error code.
+     *  - 409: The idempotency key was already bound to a different request.
+     *  - 422: Uploaded bytes do not satisfy the private image boundary.
+     *  - 507: New uploads or jobs are blocked because storage capacity is insufficient.
      *
      * @param uploadId 
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param uploadCompleteRequest 
      * @return [Asset]
      */
@@ -74,10 +76,10 @@ interface UploadsApi {
      * Responses:
      *  - 201: Upload session created.
      *  - 401: Authentication is missing or invalid.
-     *  - 409: Request failed with a stable machine-readable error code.
+     *  - 409: The idempotency key was already bound to a different request.
      *  - 507: New uploads or jobs are blocked because storage capacity is insufficient.
      *
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param uploadCreateRequest 
      * @return [UploadSession]
      */
@@ -91,6 +93,7 @@ interface UploadsApi {
      * Responses:
      *  - 200: Current upload state.
      *  - 401: Authentication is missing or invalid.
+     *  - 403: The authenticated principal does not have the required scope.
      *  - 404: Request failed with a stable machine-readable error code.
      *
      * @param uploadId 

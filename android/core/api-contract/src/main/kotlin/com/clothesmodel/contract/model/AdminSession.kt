@@ -37,7 +37,7 @@ import kotlinx.serialization.encoding.Encoder
  * 
  *
  * @param authenticated 
- * @param csrfToken Returned in the login response and required for subsequent admin writes.
+ * @param csrfToken Returned by session creation or inspection and required for subsequent admin writes. Web clients keep it in memory only.
  * @param createdAt UTC RFC 3339 timestamp.
  * @param expiresAt UTC RFC 3339 timestamp.
  */
@@ -48,7 +48,7 @@ data class AdminSession (
     @SerialName(value = "authenticated")
     val authenticated: kotlin.Boolean,
 
-    /* Returned in the login response and required for subsequent admin writes. */
+    /* Returned by session creation or inspection and required for subsequent admin writes. Web clients keep it in memory only. */
     @SerialName(value = "csrf_token")
     val csrfToken: kotlin.String,
 

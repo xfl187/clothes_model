@@ -14,7 +14,33 @@ AppAuthStatus:
               $ref: ../components/auth/schemas.yaml#/AppAuthStatus
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
 AdminSession:
+  get:
+    tags: [Authentication]
+    operationId: getAdminSession
+    summary: Restore an authenticated Admin browser session and refresh its CSRF value
+    description: >-
+      Uses the HttpOnly session cookie. The returned CSRF value is short-lived
+      client state for memory-only use and must not be persisted in browser
+      storage.
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: Session is active and a current CSRF value is returned.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/auth/schemas.yaml#/AdminSession
+            examples:
+              active:
+                $ref: ../examples/auth.yaml#/ActiveSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
   post:
     tags: [Authentication]
     operationId: createAdminSession
@@ -37,10 +63,13 @@ AdminSession:
           application/json:
             schema:
               $ref: ../components/auth/schemas.yaml#/AdminSession
+            examples:
+              created:
+                $ref: ../examples/auth.yaml#/ActiveSession
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '429':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/RateLimited
   delete:
     tags: [Authentication]
     operationId: deleteAdminSession
@@ -53,3 +82,5 @@ AdminSession:
         description: Session ended.
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/CsrfRejected

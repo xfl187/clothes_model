@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Clothes Model API
- * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+ * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec. Cursor values, resource-version values, and ETags are opaque to clients and must only be replayed in the boundary that produced them. Content hashes are internal storage identities and are never exposed as resource versions.
  *
  * The version of the OpenAPI document: 1.0.0
  * 
@@ -46,7 +46,7 @@ import {
 
 export interface CleanupStorageRequest {
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
     /**
@@ -57,7 +57,7 @@ export interface CleanupStorageRequest {
 
 export interface ScanStorageRequest {
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
     /**
@@ -75,7 +75,7 @@ export interface ScanStorageRequest {
 export interface StorageApiInterface {
     /**
      * Creates request options for cleanupStorage without sending the request
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {CleanupRequest} cleanupRequest 
      * @throws {RequiredError}
      * @memberof StorageApiInterface
@@ -85,7 +85,7 @@ export interface StorageApiInterface {
     /**
      * 
      * @summary Delete files from a confirmed scan while preserving protected references
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {CleanupRequest} cleanupRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -121,7 +121,7 @@ export interface StorageApiInterface {
 
     /**
      * Creates request options for scanStorage without sending the request
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {StorageScanRequest} [storageScanRequest] 
      * @throws {RequiredError}
      * @memberof StorageApiInterface
@@ -131,7 +131,7 @@ export interface StorageApiInterface {
     /**
      * 
      * @summary Preview reclaimable files without deleting content
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {StorageScanRequest} [storageScanRequest] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

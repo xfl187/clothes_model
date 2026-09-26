@@ -100,6 +100,14 @@ UploadCompleteRequest:
       type: string
       pattern: ^[A-Fa-f0-9]{64}$
 
+AssetUpdateRequest:
+  type: object
+  additionalProperties: false
+  required: [favorite]
+  properties:
+    favorite:
+      type: boolean
+
 Asset:
   type: object
   additionalProperties: false
@@ -157,6 +165,63 @@ AssetPage:
       type: array
       items:
         $ref: '#/Asset'
+    next_cursor:
+      type: string
+      nullable: true
+    has_more:
+      type: boolean
+
+AssetContentDeletionOutcome:
+  type: string
+  enum: [content_deleted, already_deleted, unknown]
+
+AssetContentDeletionResult:
+  type: object
+  additionalProperties: false
+  required: [outcome, asset]
+  properties:
+    outcome:
+      $ref: '#/AssetContentDeletionOutcome'
+    asset:
+      $ref: '#/Asset'
+
+AssetReferenceKind:
+  type: string
+  description: Stable source family. Unknown values remain safe for older clients.
+  enum: [job, job_item, outfit, generated_output, unknown]
+
+AssetReference:
+  type: object
+  additionalProperties: false
+  required: [id, asset_id, source_kind, source_id, active, created_at]
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    source_kind:
+      $ref: '#/AssetReferenceKind'
+    source_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    label:
+      type: string
+      nullable: true
+      maxLength: 200
+      description: Safe display label captured by the referencing module.
+    active:
+      type: boolean
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+AssetReferencePage:
+  type: object
+  additionalProperties: false
+  required: [items, next_cursor, has_more]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/AssetReference'
     next_cursor:
       type: string
       nullable: true

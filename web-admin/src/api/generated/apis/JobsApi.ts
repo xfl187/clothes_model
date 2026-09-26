@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Clothes Model API
- * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+ * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec. Cursor values, resource-version values, and ETags are opaque to clients and must only be replayed in the boundary that produced them. Content hashes are internal storage identities and are never exposed as resource versions.
  *
  * The version of the OpenAPI document: 1.0.0
  * 
@@ -65,7 +65,7 @@ export interface CancelJobRequest {
      */
     jobId: string;
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
 }
@@ -76,14 +76,14 @@ export interface CancelJobItemRequest {
      */
     jobItemId: string;
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
 }
 
 export interface CreateJobOperationRequest {
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
     /**
@@ -98,7 +98,7 @@ export interface FinishJobItemAsFailedRequest {
      */
     jobItemId: string;
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
     /**
@@ -142,7 +142,7 @@ export interface RequeryJobItemRequest {
      */
     jobItemId: string;
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
 }
@@ -153,7 +153,7 @@ export interface RetryJobItemOperationRequest {
      */
     jobItemId: string;
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
     /**
@@ -172,7 +172,7 @@ export interface JobsApiInterface {
     /**
      * Creates request options for cancelJob without sending the request
      * @param {string} jobId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @throws {RequiredError}
      * @memberof JobsApiInterface
      */
@@ -182,7 +182,7 @@ export interface JobsApiInterface {
      * 
      * @summary Best-effort cancel every unfinished candidate while retaining successful outputs
      * @param {string} jobId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobsApiInterface
@@ -197,7 +197,7 @@ export interface JobsApiInterface {
     /**
      * Creates request options for cancelJobItem without sending the request
      * @param {string} jobItemId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @throws {RequiredError}
      * @memberof JobsApiInterface
      */
@@ -207,7 +207,7 @@ export interface JobsApiInterface {
      * 
      * @summary Best-effort cancel one unfinished candidate without affecting others
      * @param {string} jobItemId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobsApiInterface
@@ -221,7 +221,7 @@ export interface JobsApiInterface {
 
     /**
      * Creates request options for createJob without sending the request
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {CreateJobRequest} createJobRequest 
      * @throws {RequiredError}
      * @memberof JobsApiInterface
@@ -231,7 +231,7 @@ export interface JobsApiInterface {
     /**
      * 
      * @summary Create a try-on job and lock generation configuration versions
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {CreateJobRequest} createJobRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -247,7 +247,7 @@ export interface JobsApiInterface {
     /**
      * Creates request options for finishJobItemAsFailed without sending the request
      * @param {string} jobItemId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {FinishFailedRequest} finishFailedRequest 
      * @throws {RequiredError}
      * @memberof JobsApiInterface
@@ -258,7 +258,7 @@ export interface JobsApiInterface {
      * 
      * @summary End needs_attention processing as a retained failure
      * @param {string} jobItemId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {FinishFailedRequest} finishFailedRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -347,7 +347,7 @@ export interface JobsApiInterface {
     /**
      * Creates request options for requeryJobItem without sending the request
      * @param {string} jobItemId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @throws {RequiredError}
      * @memberof JobsApiInterface
      */
@@ -357,7 +357,7 @@ export interface JobsApiInterface {
      * 
      * @summary Requery an uncertain external execution without starting a new one
      * @param {string} jobItemId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobsApiInterface
@@ -372,7 +372,7 @@ export interface JobsApiInterface {
     /**
      * Creates request options for retryJobItem without sending the request
      * @param {string} jobItemId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {RetryJobItemRequest} [retryJobItemRequest] 
      * @throws {RequiredError}
      * @memberof JobsApiInterface
@@ -383,7 +383,7 @@ export interface JobsApiInterface {
      * 
      * @summary Create a new traceable JobItem attempt without overwriting the original
      * @param {string} jobItemId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {RetryJobItemRequest} [retryJobItemRequest] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}

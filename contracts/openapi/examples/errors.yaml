@@ -24,3 +24,97 @@ StorageCapacity:
     field_errors: []
     context:
       required_action: admin_cleanup
+
+WrongScope:
+  summary: Credential is valid but cannot access this resource family
+  value:
+    type: https://clothes-model.local/problems/insufficient-scope
+    title: 权限不足
+    status: 403
+    code: insufficient_scope
+    detail: 当前凭据不能访问此资源。
+    trace_id: tr_01K5SCOPE
+    retryable: false
+    field_errors: []
+    context: {}
+
+CsrfRejected:
+  summary: Admin write did not pass browser request validation
+  value:
+    type: https://clothes-model.local/problems/csrf-rejected
+    title: 请求验证失败
+    status: 403
+    code: csrf_rejected
+    detail: 管理会话请求验证失败，请刷新页面后重试。
+    trace_id: tr_01K5CSRF
+    retryable: false
+    field_errors: []
+    context: {}
+
+AuthenticationThrottled:
+  summary: Too many failed authentication attempts
+  value:
+    type: https://clothes-model.local/problems/authentication-throttled
+    title: 尝试次数过多
+    status: 429
+    code: authentication_throttled
+    detail: 认证尝试过于频繁，请稍后再试。
+    trace_id: tr_01K5THROTTLE
+    retryable: true
+    field_errors: []
+    context:
+      retry_after_seconds: 60
+
+IdempotencyConflict:
+  summary: Idempotency key was reused with a different request
+  value:
+    type: https://clothes-model.local/problems/idempotency-key-reused
+    title: 请求标识冲突
+    status: 409
+    code: idempotency_key_reused
+    detail: 此请求标识已用于不同内容，请生成新的请求标识。
+    trace_id: tr_01K5IDEMPOTENCY
+    retryable: false
+    field_errors: []
+    context: {}
+
+UploadOffsetConflict:
+  summary: Client offset differs from the confirmed server offset
+  value:
+    type: https://clothes-model.local/problems/upload-offset-conflict
+    title: 上传进度不一致
+    status: 409
+    code: upload_offset_conflict
+    detail: 请先获取服务器确认的上传进度，然后继续上传。
+    trace_id: tr_01K5OFFSET
+    retryable: true
+    field_errors: []
+    context:
+      confirmed_offset: 1048576
+
+AssetReferenced:
+  summary: Active references prevent content deletion
+  value:
+    type: https://clothes-model.local/problems/asset-referenced
+    title: 素材仍被引用
+    status: 409
+    code: asset_referenced
+    detail: 此素材仍被任务或作品引用，暂时不能删除内容。
+    trace_id: tr_01K5REFERENCE
+    retryable: false
+    field_errors: []
+    context:
+      reference_count: 1
+
+InvalidImage:
+  summary: Uploaded content is not an accepted private image
+  value:
+    type: https://clothes-model.local/problems/invalid-image
+    title: 图片无效
+    status: 422
+    code: invalid_image
+    detail: 图片无法解析或不符合大小、格式或尺寸要求。
+    trace_id: tr_01K5IMAGE
+    retryable: false
+    field_errors: []
+    context: {}

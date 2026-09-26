@@ -64,7 +64,7 @@ interface AdminConfigurationApi {
      *  - 200: Connection test result.
      *  - 401: Authentication is missing or invalid.
      *
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @return [ConnectionTestResult]
      */
     @POST("api/v1/admin/configuration/comfy-node/test")

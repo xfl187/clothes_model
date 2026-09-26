@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Clothes Model API
- * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+ * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec. Cursor values, resource-version values, and ETags are opaque to clients and must only be replayed in the boundary that produced them. Content hashes are internal storage identities and are never exposed as resource versions.
  *
  * The version of the OpenAPI document: 1.0.0
  * 
@@ -91,6 +91,28 @@ export interface AuthenticationApiInterface {
      * End the current admin browser session
      */
     deleteAdminSession(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void>;
+
+    /**
+     * Creates request options for getAdminSession without sending the request
+     * @throws {RequiredError}
+     * @memberof AuthenticationApiInterface
+     */
+    getAdminSessionRequestOpts(): Promise<runtime.RequestOpts>;
+
+    /**
+     * Uses the HttpOnly session cookie. The returned CSRF value is short-lived client state for memory-only use and must not be persisted in browser storage.
+     * @summary Restore an authenticated Admin browser session and refresh its CSRF value
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AuthenticationApiInterface
+     */
+    getAdminSessionRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminSession>>;
+
+    /**
+     * Uses the HttpOnly session cookie. The returned CSRF value is short-lived client state for memory-only use and must not be persisted in browser storage.
+     * Restore an authenticated Admin browser session and refresh its CSRF value
+     */
+    getAdminSession(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminSession>;
 
     /**
      * Creates request options for getAppAuthStatus without sending the request
@@ -205,6 +227,45 @@ export class AuthenticationApi extends runtime.BaseAPI implements Authentication
      */
     async deleteAdminSession(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.deleteAdminSessionRaw(initOverrides);
+    }
+
+    /**
+     * Creates request options for getAdminSession without sending the request
+     */
+    async getAdminSessionRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/admin/auth/session`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Uses the HttpOnly session cookie. The returned CSRF value is short-lived client state for memory-only use and must not be persisted in browser storage.
+     * Restore an authenticated Admin browser session and refresh its CSRF value
+     */
+    async getAdminSessionRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminSession>> {
+        const requestOptions = await this.getAdminSessionRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminSessionFromJSON(jsonValue));
+    }
+
+    /**
+     * Uses the HttpOnly session cookie. The returned CSRF value is short-lived client state for memory-only use and must not be persisted in browser storage.
+     * Restore an authenticated Admin browser session and refresh its CSRF value
+     */
+    async getAdminSession(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminSession> {
+        const response = await this.getAdminSessionRaw(initOverrides);
+        return await response.value();
     }
 
     /**

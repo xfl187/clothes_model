@@ -23,7 +23,7 @@ Collection:
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '409':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/IdempotencyConflict
       '507':
         $ref: ../openapi.yaml#/components/responses/StorageBlocked
 Item:
@@ -48,6 +48,8 @@ Item:
               $ref: ../components/assets/schemas.yaml#/UploadSession
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
   delete:
@@ -105,7 +107,9 @@ Content:
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '409':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/UploadOffsetConflict
+      '507':
+        $ref: ../openapi.yaml#/components/responses/StorageBlocked
 Complete:
   parameters:
     - name: upload_id
@@ -137,6 +141,8 @@ Complete:
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '409':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/IdempotencyConflict
       '422':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/InvalidImage
+      '507':
+        $ref: ../openapi.yaml#/components/responses/StorageBlocked

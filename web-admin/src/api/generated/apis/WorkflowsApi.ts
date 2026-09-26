@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Clothes Model API
- * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+ * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec. Cursor values, resource-version values, and ETags are opaque to clients and must only be replayed in the boundary that produced them. Content hashes are internal storage identities and are never exposed as resource versions.
  *
  * The version of the OpenAPI document: 1.0.0
  * 
@@ -50,7 +50,7 @@ export interface ActivateWorkflowVersionRequest {
      */
     workflowVersionId: string;
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
     /**
@@ -61,7 +61,7 @@ export interface ActivateWorkflowVersionRequest {
 
 export interface CreateWorkflowVersionRequest {
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
     /**
@@ -94,7 +94,7 @@ export interface ValidateWorkflowVersionRequest {
      */
     workflowVersionId: string;
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
 }
@@ -109,7 +109,7 @@ export interface WorkflowsApiInterface {
     /**
      * Creates request options for activateWorkflowVersion without sending the request
      * @param {string} workflowVersionId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {WorkflowActivateRequest} workflowActivateRequest 
      * @throws {RequiredError}
      * @memberof WorkflowsApiInterface
@@ -120,7 +120,7 @@ export interface WorkflowsApiInterface {
      * 
      * @summary Activate a validated version for new jobs and retire the previous active version
      * @param {string} workflowVersionId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {WorkflowActivateRequest} workflowActivateRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -135,7 +135,7 @@ export interface WorkflowsApiInterface {
 
     /**
      * Creates request options for createWorkflowVersion without sending the request
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {WorkflowCreateRequest} workflowCreateRequest 
      * @throws {RequiredError}
      * @memberof WorkflowsApiInterface
@@ -145,7 +145,7 @@ export interface WorkflowsApiInterface {
     /**
      * 
      * @summary Upload a new immutable draft Workflow version
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {WorkflowCreateRequest} workflowCreateRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -209,7 +209,7 @@ export interface WorkflowsApiInterface {
     /**
      * Creates request options for validateWorkflowVersion without sending the request
      * @param {string} workflowVersionId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @throws {RequiredError}
      * @memberof WorkflowsApiInterface
      */
@@ -219,7 +219,7 @@ export interface WorkflowsApiInterface {
      * 
      * @summary Validate bindings, capabilities, compatibility, and minimal test execution
      * @param {string} workflowVersionId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof WorkflowsApiInterface

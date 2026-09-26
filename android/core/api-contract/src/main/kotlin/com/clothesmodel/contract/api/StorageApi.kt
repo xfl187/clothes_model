@@ -24,7 +24,7 @@ interface StorageApi {
      *  - 401: Authentication is missing or invalid.
      *  - 409: Request failed with a stable machine-readable error code.
      *
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param cleanupRequest 
      * @return [CleanupResult]
      */
@@ -52,7 +52,7 @@ interface StorageApi {
      *  - 200: Cleanup preview including protected references.
      *  - 401: Authentication is missing or invalid.
      *
-     * @param idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param storageScanRequest  (optional)
      * @return [StorageScanResult]
      */

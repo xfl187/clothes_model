@@ -8,10 +8,12 @@
 
 ## Progress
 
-- Status: NOT STARTED
-- Tasks: 0 / 11 complete
+- Status: ACTIVE
+- Tasks: 1 / 11 complete
+- Task 1 — COMPLETE
+- Tasks 2–11 — NOT STARTED
 - Last verified: 2026-09-26
-- Next: Task 1 — Close Phase 2 contracts and record ADRs
+- Next: Task 2 — Add the Phase 2 business schema and persistence adapters
 
 ## Confirmed Inputs
 

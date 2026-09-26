@@ -18,8 +18,11 @@ AdminSession:
       enum: [true]
     csrf_token:
       type: string
-      writeOnly: true
-      description: Returned in the login response and required for subsequent admin writes.
+      readOnly: true
+      minLength: 32
+      description: >-
+        Returned by session creation or inspection and required for subsequent
+        admin writes. Web clients keep it in memory only.
     created_at:
       $ref: ../common/schemas.yaml#/Timestamp
     expires_at:

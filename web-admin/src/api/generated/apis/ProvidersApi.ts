@@ -2,7 +2,7 @@
 /* eslint-disable */
 /**
  * Clothes Model API
- * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec.
+ * Canonical V1 HTTP contract shared by the Backend, Android application, and Web Admin. Product behavior remains authoritative in the Product Spec. Cursor values, resource-version values, and ETags are opaque to clients and must only be replayed in the boundary that produced them. Content hashes are internal storage identities and are never exposed as resource versions.
  *
  * The version of the OpenAPI document: 1.0.0
  * 
@@ -46,7 +46,7 @@ import {
 
 export interface CreateProviderConfigRequest {
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
     /**
@@ -61,7 +61,7 @@ export interface EnableProviderConfigRequest {
      */
     providerId: string;
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
 }
@@ -112,7 +112,7 @@ export interface ValidateProviderConfigRequest {
      */
     providerId: string;
     /**
-     * Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      */
     idempotencyKey: string;
 }
@@ -126,7 +126,7 @@ export interface ValidateProviderConfigRequest {
 export interface ProvidersApiInterface {
     /**
      * Creates request options for createProviderConfig without sending the request
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {ProviderConfigRequest} providerConfigRequest 
      * @throws {RequiredError}
      * @memberof ProvidersApiInterface
@@ -136,7 +136,7 @@ export interface ProvidersApiInterface {
     /**
      * 
      * @summary Save a new inactive provider configuration without changing the default
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {ProviderConfigRequest} providerConfigRequest 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -152,7 +152,7 @@ export interface ProvidersApiInterface {
     /**
      * Creates request options for enableProviderConfig without sending the request
      * @param {string} providerId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @throws {RequiredError}
      * @memberof ProvidersApiInterface
      */
@@ -162,7 +162,7 @@ export interface ProvidersApiInterface {
      * 
      * @summary Enable a validated provider configuration without changing the default
      * @param {string} providerId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ProvidersApiInterface
@@ -275,7 +275,7 @@ export interface ProvidersApiInterface {
     /**
      * Creates request options for validateProviderConfig without sending the request
      * @param {string} providerId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @throws {RequiredError}
      * @memberof ProvidersApiInterface
      */
@@ -285,7 +285,7 @@ export interface ProvidersApiInterface {
      * 
      * @summary Run connection, capability, and minimal generation checks
      * @param {string} providerId 
-     * @param {string} idempotencyKey Opaque client-generated key. Reusing a key with a different payload returns idempotency_key_reused.
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ProvidersApiInterface

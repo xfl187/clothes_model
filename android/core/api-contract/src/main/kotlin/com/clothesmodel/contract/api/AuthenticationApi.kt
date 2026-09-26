@@ -20,7 +20,7 @@ interface AuthenticationApi {
      * Responses:
      *  - 201: Session created. The session identifier is set in an HttpOnly cookie.
      *  - 401: Authentication is missing or invalid.
-     *  - 429: Request failed with a stable machine-readable error code.
+     *  - 429: Authentication attempts are temporarily throttled.
      *
      * @param adminSessionCreateRequest 
      * @return [AdminSession]
@@ -35,11 +35,26 @@ interface AuthenticationApi {
      * Responses:
      *  - 204: Session ended.
      *  - 401: Authentication is missing or invalid.
+     *  - 403: The admin write was rejected by CSRF or same-origin validation.
      *
      * @return [Unit]
      */
     @DELETE("api/v1/admin/auth/session")
     suspend fun deleteAdminSession(): Response<Unit>
+
+    /**
+     * GET api/v1/admin/auth/session
+     * Restore an authenticated Admin browser session and refresh its CSRF value
+     * Uses the HttpOnly session cookie. The returned CSRF value is short-lived client state for memory-only use and must not be persisted in browser storage.
+     * Responses:
+     *  - 200: Session is active and a current CSRF value is returned.
+     *  - 401: Authentication is missing or invalid.
+     *  - 403: The authenticated principal does not have the required scope.
+     *
+     * @return [AdminSession]
+     */
+    @GET("api/v1/admin/auth/session")
+    suspend fun getAdminSession(): Response<AdminSession>
 
     /**
      * GET api/v1/auth/status
@@ -48,6 +63,7 @@ interface AuthenticationApi {
      * Responses:
      *  - 200: App Token is valid.
      *  - 401: Authentication is missing or invalid.
+     *  - 403: The authenticated principal does not have the required scope.
      *
      * @return [AppAuthStatus]
      */

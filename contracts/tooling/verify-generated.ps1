@@ -1,12 +1,21 @@
 [CmdletBinding()]
-param()
+param(
+    [switch]$SkipKotlinCompile
+)
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$runningOnWindows = $env:OS -eq 'Windows_NT'
 $backendRoot = Join-Path $repositoryRoot 'backend'
 $androidSource = Join-Path $repositoryRoot 'android\core\api-contract\src\main\kotlin'
 $webGenerated = Join-Path $repositoryRoot 'web-admin\src\api\generated'
-$uvCommand = if ($env:CLOTHES_MODEL_UV) { $env:CLOTHES_MODEL_UV } else { 'uv' }
+$uvCommand = if ($env:CLOTHES_MODEL_UV) {
+    $env:CLOTHES_MODEL_UV
+}
+else {
+    $resolvedUv = Get-Command uv -ErrorAction SilentlyContinue
+    if ($null -ne $resolvedUv) { $resolvedUv.Source } else { $null }
+}
 
 function Assert-LastExitCode([string]$Operation) {
     if ($LASTEXITCODE -ne 0) {
@@ -21,19 +30,38 @@ function Assert-Contains([string]$Path, [string]$Value) {
     }
 }
 
+function Invoke-BackendTool([string]$Name, [string[]]$Arguments) {
+    if ($null -ne $uvCommand) {
+        & $uvCommand 'run' '--project' $backendRoot $Name @Arguments
+    }
+    else {
+        $extension = if ($runningOnWindows) { '.exe' } else { '' }
+        $command = Join-Path $backendRoot ('.venv\Scripts\' + $Name + $extension)
+        if (-not (Test-Path -LiteralPath $command)) {
+            throw "Missing Backend tool '$Name'. Install the locked Backend environment or set CLOTHES_MODEL_UV."
+        }
+        & $command @Arguments
+    }
+    Assert-LastExitCode "Backend tool '$Name'"
+}
+
 & (Join-Path $PSScriptRoot 'check-generated.ps1')
 Assert-LastExitCode 'Generated artifact drift check'
 
 Push-Location $backendRoot
 try {
-    & $uvCommand run pyright
-    Assert-LastExitCode 'Backend generated model type-check'
+    Invoke-BackendTool 'pyright' @()
 }
 finally {
     Pop-Location
 }
 
-& corepack 'pnpm@10.34.5' '--dir' $PSScriptRoot 'run' 'typecheck:web-generated'
+$tscExtension = if ($runningOnWindows) { '.cmd' } else { '' }
+$tscCommand = Join-Path $PSScriptRoot ('node_modules\.bin\tsc' + $tscExtension)
+if (-not (Test-Path -LiteralPath $tscCommand)) {
+    throw 'Missing TypeScript compiler. Run corepack pnpm install --frozen-lockfile in contracts/tooling.'
+}
+& $tscCommand '--project' (Join-Path $PSScriptRoot 'tsconfig.web-generated.json')
 Assert-LastExitCode 'Web generated client type-check'
 
 Assert-Contains `
@@ -52,46 +80,9 @@ Assert-Contains `
     (Join-Path $webGenerated 'models\ProblemDetails.ts') `
     'code: string'
 
-$temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
-    'clothes-model-kotlin-compile-' + [System.Guid]::NewGuid().ToString('N')
-)
-New-Item -ItemType Directory -Force -Path (Join-Path $temporaryRoot 'src\main') | Out-Null
-
-try {
-    Copy-Item -LiteralPath $androidSource `
-        -Destination (Join-Path $temporaryRoot 'src\main\kotlin') `
-        -Recurse
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'templates\kotlin-compile-build.gradle') `
-        -Destination (Join-Path $temporaryRoot 'build.gradle')
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'templates\kotlin-compile-settings.gradle') `
-        -Destination (Join-Path $temporaryRoot 'settings.gradle')
-
-    $gradleCommand = if ($env:CLOTHES_MODEL_GRADLE) {
-        $env:CLOTHES_MODEL_GRADLE
-    }
-    elseif (Test-Path -LiteralPath (Join-Path $repositoryRoot 'android\gradlew.bat')) {
-        Join-Path $repositoryRoot 'android\gradlew.bat'
-    }
-    else {
-        $resolvedGradle = Get-Command gradle -ErrorAction SilentlyContinue
-        if ($null -eq $resolvedGradle) {
-            throw 'Gradle is unavailable. Set CLOTHES_MODEL_GRADLE or complete the Task 7 wrapper.'
-        }
-        $resolvedGradle.Source
-    }
-
-    & $gradleCommand '-p' $temporaryRoot '--no-daemon' 'clean' 'compileKotlin'
+if (-not $SkipKotlinCompile) {
+    & (Join-Path $PSScriptRoot 'compile-generated-kotlin.ps1')
     Assert-LastExitCode 'Android generated client compilation'
-}
-finally {
-    $temporaryFullPath = [System.IO.Path]::GetFullPath($temporaryRoot)
-    $systemTempPrefix = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
-    if (
-        $temporaryFullPath.StartsWith($systemTempPrefix, [System.StringComparison]::OrdinalIgnoreCase) -and
-        (Split-Path $temporaryFullPath -Leaf).StartsWith('clothes-model-kotlin-compile-')
-    ) {
-        Remove-Item -LiteralPath $temporaryFullPath -Recurse -Force -ErrorAction SilentlyContinue
-    }
 }
 
 Write-Output 'GENERATED CONTRACT VERIFICATION PASSED'

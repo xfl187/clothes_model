@@ -16,10 +16,13 @@ Run from the repository root:
 
 ```powershell
 corepack pnpm@10.34.5 install --dir contracts/tooling --frozen-lockfile
-powershell -ExecutionPolicy Bypass -File contracts/tooling/generate-contracts.ps1
-powershell -ExecutionPolicy Bypass -File contracts/tooling/check-generated.ps1
-powershell -ExecutionPolicy Bypass -File contracts/tooling/verify-contract.ps1
-powershell -ExecutionPolicy Bypass -File contracts/tooling/verify-generated.ps1
+pwsh -File contracts/tooling/generate-contracts.ps1
+pwsh -File contracts/tooling/check-generated.ps1
+pwsh -File contracts/tooling/verify-additive-contract.ps1
+pwsh -File contracts/tooling/verify-phase2-boundaries.ps1
+pwsh -File contracts/tooling/verify-contract.ps1
+pwsh -File contracts/tooling/compile-generated-kotlin.ps1
+pwsh -File contracts/tooling/verify-generated.ps1
 ```
 
 `generate-contracts.ps1` is the only supported regeneration entry point. It
@@ -31,21 +34,32 @@ updates the bundled contract and these generated targets:
 
 Generated files and their directory README markers must not be edited manually.
 `check-generated.ps1` regenerates into an isolated temporary directory and
-compares SHA-256 manifests, making it suitable for the Task 9 CI drift gate.
+compares SHA-256 manifests, making it suitable for the CI drift gate.
+
+`verify-additive-contract.ps1` compares the current bundle with the committed
+Phase 1 contract surface. It rejects removed paths, operations, response codes,
+schemas, properties, required fields, enum values, or changed security on
+existing operations. New Phase 2 paths and schemas remain allowed.
+
+`verify-phase2-boundaries.ps1` asserts the authentication combinations,
+declared problem statuses, and shared schemas for every Phase 2 auth, upload,
+and asset operation.
 
 `verify-contract.ps1`:
 
 1. lints `contracts/openapi/openapi.yaml`;
 2. resolves every `$ref` into `contracts/generated/openapi.yaml`;
-3. checks the bundled contract for required V1 states and shared fields;
-4. rejects V1.1 Outfit resources while allowing future-safe capability fields;
-5. starts Prism and verifies Job, Provider Capabilities, Storage, and Diagnostics
-   examples with placeholder bearer/session/CSRF authentication values.
+3. runs the additive compatibility check;
+4. checks the bundled contract for required V1 states and shared fields;
+5. rejects V1.1 Outfit resources while allowing future-safe capability fields;
+6. starts Prism and verifies configured examples with placeholder
+   bearer/session/CSRF authentication values.
 
 `verify-generated.ps1` runs the drift gate, Backend Pyright, Web TypeScript, and
-standalone Kotlin compilation. Until Task 7 provides the repository Gradle
-wrapper, set `CLOTHES_MODEL_GRADLE` to a Gradle 8.13+ executable. Set
-`CLOTHES_MODEL_UV` when `uv` is not on `PATH`.
+standalone Kotlin compilation. Set `CLOTHES_MODEL_GRADLE` to override the
+repository Gradle wrapper and `CLOTHES_MODEL_UV` when `uv` is not on `PATH`.
+Its `-SkipKotlinCompile` switch is for split verification in restricted local
+environments only; CI and the default command continue to run every gate.
 
 The Kotlin generator normalization is intentionally narrow: it removes a
 duplicate `ApiKeyAuth` import emitted for the two API-key security schemes and
