@@ -9,11 +9,12 @@
 ## Progress
 
 - Status: ACTIVE
-- Tasks: 1 / 11 complete
+- Tasks: 2 / 11 complete
 - Task 1 — COMPLETE
-- Tasks 2–11 — NOT STARTED
+- Task 2 — COMPLETE
+- Tasks 3–11 — NOT STARTED
 - Last verified: 2026-09-26
-- Next: Task 2 — Add the Phase 2 business schema and persistence adapters
+- Next: Task 3 — Establish token bootstrap, rotation foundation, and secret cryptography
 
 ## Confirmed Inputs
 

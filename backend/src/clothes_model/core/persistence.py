@@ -12,6 +12,10 @@ class Repository[T](Protocol):
     async def get(self, entity_id: object) -> T | None: ...
 
 
+class PersistenceConflict(RuntimeError):
+    """A database constraint rejected a competing or invalid write."""
+
+
 class UnitOfWork(Protocol):
     """Explicit transaction boundary independent of SQLAlchemy and SQLite."""
 

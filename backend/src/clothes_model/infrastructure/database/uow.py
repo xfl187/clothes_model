@@ -6,6 +6,17 @@ from typing import Self
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from clothes_model.core.persistence import UnitOfWork
+from clothes_model.infrastructure.database.repositories import (
+    SqlAlchemyAccessTokenRepository,
+    SqlAlchemyAdminSessionRepository,
+    SqlAlchemyAssetReferenceRepository,
+    SqlAlchemyAssetRepository,
+    SqlAlchemyAuthThrottleRepository,
+    SqlAlchemyIdempotencyRepository,
+    SqlAlchemySecurityAuditRepository,
+    SqlAlchemyStoredObjectRepository,
+    SqlAlchemyUploadRepository,
+)
 
 
 class SqlAlchemyUnitOfWork(UnitOfWork):
@@ -18,6 +29,42 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
         if self._session is None:
             raise RuntimeError("Unit of Work has not been entered")
         return self._session
+
+    @property
+    def access_tokens(self) -> SqlAlchemyAccessTokenRepository:
+        return SqlAlchemyAccessTokenRepository(self.session)
+
+    @property
+    def admin_sessions(self) -> SqlAlchemyAdminSessionRepository:
+        return SqlAlchemyAdminSessionRepository(self.session)
+
+    @property
+    def auth_throttles(self) -> SqlAlchemyAuthThrottleRepository:
+        return SqlAlchemyAuthThrottleRepository(self.session)
+
+    @property
+    def idempotency(self) -> SqlAlchemyIdempotencyRepository:
+        return SqlAlchemyIdempotencyRepository(self.session)
+
+    @property
+    def stored_objects(self) -> SqlAlchemyStoredObjectRepository:
+        return SqlAlchemyStoredObjectRepository(self.session)
+
+    @property
+    def uploads(self) -> SqlAlchemyUploadRepository:
+        return SqlAlchemyUploadRepository(self.session)
+
+    @property
+    def assets(self) -> SqlAlchemyAssetRepository:
+        return SqlAlchemyAssetRepository(self.session)
+
+    @property
+    def asset_references(self) -> SqlAlchemyAssetReferenceRepository:
+        return SqlAlchemyAssetReferenceRepository(self.session)
+
+    @property
+    def security_audit(self) -> SqlAlchemySecurityAuditRepository:
+        return SqlAlchemySecurityAuditRepository(self.session)
 
     async def __aenter__(self) -> Self:
         self._session = self._sessions()
