@@ -10,10 +10,11 @@
 
 - Status: IN PROGRESS
 - Task 1 — COMPLETE (2026-09-27; contract additions, ADR-0008, Phase 3 boundary gate)
-- Tasks 2–11 — NOT_STARTED
-- Current: Task 2 — Add Phase 3 schema, migration, and repositories
+- Task 2 — COMPLETE (2026-09-27; migration 0003, provider/job repositories, invariant tests)
+- Tasks 3–11 — NOT_STARTED
+- Current: Task 3 — Implement Provider configuration, snapshots, and adapter contract
 - Last updated: 2026-09-27
-- Next: implementation Task 2 only, then verify migration/constraint boundary
+- Next: implementation Task 3 only, then verify the Provider contract suite boundary
 
 ## Confirmed Inputs
 

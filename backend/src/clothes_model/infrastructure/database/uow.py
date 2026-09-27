@@ -12,7 +12,11 @@ from clothes_model.infrastructure.database.repositories import (
     SqlAlchemyAssetReferenceRepository,
     SqlAlchemyAssetRepository,
     SqlAlchemyAuthThrottleRepository,
+    SqlAlchemyGeneratedOutputRepository,
     SqlAlchemyIdempotencyRepository,
+    SqlAlchemyJobExecutionEventRepository,
+    SqlAlchemyJobRepository,
+    SqlAlchemyProviderConfigRepository,
     SqlAlchemySecurityAuditRepository,
     SqlAlchemyStoredObjectRepository,
     SqlAlchemyUploadRepository,
@@ -65,6 +69,22 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     @property
     def security_audit(self) -> SqlAlchemySecurityAuditRepository:
         return SqlAlchemySecurityAuditRepository(self.session)
+
+    @property
+    def provider_configs(self) -> SqlAlchemyProviderConfigRepository:
+        return SqlAlchemyProviderConfigRepository(self.session)
+
+    @property
+    def jobs(self) -> SqlAlchemyJobRepository:
+        return SqlAlchemyJobRepository(self.session)
+
+    @property
+    def job_outputs(self) -> SqlAlchemyGeneratedOutputRepository:
+        return SqlAlchemyGeneratedOutputRepository(self.session)
+
+    @property
+    def job_events(self) -> SqlAlchemyJobExecutionEventRepository:
+        return SqlAlchemyJobExecutionEventRepository(self.session)
 
     async def __aenter__(self) -> Self:
         self._session = self._sessions()

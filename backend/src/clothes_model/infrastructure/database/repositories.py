@@ -1,12 +1,12 @@
 """Async SQLAlchemy adapters for Phase 2 persistence ports."""
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import insert, select, update
-from sqlalchemy.engine import RowMapping
+from sqlalchemy import delete, insert, or_, select, update
+from sqlalchemy.engine import CursorResult, RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +26,18 @@ from clothes_model.modules.auth.domain import (
     AdminSession,
     AuthThrottle,
     SecurityAuditEvent,
+)
+from clothes_model.modules.jobs.domain import (
+    GeneratedOutputRecord,
+    Job,
+    JobExecutionEvent,
+    JobItem,
+    JobPersonInput,
+)
+from clothes_model.modules.providers.domain import (
+    ProviderConfig,
+    ProviderConfigRevision,
+    ProviderDefaultSelection,
 )
 
 
@@ -234,6 +246,12 @@ class SqlAlchemyAssetRepository:
                         source=asset.garment.source,
                     )
                 )
+            elif (
+                asset.kind == "generated_output"
+                and asset.person is None
+                and asset.garment is None
+            ):
+                pass
             else:
                 raise PersistenceConflict("asset must have exactly one matching subtype")
         except IntegrityError as error:
@@ -286,6 +304,307 @@ class SqlAlchemySecurityAuditRepository:
 
     async def add(self, event: SecurityAuditEvent) -> None:
         await _insert(self._session, models.security_audit_events, asdict(event))
+
+
+class SqlAlchemyProviderConfigRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add_config(self, config: ProviderConfig) -> None:
+        await _insert(self._session, models.provider_configs, asdict(config))
+
+    async def get_config(self, provider_id: str) -> ProviderConfig | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.provider_configs).where(models.provider_configs.c.id == provider_id),
+        )
+        return None if row is None else ProviderConfig(**dict(row))
+
+    async def list_configs(self) -> list[ProviderConfig]:
+        result = await self._session.execute(
+            select(models.provider_configs).order_by(
+                models.provider_configs.c.created_at, models.provider_configs.c.id
+            )
+        )
+        return [ProviderConfig(**dict(row)) for row in result.mappings().all()]
+
+    async def update_config(self, config: ProviderConfig) -> None:
+        await self._session.execute(
+            update(models.provider_configs)
+            .where(models.provider_configs.c.id == config.id)
+            .values(**asdict(config))
+        )
+
+    async def add_revision(self, revision: ProviderConfigRevision) -> None:
+        await _insert(self._session, models.provider_config_revisions, asdict(revision))
+
+    async def get_revision(self, revision_id: str) -> ProviderConfigRevision | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.provider_config_revisions).where(
+                models.provider_config_revisions.c.id == revision_id
+            ),
+        )
+        return None if row is None else ProviderConfigRevision(**dict(row))
+
+    async def list_revisions(self, provider_id: str) -> list[ProviderConfigRevision]:
+        result = await self._session.execute(
+            select(models.provider_config_revisions)
+            .where(models.provider_config_revisions.c.provider_id == provider_id)
+            .order_by(models.provider_config_revisions.c.revision)
+        )
+        return [ProviderConfigRevision(**dict(row)) for row in result.mappings().all()]
+
+    async def get_current_revision(self, provider_id: str) -> ProviderConfigRevision | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.provider_config_revisions)
+            .where(models.provider_config_revisions.c.provider_id == provider_id)
+            .order_by(models.provider_config_revisions.c.revision.desc())
+            .limit(1),
+        )
+        return None if row is None else ProviderConfigRevision(**dict(row))
+
+    async def set_default(self, selection: ProviderDefaultSelection) -> None:
+        await self._session.execute(delete(models.provider_default_selection))
+        await _insert(self._session, models.provider_default_selection, asdict(selection))
+
+    async def get_default(self) -> ProviderDefaultSelection | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.provider_default_selection).where(
+                models.provider_default_selection.c.id == "default"
+            ),
+        )
+        return None if row is None else ProviderDefaultSelection(**dict(row))
+
+    async def clear_default(self) -> None:
+        await self._session.execute(delete(models.provider_default_selection))
+
+
+class SqlAlchemyJobRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add_job(self, job: Job) -> None:
+        await _insert(self._session, models.jobs, asdict(job))
+
+    async def get_job(self, job_id: str) -> Job | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.jobs).where(models.jobs.c.id == job_id),
+        )
+        return None if row is None else Job(**dict(row))
+
+    async def list_jobs(self, *, state: str | None = None, limit: int = 50) -> list[Job]:
+        statement = select(models.jobs)
+        if state is not None:
+            statement = statement.where(models.jobs.c.state == state)
+        statement = statement.order_by(
+            models.jobs.c.created_at.desc(), models.jobs.c.id.desc()
+        ).limit(limit)
+        result = await self._session.execute(statement)
+        return [Job(**dict(row)) for row in result.mappings().all()]
+
+    async def update_job(self, job: Job) -> None:
+        await self._session.execute(
+            update(models.jobs).where(models.jobs.c.id == job.id).values(**asdict(job))
+        )
+
+    async def compare_and_set_job_state(
+        self,
+        job_id: str,
+        expected_states: Collection[str],
+        state: str,
+        values: Mapping[str, object] | None = None,
+    ) -> bool:
+        payload: dict[str, object] = dict(values or {})
+        payload["state"] = state
+        result = cast(
+            CursorResult[Any],
+            await self._session.execute(
+                update(models.jobs)
+                .where(
+                    models.jobs.c.id == job_id,
+                    models.jobs.c.state.in_(list(expected_states)),
+                )
+                .values(**payload)
+            ),
+        )
+        return result.rowcount == 1
+
+    async def add_person_input(self, person_input: JobPersonInput) -> None:
+        await _insert(self._session, models.job_person_inputs, asdict(person_input))
+
+    async def list_person_inputs(self, job_id: str) -> list[JobPersonInput]:
+        result = await self._session.execute(
+            select(models.job_person_inputs)
+            .where(models.job_person_inputs.c.job_id == job_id)
+            .order_by(models.job_person_inputs.c.ordinal)
+        )
+        return [JobPersonInput(**dict(row)) for row in result.mappings().all()]
+
+    async def add_item(self, item: JobItem) -> None:
+        await _insert(self._session, models.job_items, asdict(item))
+
+    async def get_item(self, item_id: str) -> JobItem | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.job_items).where(models.job_items.c.id == item_id),
+        )
+        return None if row is None else JobItem(**dict(row))
+
+    async def list_items(self, job_id: str) -> list[JobItem]:
+        result = await self._session.execute(
+            select(models.job_items)
+            .where(models.job_items.c.job_id == job_id)
+            .order_by(
+                models.job_items.c.candidate_index,
+                models.job_items.c.attempt,
+                models.job_items.c.id,
+            )
+        )
+        return [JobItem(**dict(row)) for row in result.mappings().all()]
+
+    async def update_item(self, item: JobItem) -> None:
+        await self._session.execute(
+            update(models.job_items)
+            .where(models.job_items.c.id == item.id)
+            .values(**asdict(item))
+        )
+
+    async def compare_and_set_item_state(
+        self,
+        item_id: str,
+        expected_states: Collection[str],
+        state: str,
+        values: Mapping[str, object] | None = None,
+    ) -> bool:
+        payload: dict[str, object] = dict(values or {})
+        payload["state"] = state
+        result = cast(
+            CursorResult[Any],
+            await self._session.execute(
+                update(models.job_items)
+                .where(
+                    models.job_items.c.id == item_id,
+                    models.job_items.c.state.in_(list(expected_states)),
+                )
+                .values(**payload)
+            ),
+        )
+        return result.rowcount == 1
+
+    async def list_claimable_item_ids(
+        self, *, now: datetime, states: Collection[str], limit: int = 1
+    ) -> list[str]:
+        statement = (
+            select(models.job_items.c.id)
+            .where(
+                models.job_items.c.state.in_(list(states)),
+                or_(
+                    models.job_items.c.next_attempt_at.is_(None),
+                    models.job_items.c.next_attempt_at <= now,
+                ),
+                or_(
+                    models.job_items.c.claimant_token.is_(None),
+                    models.job_items.c.lease_expires_at < now,
+                ),
+            )
+            .order_by(models.job_items.c.created_at, models.job_items.c.id)
+            .limit(limit)
+        )
+        result = await self._session.execute(statement)
+        return [str(row[0]) for row in result.all()]
+
+    async def claim_item(
+        self,
+        item_id: str,
+        *,
+        claimant_token: str,
+        claimed_at: datetime,
+        lease_expires_at: datetime,
+    ) -> bool:
+        result = cast(
+            CursorResult[Any],
+            await self._session.execute(
+                update(models.job_items)
+                .where(
+                    models.job_items.c.id == item_id,
+                    or_(
+                        models.job_items.c.claimant_token.is_(None),
+                        models.job_items.c.lease_expires_at < claimed_at,
+                    ),
+                )
+                .values(
+                    claimant_token=claimant_token,
+                    claimed_at=claimed_at,
+                    lease_expires_at=lease_expires_at,
+                )
+            ),
+        )
+        return result.rowcount == 1
+
+    async def release_claim(self, item_id: str) -> bool:
+        result = cast(
+            CursorResult[Any],
+            await self._session.execute(
+                update(models.job_items)
+                .where(models.job_items.c.id == item_id)
+                .values(claimant_token=None, claimed_at=None, lease_expires_at=None)
+            ),
+        )
+        return result.rowcount == 1
+
+    async def list_claimed_item_ids(self, *, claimant_token: str) -> Sequence[str]:
+        result = await self._session.execute(
+            select(models.job_items.c.id)
+            .where(models.job_items.c.claimant_token == claimant_token)
+            .order_by(models.job_items.c.created_at, models.job_items.c.id)
+        )
+        return [str(row[0]) for row in result.all()]
+
+
+class SqlAlchemyGeneratedOutputRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add_output(self, output: GeneratedOutputRecord) -> None:
+        await _insert(self._session, models.generated_outputs, asdict(output))
+
+    async def get_output(self, output_id: str) -> GeneratedOutputRecord | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.generated_outputs).where(models.generated_outputs.c.id == output_id),
+        )
+        return None if row is None else GeneratedOutputRecord(**dict(row))
+
+    async def list_outputs(self, job_item_id: str) -> list[GeneratedOutputRecord]:
+        result = await self._session.execute(
+            select(models.generated_outputs)
+            .where(models.generated_outputs.c.job_item_id == job_item_id)
+            .order_by(models.generated_outputs.c.created_at, models.generated_outputs.c.id)
+        )
+        return [GeneratedOutputRecord(**dict(row)) for row in result.mappings().all()]
+
+
+class SqlAlchemyJobExecutionEventRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add_event(self, event: JobExecutionEvent) -> None:
+        await _insert(self._session, models.job_execution_events, asdict(event))
+
+    async def list_events(self, job_id: str) -> list[JobExecutionEvent]:
+        result = await self._session.execute(
+            select(models.job_execution_events)
+            .where(models.job_execution_events.c.job_id == job_id)
+            .order_by(
+                models.job_execution_events.c.occurred_at,
+                models.job_execution_events.c.id,
+            )
+        )
+        return [JobExecutionEvent(**dict(row)) for row in result.mappings().all()]
 
 
 def _access_token(row: RowMapping) -> AccessToken:

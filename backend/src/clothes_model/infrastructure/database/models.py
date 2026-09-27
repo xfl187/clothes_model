@@ -16,6 +16,7 @@ from sqlalchemy import (
     Table,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.types import TypeDecorator
 
@@ -193,7 +194,7 @@ assets = Table(
     Column("created_at", utc_timestamp(), nullable=False),
     Column("updated_at", utc_timestamp(), nullable=False),
     Column("deleted_at", utc_timestamp(), nullable=True),
-    CheckConstraint("kind IN ('person', 'garment')", name="kind"),
+    CheckConstraint("kind IN ('person', 'garment', 'generated_output')", name="kind"),
     CheckConstraint("content_state IN ('available', 'deleted')", name="content_state"),
     CheckConstraint(
         "(content_state = 'available' AND stored_object_id IS NOT NULL AND deleted_at IS NULL) OR "
@@ -310,3 +311,303 @@ security_audit_events = Table(
     CheckConstraint("outcome IN ('succeeded', 'failed', 'denied')", name="outcome"),
 )
 Index("ix_security_audit_events_created", security_audit_events.c.created_at)
+
+provider_configs = Table(
+    "provider_configs",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("display_name", String(120), nullable=False),
+    Column("provider_type", String(32), nullable=False),
+    Column("state", String(16), nullable=False),
+    Column("secret_envelope", Text, nullable=True),
+    Column("secret_updated_at", utc_timestamp(), nullable=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+    Column("updated_at", utc_timestamp(), nullable=False),
+    CheckConstraint(
+        "provider_type IN ('llm_image_edit', 'comfyui', 'unknown')", name="provider_type"
+    ),
+    CheckConstraint("state IN ('inactive', 'validated', 'active', 'disabled')", name="state"),
+    CheckConstraint(
+        "(secret_envelope IS NULL AND secret_updated_at IS NULL) OR "
+        "(secret_envelope IS NOT NULL AND secret_updated_at IS NOT NULL)",
+        name="secret_pair",
+    ),
+)
+
+provider_config_revisions = Table(
+    "provider_config_revisions",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column(
+        "provider_id",
+        String(36),
+        ForeignKey("provider_configs.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("revision", Integer, nullable=False),
+    Column("adapter_type", String(96), nullable=False),
+    Column("endpoint", String(512), nullable=False),
+    Column("model", String(160), nullable=False),
+    Column("timeout_seconds", Integer, nullable=False),
+    Column("vendor_parameters_json", Text, nullable=False, server_default="{}"),
+    Column("capabilities_json", Text, nullable=False),
+    Column("created_at", utc_timestamp(), nullable=False),
+    CheckConstraint("revision >= 1", name="revision"),
+    CheckConstraint("timeout_seconds >= 1 AND timeout_seconds <= 3600", name="timeout"),
+)
+Index(
+    "ux_provider_config_revisions_provider_revision",
+    provider_config_revisions.c.provider_id,
+    provider_config_revisions.c.revision,
+    unique=True,
+)
+
+provider_default_selection = Table(
+    "provider_default_selection",
+    metadata,
+    Column("id", String(16), primary_key=True),
+    Column(
+        "provider_id",
+        String(36),
+        ForeignKey("provider_configs.id", ondelete="RESTRICT"),
+        nullable=False,
+    ),
+    Column(
+        "config_revision_id",
+        String(36),
+        ForeignKey("provider_config_revisions.id", ondelete="RESTRICT"),
+        nullable=False,
+    ),
+    Column("updated_at", utc_timestamp(), nullable=False),
+    CheckConstraint("id = 'default'", name="singleton"),
+)
+
+jobs_block_reason_values = (
+    "'provider_offline', 'storage_capacity', 'retry_backoff', "
+    "'locked_configuration_unavailable', 'external_state_unknown', "
+    "'configuration_invalid', 'unknown'"
+)
+job_item_state_values = (
+    "'queued', 'waiting_provider', 'preparing', 'running', 'needs_attention', "
+    "'succeeded', 'failed', 'cancelled'"
+)
+
+jobs = Table(
+    "jobs",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("mode", String(32), nullable=False),
+    Column("state", String(24), nullable=False),
+    Column("block_reason", String(32), nullable=True),
+    Column("blocked_detail", String(500), nullable=True),
+    Column("candidate_count", Integer, nullable=False),
+    Column("seed", Integer, nullable=True),
+    Column("advanced_parameters_json", Text, nullable=False, server_default="{}"),
+    Column(
+        "garment_asset_id",
+        String(36),
+        ForeignKey("assets.id", ondelete="RESTRICT"),
+        nullable=False,
+    ),
+    Column("mask_asset_id", String(36), nullable=True),
+    Column(
+        "related_job_id",
+        String(36),
+        ForeignKey("jobs.id", ondelete="SET NULL"),
+        nullable=True,
+    ),
+    Column(
+        "provider_id",
+        String(36),
+        ForeignKey("provider_configs.id", ondelete="RESTRICT"),
+        nullable=False,
+    ),
+    Column(
+        "provider_revision_id",
+        String(36),
+        ForeignKey("provider_config_revisions.id", ondelete="RESTRICT"),
+        nullable=False,
+    ),
+    Column("provider_snapshot_json", Text, nullable=False),
+    Column("workflow_version_id", String(36), nullable=True),
+    Column("workflow_snapshot_json", Text, nullable=True),
+    Column("next_attempt_at", utc_timestamp(), nullable=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+    Column("updated_at", utc_timestamp(), nullable=False),
+    CheckConstraint("mode IN ('precise_try_on', 'unknown')", name="mode"),
+    CheckConstraint(
+        "state IN ('queued', 'waiting_provider', 'preparing', 'running', "
+        "'needs_attention', 'succeeded', 'partially_succeeded', 'failed', 'cancelled')",
+        name="state",
+    ),
+    CheckConstraint(
+        f"block_reason IS NULL OR block_reason IN ({jobs_block_reason_values})",
+        name="block_reason",
+    ),
+    CheckConstraint("candidate_count >= 1 AND candidate_count <= 4", name="candidate_count"),
+    CheckConstraint(
+        "(workflow_version_id IS NULL AND workflow_snapshot_json IS NULL) OR "
+        "workflow_version_id IS NOT NULL",
+        name="workflow_pair",
+    ),
+)
+Index("ix_jobs_list_order", jobs.c.created_at.desc(), jobs.c.id.desc())
+Index("ix_jobs_state", jobs.c.state)
+
+job_person_inputs = Table(
+    "job_person_inputs",
+    metadata,
+    Column("job_id", String(36), ForeignKey("jobs.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "person_asset_id",
+        String(36),
+        ForeignKey("assets.id", ondelete="RESTRICT"),
+        primary_key=True,
+    ),
+    Column("ordinal", Integer, nullable=False),
+    Column("created_at", utc_timestamp(), nullable=False),
+    CheckConstraint("ordinal >= 0", name="ordinal_nonnegative"),
+)
+Index(
+    "ux_job_person_inputs_ordinal",
+    job_person_inputs.c.job_id,
+    job_person_inputs.c.ordinal,
+    unique=True,
+)
+
+job_items = Table(
+    "job_items",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("job_id", String(36), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False),
+    Column(
+        "person_asset_id",
+        String(36),
+        ForeignKey("assets.id", ondelete="RESTRICT"),
+        nullable=False,
+    ),
+    Column("candidate_index", Integer, nullable=False),
+    Column("attempt", Integer, nullable=False),
+    Column("state", String(24), nullable=False),
+    Column("block_reason", String(32), nullable=True),
+    Column(
+        "retry_of_job_item_id",
+        String(36),
+        ForeignKey("job_items.id", ondelete="SET NULL"),
+        nullable=True,
+    ),
+    Column(
+        "superseded_by_job_item_id",
+        String(36),
+        ForeignKey("job_items.id", ondelete="SET NULL"),
+        nullable=True,
+    ),
+    Column("external_execution_id", String(160), nullable=True),
+    Column("error_code", String(96), nullable=True),
+    Column("error_json", Text, nullable=True),
+    Column("next_attempt_at", utc_timestamp(), nullable=True),
+    Column("transient_attempts", Integer, nullable=False, server_default="0"),
+    Column("claimant_token", String(64), nullable=True),
+    Column("claimed_at", utc_timestamp(), nullable=True),
+    Column("lease_expires_at", utc_timestamp(), nullable=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+    Column("updated_at", utc_timestamp(), nullable=False),
+    CheckConstraint(f"state IN ({job_item_state_values})", name="state"),
+    CheckConstraint(
+        f"block_reason IS NULL OR block_reason IN ({jobs_block_reason_values})",
+        name="block_reason",
+    ),
+    CheckConstraint("candidate_index >= 0", name="candidate_index"),
+    CheckConstraint("attempt >= 1", name="attempt"),
+    CheckConstraint("transient_attempts >= 0", name="transient_attempts"),
+    CheckConstraint(
+        "(claimant_token IS NULL AND claimed_at IS NULL AND lease_expires_at IS NULL) OR "
+        "(claimant_token IS NOT NULL AND claimed_at IS NOT NULL AND lease_expires_at IS NOT NULL)",
+        name="claim",
+    ),
+    CheckConstraint(
+        "lease_expires_at IS NULL OR lease_expires_at > claimed_at", name="lease"
+    ),
+)
+Index("ix_job_items_job_candidate", job_items.c.job_id, job_items.c.candidate_index)
+Index(
+    "ux_job_items_candidate_attempt",
+    job_items.c.job_id,
+    job_items.c.candidate_index,
+    job_items.c.attempt,
+    unique=True,
+)
+Index(
+    "ix_job_items_claim",
+    job_items.c.state,
+    job_items.c.next_attempt_at,
+    job_items.c.lease_expires_at,
+)
+Index(
+    "ux_job_items_active_candidate",
+    job_items.c.job_id,
+    job_items.c.candidate_index,
+    unique=True,
+    sqlite_where=text("state NOT IN ('succeeded', 'failed', 'cancelled')"),
+)
+Index(
+    "ux_job_items_external_execution",
+    job_items.c.external_execution_id,
+    unique=True,
+    sqlite_where=text("external_execution_id IS NOT NULL"),
+)
+
+generated_outputs = Table(
+    "generated_outputs",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column(
+        "job_item_id",
+        String(36),
+        ForeignKey("job_items.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("asset_id", String(36), ForeignKey("assets.id", ondelete="RESTRICT"), nullable=False),
+    Column("favorite", Boolean, nullable=False, server_default="0"),
+    Column("seed", Integer, nullable=True),
+    Column("actual_parameters_json", Text, nullable=False, server_default="{}"),
+    Column("quality_warnings_json", Text, nullable=False, server_default="[]"),
+    Column("created_at", utc_timestamp(), nullable=False),
+)
+Index("ix_generated_outputs_item", generated_outputs.c.job_item_id)
+Index("ix_generated_outputs_asset", generated_outputs.c.asset_id)
+Index(
+    "ux_generated_outputs_item_asset",
+    generated_outputs.c.job_item_id,
+    generated_outputs.c.asset_id,
+    unique=True,
+)
+
+job_execution_events = Table(
+    "job_execution_events",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("job_id", String(36), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False),
+    Column(
+        "job_item_id",
+        String(36),
+        ForeignKey("job_items.id", ondelete="SET NULL"),
+        nullable=True,
+    ),
+    Column("event_type", String(48), nullable=False),
+    Column("from_state", String(24), nullable=True),
+    Column("to_state", String(24), nullable=True),
+    Column("error_code", String(96), nullable=True),
+    Column("detail_json", Text, nullable=False, server_default="{}"),
+    Column("occurred_at", utc_timestamp(), nullable=False),
+)
+Index(
+    "ix_job_execution_events_job",
+    job_execution_events.c.job_id,
+    job_execution_events.c.occurred_at,
+)
+Index(
+    "ix_job_execution_events_item",
+    job_execution_events.c.job_item_id,
+    job_execution_events.c.occurred_at,
+)
