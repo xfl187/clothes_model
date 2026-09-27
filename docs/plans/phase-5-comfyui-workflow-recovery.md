@@ -8,10 +8,11 @@
 - Task 1: COMPLETE (contract, ADR, generated clients, and boundary verification)
 - Task 2: COMPLETE (persistence, repositories, logical Provider bootstrap, and migration)
 - Task 3: COMPLETE (secure node configuration, probing, audit, and idempotency)
-- Tasks 4–10: NOT STARTED
+- Task 4: COMPLETE (canonical immutable artifacts, manifest parser, and Admin reads)
+- Tasks 5–10: NOT STARTED
 - Prerequisite: Phase 4 complete with credentialed real-Provider acceptance
-- Last verified: 2026-09-28 with contract/generated gates plus 72 Backend tests, Ruff, and Pyright
-- Next action: implement Task 4 — immutable Workflow artifacts and manifest validation
+- Last verified: 2026-09-28 with contract/generated gates plus 75 Backend tests, Ruff, and Pyright
+- Next action: implement Task 5 — live validation, activation, retirement, and rollback
 
 ## Goal
 
@@ -242,7 +243,7 @@ Dependencies and parallelization:
 - Depends on Tasks 1–2.
 - Can proceed in parallel with Task 4 after shared persistence interfaces stabilize.
 
-### Task 4 — Store immutable Workflow artifacts and validate manifest structure
+### Task 4 — Store immutable Workflow artifacts and validate manifest structure — COMPLETE
 
 Affected:
 

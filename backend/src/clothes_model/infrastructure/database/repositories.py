@@ -425,6 +425,24 @@ class SqlAlchemyWorkflowRepository:
         )
         return None if row is None else WorkflowVersion(**dict(row))
 
+    async def get_by_identity(self, workflow_id: str, version: int) -> WorkflowVersion | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.workflow_versions).where(
+                models.workflow_versions.c.workflow_id == workflow_id,
+                models.workflow_versions.c.version == version,
+            ),
+        )
+        return None if row is None else WorkflowVersion(**dict(row))
+
+    async def list_all(self, limit: int = 100) -> list[WorkflowVersion]:
+        result = await self._session.execute(
+            select(models.workflow_versions)
+            .order_by(models.workflow_versions.c.created_at.desc())
+            .limit(limit)
+        )
+        return [WorkflowVersion(**dict(row)) for row in result.mappings().all()]
+
     async def list_versions(self, workflow_id: str) -> list[WorkflowVersion]:
         result = await self._session.execute(
             select(models.workflow_versions)

@@ -22,7 +22,11 @@ from clothes_model.infrastructure.security import (
     SecretCryptoError,
     load_master_key,
 )
-from clothes_model.infrastructure.storage import LocalFileStorage, reconcile_upload_sessions
+from clothes_model.infrastructure.storage import (
+    LocalFileStorage,
+    WorkflowArtifactStorage,
+    reconcile_upload_sessions,
+)
 from clothes_model.modules.jobs.infrastructure.execution import JobExecutionService
 from clothes_model.modules.providers.application.ports import ProviderAdapter
 from clothes_model.modules.providers.application.services import ProviderConfigService
@@ -52,6 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         resolved_settings.sqlite_busy_timeout_ms,
     )
     storage = LocalFileStorage(resolved_settings.storage_root)
+    workflow_artifacts = WorkflowArtifactStorage(resolved_settings.storage_root)
     secret_cipher = _load_secret_cipher(resolved_settings)
     ark_adapter = VolcengineArkSeedreamAdapter()
     comfy_http_client = httpx2.AsyncClient(trust_env=False, follow_redirects=False)
@@ -134,6 +139,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.database = database
     app.state.scheduler = scheduler
     app.state.storage = storage
+    app.state.workflow_artifacts = workflow_artifacts
     app.state.secret_cipher = secret_cipher
     app.state.provider_registry = provider_registry
     app.state.provider_service = provider_service
