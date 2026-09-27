@@ -399,7 +399,7 @@ comfy_node_config = Table(
     Column("created_at", utc_timestamp(), nullable=False),
     Column("updated_at", utc_timestamp(), nullable=False),
     CheckConstraint("id = 'default'", name="singleton"),
-    CheckConstraint("timeout_seconds >= 1 AND timeout_seconds <= 300", name="timeout"),
+    CheckConstraint("timeout_seconds >= 1 AND timeout_seconds <= 3600", name="timeout"),
     CheckConstraint(
         "health_status IN ('unchecked', 'healthy', 'offline', 'incompatible')",
         name="health_status",

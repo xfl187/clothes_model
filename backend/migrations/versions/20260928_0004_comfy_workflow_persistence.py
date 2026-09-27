@@ -98,7 +98,7 @@ def upgrade() -> None:
           endpoint VARCHAR(512) NOT NULL,
           credential_envelope TEXT,
           credential_updated_at DATETIME,
-          timeout_seconds INTEGER NOT NULL CHECK (timeout_seconds >= 1 AND timeout_seconds <= 300),
+          timeout_seconds INTEGER NOT NULL CHECK (timeout_seconds >= 1 AND timeout_seconds <= 3600),
           enabled BOOLEAN NOT NULL DEFAULT 0,
           health_status VARCHAR(16) NOT NULL DEFAULT 'unchecked' CHECK (
             health_status IN ('unchecked', 'healthy', 'offline', 'incompatible')

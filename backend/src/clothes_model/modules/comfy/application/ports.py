@@ -3,6 +3,7 @@
 from typing import Protocol
 
 from clothes_model.core.persistence import UnitOfWork
+from clothes_model.modules.auth.application.ports import SecurityAuditRepository
 from clothes_model.modules.comfy.domain import ComfyNodeConfig
 
 
@@ -16,3 +17,5 @@ class ComfyUnitOfWork(UnitOfWork, Protocol):
     @property
     def comfy_node(self) -> ComfyNodeRepository: ...
 
+    @property
+    def security_audit(self) -> SecurityAuditRepository: ...

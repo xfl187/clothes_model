@@ -6,8 +6,8 @@
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 3 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 4 — COMPLETE (real Volcengine Ark vertical slice verified 2026-09-27)
-- Phase 5 — IN PROGRESS (2 / 10 tasks complete)
-- Next — implement Task 3: secure Comfy node configuration and health probing
+- Phase 5 — IN PROGRESS (3 / 10 tasks complete)
+- Next — implement Task 4: immutable Workflow artifacts and manifest validation
 
 ## Current Repository State
 

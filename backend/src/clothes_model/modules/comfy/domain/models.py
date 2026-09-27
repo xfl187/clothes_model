@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Literal
 
 ComfyNodeHealth = Literal["unchecked", "healthy", "offline", "incompatible"]
+LOGICAL_COMFY_PROVIDER_ID = "00000000-0000-4000-8000-000000000005"
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,4 +23,3 @@ class ComfyNodeConfig:
     observed_server_version: str | None = None
     observed_capabilities_json: str = "{}"
     last_checked_at: datetime | None = None
-

@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import httpx2
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -53,6 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     storage = LocalFileStorage(resolved_settings.storage_root)
     secret_cipher = _load_secret_cipher(resolved_settings)
     ark_adapter = VolcengineArkSeedreamAdapter()
+    comfy_http_client = httpx2.AsyncClient(trust_env=False, follow_redirects=False)
     adapters: list[ProviderAdapter] = [ark_adapter]
     if resolved_settings.environment != "production":
         adapters.append(FakeImageEditAdapter())
@@ -116,6 +118,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     pass
             await scheduler.stop()
             await ark_adapter.close()
+            await comfy_http_client.aclose()
             await database.close()
             logger.info("application_stopped")
 
@@ -135,6 +138,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.provider_registry = provider_registry
     app.state.provider_service = provider_service
     app.state.job_execution = job_execution
+    app.state.comfy_http_client = comfy_http_client
     app.add_middleware(RequestContextMiddleware)
     if resolved_settings.cors_allowlist:
         app.add_middleware(

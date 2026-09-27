@@ -7,10 +7,11 @@
 - Planned: 2026-09-28
 - Task 1: COMPLETE (contract, ADR, generated clients, and boundary verification)
 - Task 2: COMPLETE (persistence, repositories, logical Provider bootstrap, and migration)
-- Tasks 3–10: NOT STARTED
+- Task 3: COMPLETE (secure node configuration, probing, audit, and idempotency)
+- Tasks 4–10: NOT STARTED
 - Prerequisite: Phase 4 complete with credentialed real-Provider acceptance
-- Last verified: 2026-09-28 with contract/generated gates plus 68 Backend tests, Ruff, and Pyright
-- Next action: implement Task 3 — secure singleton Comfy node configuration and health probing
+- Last verified: 2026-09-28 with contract/generated gates plus 72 Backend tests, Ruff, and Pyright
+- Next action: implement Task 4 — immutable Workflow artifacts and manifest validation
 
 ## Goal
 
@@ -213,7 +214,7 @@ Dependencies and parallelization:
 - Depends on Task 1.
 - Repository/domain work may be split internally, but merge only with the migration and persistence tests together.
 
-### Task 3 — Implement secure singleton Comfy node configuration and health probing
+### Task 3 — Implement secure singleton Comfy node configuration and health probing — COMPLETE
 
 Affected:
 

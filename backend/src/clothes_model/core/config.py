@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     scheduler_lease_minutes: int = Field(default=5, ge=1, le=60)
     instance_lock_path: Path = Path("./data/instance.lock")
     encryption_master_key_file: Path | None = None
+    comfy_node_allowed_hosts: list[str] = Field(default_factory=list)
     admin_session_cookie_secure: bool = True
     admin_session_ttl_minutes: int = Field(default=60, ge=5, le=1440)
     admin_login_max_failures: int = Field(default=5, ge=1, le=20)
