@@ -19,10 +19,15 @@ def test_live_and_ready_match_contract() -> None:
     datetime.fromisoformat(live.json()["checked_at"].replace("Z", "+00:00"))
     assert ready.status_code == 200
     assert ready.json()["status"] == "ok"
-    assert ready.json()["checks"] == {
-        "configuration": "ok",
-        "environment": "test",
-        "scheduler": "disabled",
+    checks = ready.json()["checks"]
+    assert checks["configuration"] == "ok"
+    assert checks["environment"] == "test"
+    assert checks["scheduler"] == "disabled"
+    assert set(checks) >= {
+        "comfy_node_health",
+        "active_workflow",
+        "waiting_provider_items",
+        "storage_blocked_items",
     }
     assert live.headers["x-request-id"]
     assert ready.headers["x-request-id"]

@@ -2,7 +2,7 @@
 
 ## Progress
 
-- Status: IN PROGRESS — Task 8 complete
+- Status: IN PROGRESS — Task 9 complete
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Task 1: COMPLETE (contract, ADR, generated clients, and boundary verification)
@@ -13,12 +13,16 @@
 - Task 6: COMPLETE (production Comfy adapter, deterministic fixture, and error/cleanup semantics)
 - Task 7: COMPLETE (active Workflow locking, capability/category/mask rejection, and offline waiting)
 - Task 8: COMPLETE (storage admission/pause, restart requery, availability pre-check, no-resubmit resume)
-- Tasks 9–10: NOT STARTED
+- Task 9: COMPLETE (redacted readiness diagnostics, CI Phase 5 gates, deployment script, proxy docs)
+- Task 10: NOT STARTED (final integrated exit gate and operator acceptance)
 - Prerequisite: Phase 4 complete with credentialed real-Provider acceptance
-- Last verified: 2026-09-28 with contract/generated gates plus 100 Backend tests, Ruff, and Pyright
+- Last verified: 2026-09-28 with contract/generated gates plus 100 Backend tests, Ruff, and Pyright;
+  `infra/verify-phase5-deployment.ps1` deterministic gate passed (31 focused tests).
 - Task 8 deviation: in-process remote temp tracking is not persisted across restart; restart reconciles
-  known `prompt_id` results but cannot re-issue remote temporary-file cleanup. Track in Task 9/10.
-- Next action: implement Task 9 — observability, CI, and deployment verification
+  known `prompt_id` results but cannot re-issue remote temporary-file cleanup. Track in Task 10.
+- Task 9 note: the Phase 5 contract boundary script and Compose deployment smoke run in CI; this
+  environment ran the deterministic backend gate only.
+- Next action: run Task 10 — the integrated Phase 5 exit gate (bounded operator acceptance remains manual)
 
 ## Goal
 

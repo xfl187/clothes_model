@@ -86,3 +86,27 @@ Remove-Item Env:CLOTHES_MODEL_PHASE4_ARK_API_KEY
 This smoke verifies credentials, model access, request construction, and output
 decoding. The clean-deployment product loop is then checked through Web Admin
 and Android so its result is persisted through the authenticated app path.
+
+## Phase 5 ComfyUI boundary
+
+Raw ComfyUI exposes an unauthenticated, implementation-facing server protocol
+for image upload, prompt submission, queue/history lookup, output viewing, and
+queue deletion. It must never be reachable directly from the public internet.
+Deploy it behind an authenticated reverse proxy or a private tunnel/VPN, and
+register only that protected endpoint as the singleton `ComfyNodeConfig`. The
+Backend refuses non-HTTPS endpoints and any host that is not in the deployment
+allowlist, so it cannot be used as an unrestricted network proxy.
+
+The deterministic Phase 5 gate needs no GPU, network, or paid service. It uses
+an in-process ComfyUI fixture and runs in normal CI:
+
+```powershell
+./infra/verify-phase5-deployment.ps1
+```
+
+It configures a node, creates/validates/activates an immutable Workflow, locks
+it at job creation, executes a mocked prompt, persists the private output,
+recovers a storage-blocked remote completion without resubmitting, and requeries
+a known `prompt_id` after a simulated restart. A credentialed AutoDL/Comfy run is
+manual until the target node is provisioned; it must stay bounded and must never
+run on ordinary pull requests.

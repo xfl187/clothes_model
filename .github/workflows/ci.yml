@@ -105,6 +105,10 @@ jobs:
         shell: pwsh
         run: ./contracts/tooling/verify-phase3-boundaries.ps1
 
+      - name: Verify Phase 5 contract boundaries
+        shell: pwsh
+        run: ./contracts/tooling/verify-phase5-boundaries.ps1
+
       - name: Upload contract reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -183,6 +187,18 @@ jobs:
             tests/test_provider_config_http.py \
             tests/test_scheduler_execution.py \
             -q 2>&1 | tee artifacts/backend-phase4.log
+
+      - name: Phase 5 deterministic Comfy verification
+        working-directory: backend
+        run: |
+          uv run pytest \
+            tests/test_workflow_artifacts.py \
+            tests/test_workflow_lifecycle.py \
+            tests/test_comfy_node_http.py \
+            tests/test_comfyui_adapter.py \
+            tests/test_job_workflow_locking.py \
+            tests/test_scheduler_recovery.py \
+            -q 2>&1 | tee artifacts/backend-phase5.log
 
       - name: Build wheel and source distribution
         working-directory: backend
