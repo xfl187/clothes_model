@@ -26,6 +26,7 @@ data class PendingImport(
 interface PendingImportDao {
     @Query("SELECT * FROM pending_imports WHERE id = :id") suspend fun get(id: String): PendingImport?
     @Query("SELECT * FROM pending_imports WHERE state != 'completed'") suspend fun recoverable(): List<PendingImport>
+    @Query("SELECT * FROM pending_imports") suspend fun all(): List<PendingImport>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun save(value: PendingImport)
     @Query("DELETE FROM pending_imports WHERE id = :id") suspend fun delete(id: String)
 }
