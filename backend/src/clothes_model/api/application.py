@@ -31,6 +31,7 @@ from clothes_model.modules.jobs.infrastructure.execution import JobExecutionServ
 from clothes_model.modules.providers.application.ports import ProviderAdapter
 from clothes_model.modules.providers.application.services import ProviderConfigService
 from clothes_model.modules.providers.infrastructure import (
+    ComfyUIAdapter,
     FakeImageEditAdapter,
     ProviderRegistry,
     VolcengineArkSeedreamAdapter,
@@ -60,13 +61,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     secret_cipher = _load_secret_cipher(resolved_settings)
     ark_adapter = VolcengineArkSeedreamAdapter()
     comfy_http_client = httpx2.AsyncClient(trust_env=False, follow_redirects=False)
-    adapters: list[ProviderAdapter] = [ark_adapter]
-    if resolved_settings.environment != "production":
-        adapters.append(FakeImageEditAdapter())
-    provider_registry = ProviderRegistry(adapters, environment=resolved_settings.environment)
 
     def uow_factory() -> SqlAlchemyUnitOfWork:
         return SqlAlchemyUnitOfWork(database.sessions)
+
+    comfy_adapter = ComfyUIAdapter(
+        uow_factory, workflow_artifacts, secret_cipher, client=comfy_http_client
+    )
+    adapters: list[ProviderAdapter] = [ark_adapter, comfy_adapter]
+    if resolved_settings.environment != "production":
+        adapters.append(FakeImageEditAdapter())
+    provider_registry = ProviderRegistry(adapters, environment=resolved_settings.environment)
 
     provider_service = ProviderConfigService(uow_factory, provider_registry, secret_cipher)
     job_execution = JobExecutionService(

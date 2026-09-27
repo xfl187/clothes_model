@@ -83,7 +83,7 @@ class ComfyWorkflowValidator:
             fingerprint = hashlib.sha256(
                 json.dumps(objects, sort_keys=True, separators=(",", ":")).encode()
             ).hexdigest()
-            checks.extend(self._check_metadata(workflow, manifest, objects))
+            checks.extend(metadata_checks(workflow, manifest, objects))
             if any(item.status == "failed" for item in checks):
                 return LiveValidationResult("incompatible", tuple(checks), fingerprint, version)
             checks.append(
@@ -353,56 +353,55 @@ class ComfyWorkflowValidator:
         )
         return value[:160] if isinstance(value, str) else None
 
-    @staticmethod
-    def _check_metadata(
-        workflow: dict[str, object], manifest: ParsedManifest, objects: dict[str, object]
-    ) -> list[ValidationCheck]:
-        checks: list[ValidationCheck] = []
-        for node_id, raw_node in workflow.items():
-            if not isinstance(raw_node, dict):
-                continue
-            node = cast(dict[str, object], raw_node)
-            class_type = node.get("class_type")
-            metadata = objects.get(class_type) if isinstance(class_type, str) else None
-            if not isinstance(metadata, dict):
+def metadata_checks(
+    workflow: dict[str, object], manifest: ParsedManifest, objects: dict[str, object]
+) -> list[ValidationCheck]:
+    """Compare a locked Workflow against live node/object metadata without mutating it."""
+
+    checks: list[ValidationCheck] = []
+    for node_id, raw_node in workflow.items():
+        if not isinstance(raw_node, dict):
+            continue
+        node = cast(dict[str, object], raw_node)
+        class_type = node.get("class_type")
+        metadata = objects.get(class_type) if isinstance(class_type, str) else None
+        if not isinstance(metadata, dict):
+            checks.append(
+                ValidationCheck("required_node", "failed", f"节点类型 {class_type!s} 不可用。")
+            )
+            continue
+        metadata_map = cast(dict[str, object], metadata)
+        inputs_meta = metadata_map.get("input")
+        if not isinstance(inputs_meta, dict):
+            continue
+        declared: set[str] = set()
+        for group in ("required", "optional"):
+            raw_group = cast(dict[str, object], inputs_meta).get(group)
+            if isinstance(raw_group, dict):
+                declared.update(cast(dict[str, object], raw_group))
+        for name, binding in manifest.bindings.items():
+            if binding.node_id == node_id and declared and binding.input_name not in declared:
                 checks.append(
-                    ValidationCheck("required_node", "failed", f"节点类型 {class_type!s} 不可用。")
+                    ValidationCheck("binding_input", "failed", f"绑定 {name} 的节点输入不可用。")
                 )
-                continue
-            metadata_map = cast(dict[str, object], metadata)
-            inputs_meta = metadata_map.get("input")
-            if not isinstance(inputs_meta, dict):
-                continue
-            declared: set[str] = set()
-            for group in ("required", "optional"):
-                raw_group = cast(dict[str, object], inputs_meta).get(group)
-                if isinstance(raw_group, dict):
-                    declared.update(cast(dict[str, object], raw_group))
-            for name, binding in manifest.bindings.items():
-                if binding.node_id == node_id and declared and binding.input_name not in declared:
+        inputs = node.get("inputs")
+        if isinstance(inputs, dict):
+            for input_name, current in cast(dict[str, object], inputs).items():
+                definition: object | None = None
+                for group in ("required", "optional"):
+                    raw_group = cast(dict[str, object], inputs_meta).get(group)
+                    if isinstance(raw_group, dict) and input_name in raw_group:
+                        definition = cast(dict[str, object], raw_group)[input_name]
+                if (
+                    isinstance(current, str)
+                    and isinstance(definition, list)
+                    and definition
+                    and isinstance(definition[0], list)
+                    and current not in cast(list[object], definition[0])
+                ):
                     checks.append(
                         ValidationCheck(
-                            "binding_input", "failed", f"绑定 {name} 的节点输入不可用。"
+                            "required_model", "failed", "Workflow 声明的模型在节点上不可用。"
                         )
                     )
-            inputs = node.get("inputs")
-            if isinstance(inputs, dict):
-                for input_name, current in cast(dict[str, object], inputs).items():
-                    definition: object | None = None
-                    for group in ("required", "optional"):
-                        raw_group = cast(dict[str, object], inputs_meta).get(group)
-                        if isinstance(raw_group, dict) and input_name in raw_group:
-                            definition = cast(dict[str, object], raw_group)[input_name]
-                    if (
-                        isinstance(current, str)
-                        and isinstance(definition, list)
-                        and definition
-                        and isinstance(definition[0], list)
-                        and current not in cast(list[object], definition[0])
-                    ):
-                        checks.append(
-                            ValidationCheck(
-                                "required_model", "failed", "Workflow 声明的模型在节点上不可用。"
-                            )
-                        )
-        return checks
+    return checks

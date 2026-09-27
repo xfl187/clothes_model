@@ -2,7 +2,7 @@
 
 ## Progress
 
-- Status: IN PROGRESS — Task 5 complete
+- Status: IN PROGRESS — Task 6 complete
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Task 1: COMPLETE (contract, ADR, generated clients, and boundary verification)
@@ -10,10 +10,11 @@
 - Task 3: COMPLETE (secure node configuration, probing, audit, and idempotency)
 - Task 4: COMPLETE (canonical immutable artifacts, manifest parser, and Admin reads)
 - Task 5: COMPLETE (live validation, activation, retirement, rollback, and restart persistence)
-- Tasks 6–10: NOT STARTED
+- Task 6: COMPLETE (production Comfy adapter, deterministic fixture, and error/cleanup semantics)
+- Tasks 7–10: NOT STARTED
 - Prerequisite: Phase 4 complete with credentialed real-Provider acceptance
-- Last verified: 2026-09-28 with contract/generated gates plus 80 Backend tests, Ruff, and Pyright
-- Next action: implement Task 6 — production Comfy Provider transport
+- Last verified: 2026-09-28 with contract/generated gates plus 91 Backend tests, Ruff, and Pyright
+- Next action: implement Task 7 — lock Workflow versions at job creation and enforce compatibility
 
 ## Goal
 
