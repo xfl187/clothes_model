@@ -124,7 +124,7 @@ class JobExecutionService:
                 else:
                     await self._fail(item_id, "provider_failure", "生成失败。")
                 return
-            await self._persist_success(item, job, invocation, submission.external_execution_id)
+            await self.persist_success(item, job, invocation, submission.external_execution_id)
             return
 
     async def _handle_error(self, item: JobItem, job: Job, error: ProviderError) -> None:
@@ -163,8 +163,13 @@ class JobExecutionService:
             await self._fail_item(item.id, error.code, error.detail)
         await self._recompute(job.id)
 
-    async def _persist_success(
-        self, item: JobItem, job: Job, invocation: ProviderInvocation, external_id: str
+    async def persist_success(
+        self,
+        item: JobItem,
+        job: Job,
+        invocation: ProviderInvocation,
+        external_id: str,
+        expected: tuple[str, ...] = ("running",),
     ) -> None:
         adapter = self._registry.resolve(invocation.adapter_type)
         outputs = await adapter.fetch_outputs(invocation, external_id)
@@ -174,9 +179,15 @@ class JobExecutionService:
                 normalized = self._store(output.content)
                 await self._register_output(uow, item, normalized, output, now)
             await uow.commit()
-        await self._compare_and_set(item.id, ("running",), "succeeded", updated_at=now)
+        await self._compare_and_set(item.id, expected, "succeeded", updated_at=now)
         await self._release(item.id)
         await self._recompute(job.id)
+
+    async def recompute(self, job_id: str) -> None:
+        await self._recompute(job_id)
+
+    async def finish_failed(self, item_id: str, code: str, detail: str) -> None:
+        await self._fail_item(item_id, code, detail)
 
     def _store(self, content: bytes) -> NormalizedImage:
         return self._storage.normalize_and_store(content)

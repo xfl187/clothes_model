@@ -10,22 +10,34 @@ from typing import Annotated, cast
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, Query, Request
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
 from clothes_model.core.problems import AppProblem
 from clothes_model.generated.models import CreateJobRequest
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.infrastructure.database import models as db
-from clothes_model.modules._stub import StubRoute, add_stub_routes
 from clothes_model.modules.assets.domain import AssetReference, IdempotencyRecord
 from clothes_model.modules.auth.application import VerifiedCredential
 from clothes_model.modules.auth.http import require_app
 from clothes_model.modules.jobs.domain import Job, JobItem, JobPersonInput
+from clothes_model.modules.jobs.infrastructure.commands import JobCommandError, JobCommandService
 from clothes_model.modules.jobs.payloads import item_payload, job_payload
 from clothes_model.modules.providers.application.services import ProviderConfigService
 
 router = APIRouter(tags=["Jobs"])
 AppIdentity = Annotated[VerifiedCredential, Depends(require_app)]
+
+
+class RetryJobItemBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    provider_id: str | None = None
+    reason: str | None = None
+
+
+class FinishFailedBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reason: str = Field(min_length=1, max_length=500)
 
 
 def _problem(status: int, code: str, detail: str, *, retryable: bool = False) -> AppProblem:
@@ -282,17 +294,106 @@ async def get_job_item(
         return await item_payload(uow, item)
 
 
-add_stub_routes(
-    router,
-    (
-        StubRoute("/api/v1/jobs/{job_id}/cancel", "POST", "cancelJob"),
-        StubRoute("/api/v1/job-items/{job_item_id}/cancel", "POST", "cancelJobItem"),
-        StubRoute("/api/v1/job-items/{job_item_id}/retry", "POST", "retryJobItem"),
-        StubRoute("/api/v1/job-items/{job_item_id}/requery", "POST", "requeryJobItem"),
-        StubRoute(
-            "/api/v1/job-items/{job_item_id}/finish-failed",
-            "POST",
-            "finishJobItemAsFailed",
-        ),
-    ),
+def _command_service(request: Request) -> JobCommandService:
+    uow_factory = lambda: SqlAlchemyUnitOfWork(request.app.state.database.sessions)  # noqa: E731
+    return JobCommandService(
+        uow_factory,
+        request.app.state.provider_service,
+        request.app.state.provider_registry,
+        request.app.state.job_execution,
+    )
+
+
+async def _job_response(request: Request, job: Job) -> dict[str, object]:
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        return await job_payload(uow, job)
+
+
+def _command_problem(error: JobCommandError) -> AppProblem:
+    return _problem(error.status, error.code, error.detail)
+
+
+@router.post("/api/v1/jobs/{job_id}/cancel", operation_id="cancelJob")
+async def cancel_job(
+    request: Request,
+    job_id: str,
+    identity: AppIdentity,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    try:
+        job = await _command_service(request).cancel_job(job_id)
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job)}
+
+
+@router.post("/api/v1/job-items/{job_item_id}/cancel", operation_id="cancelJobItem")
+async def cancel_job_item(
+    request: Request,
+    job_item_id: str,
+    identity: AppIdentity,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    try:
+        job = await _command_service(request).cancel_item(job_item_id)
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job)}
+
+
+@router.post(
+    "/api/v1/job-items/{job_item_id}/retry", status_code=201, operation_id="retryJobItem"
 )
+async def retry_job_item(
+    request: Request,
+    job_item_id: str,
+    identity: AppIdentity,
+    body: RetryJobItemBody | None = None,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    reason = body.reason if body is not None else None
+    provider_id = body.provider_id if body is not None else None
+    try:
+        job, new_item_id = await _command_service(request).retry_item(
+            job_item_id, reason=reason, provider_id=provider_id
+        )
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job), "created_job_item_id": new_item_id}
+
+
+@router.post("/api/v1/job-items/{job_item_id}/requery", operation_id="requeryJobItem")
+async def requery_job_item(
+    request: Request,
+    job_item_id: str,
+    identity: AppIdentity,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    try:
+        job = await _command_service(request).requery_item(job_item_id)
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job)}
+
+
+@router.post(
+    "/api/v1/job-items/{job_item_id}/finish-failed",
+    operation_id="finishJobItemAsFailed",
+)
+async def finish_failed_job_item(
+    request: Request,
+    job_item_id: str,
+    body: FinishFailedBody,
+    identity: AppIdentity,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    try:
+        job = await _command_service(request).finish_failed(job_item_id, body.reason)
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job)}
