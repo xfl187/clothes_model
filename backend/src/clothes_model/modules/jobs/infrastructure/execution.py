@@ -19,7 +19,7 @@ from clothes_model.modules.jobs.domain import (
     aggregate_state,
     backoff_seconds,
 )
-from clothes_model.modules.providers.application.ports import ProviderRegistryPort
+from clothes_model.modules.providers.application.ports import ProviderAdapter, ProviderRegistryPort
 from clothes_model.modules.providers.application.services import ProviderConfigService
 from clothes_model.modules.providers.domain import (
     ProviderError,
@@ -49,12 +49,14 @@ class JobExecutionService:
         storage: StoragePort,
         *,
         clock: Callable[[], datetime] | None = None,
+        capacity: Callable[[], bool] | None = None,
     ) -> None:
         self._uow_factory = uow_factory
         self._provider_service = provider_service
         self._registry = registry
         self._storage = storage
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._capacity = capacity or (lambda: True)
 
     async def execute(self, item_id: str, claimant_token: str) -> None:
         try:
@@ -75,6 +77,39 @@ class JobExecutionService:
             job.provider_id, job.provider_revision_id
         )
         adapter = self._registry.resolve(invocation.adapter_type)
+
+        # A completion already discovered remotely but not yet published stays pollable.
+        # It must never be resubmitted, even when storage pressure paused publication.
+        if item.block_reason == "storage_capacity" and item.external_execution_id:
+            await self._resume_blocked_completion(item, job, adapter, invocation)
+            return
+
+        if not self._capacity():
+            await self._compare_and_set(
+                item_id,
+                ("queued", "waiting_provider"),
+                "queued",
+                block_reason="storage_capacity",
+            )
+            await self._release(item_id)
+            return
+
+        # Re-evaluate the current node against the locked Workflow before preparing.
+        availability = await adapter.availability(invocation)
+        if availability == "temporarily_offline":
+            await self._compare_and_set(
+                item_id,
+                ("queued", "waiting_provider", "preparing"),
+                "waiting_provider",
+                block_reason="provider_offline",
+            )
+            await self._release(item_id)
+            await self._recompute(job.id)
+            return
+        if availability == "unavailable_configuration":
+            await self._attention(item_id, "configuration_invalid")
+            await self._recompute(job.id)
+            return
 
         try:
             person_bytes, garment_bytes = await self._inputs(item, job)
@@ -156,6 +191,93 @@ class JobExecutionService:
             await self.persist_success(item, job, invocation, submission.external_execution_id)
             return
 
+    async def _resume_blocked_completion(
+        self,
+        item: JobItem,
+        job: Job,
+        adapter: ProviderAdapter,
+        invocation: ProviderInvocation,
+    ) -> None:
+        external_id = item.external_execution_id
+        if external_id is None:
+            return
+        try:
+            status = await adapter.query(invocation, external_id)
+        except ProviderError as error:
+            await self._handle_error(item, job, error)
+            return
+        if status.state == "running":
+            await self._release(item.id)
+            return
+        if status.state == "failed":
+            if status.error is not None:
+                await self._handle_error(item, job, status.error)
+            else:
+                await self._fail(item.id, "provider_failure", "生成失败。")
+            return
+        if not self._capacity():
+            await self._release(item.id)
+            return
+        await self.persist_success(
+            item,
+            job,
+            invocation,
+            external_id,
+            expected=("waiting_provider",),
+        )
+
+    async def reconcile_external(self, limit: int = 20) -> int:
+        """Query known external executions after a restart without resubmitting."""
+        async with self._uow_factory() as uow:
+            items = await uow.jobs.list_external_reconciliation_candidates(limit=limit)
+        reconciled = 0
+        for item in items:
+            if item.external_execution_id is None:
+                continue
+            async with self._uow_factory() as uow:
+                job = await uow.jobs.get_job(item.job_id)
+            if job is None:
+                continue
+            invocation, _, _ = await self._provider_service.resolve_invocation(
+                job.provider_id, job.provider_revision_id
+            )
+            adapter = self._registry.resolve(invocation.adapter_type)
+            try:
+                status = await adapter.query(invocation, item.external_execution_id)
+            except ProviderError as error:
+                if error.error_class == "externally_ambiguous":
+                    continue
+                await self._execution_error(item, error)
+                reconciled += 1
+                continue
+            if status.state == "succeeded":
+                await self.persist_success(
+                    item,
+                    job,
+                    invocation,
+                    item.external_execution_id,
+                    expected=("needs_attention",),
+                )
+                reconciled += 1
+            elif status.state == "failed":
+                error = status.error or ProviderError(
+                    "terminal_failure", "provider_failure", "生成失败。"
+                )
+                await self._execution_error(item, error)
+                reconciled += 1
+            elif status.state == "running":
+                await self._compare_and_set(
+                    item.id, ("needs_attention",), "running", block_reason=None
+                )
+                reconciled += 1
+        return reconciled
+
+    async def _execution_error(self, item: JobItem, error: ProviderError) -> None:
+        async with self._uow_factory() as uow:
+            job = await uow.jobs.get_job(item.job_id)
+        if job is not None:
+            await self._handle_error(item, job, error)
+
     async def _handle_error(self, item: JobItem, job: Job, error: ProviderError) -> None:
         now = self._clock()
         if error.error_class == "temporarily_offline":
@@ -201,6 +323,19 @@ class JobExecutionService:
         expected: tuple[str, ...] = ("running",),
         outputs: Sequence[ProviderOutput] | None = None,
     ) -> None:
+        # A remotely completed asynchronous execution must stay pollable while local
+        # storage is blocked.  Its external identifier is retained and it is never
+        # resubmitted, so no duplicate GPU work or cost can occur.
+        if external_id is not None and not self._capacity():
+            await self._compare_and_set(
+                item.id,
+                expected,
+                "waiting_provider",
+                block_reason="storage_capacity",
+            )
+            await self._release(item.id)
+            await self._recompute(job.id)
+            return
         if outputs is None:
             if external_id is None:
                 raise ProviderError(
@@ -216,7 +351,9 @@ class JobExecutionService:
                 normalized = self._store(output.content)
                 await self._register_output(uow, item, normalized, output, now)
             await uow.commit()
-        await self._compare_and_set(item.id, expected, "succeeded", updated_at=now)
+        await self._compare_and_set(
+            item.id, expected, "succeeded", updated_at=now, block_reason=None
+        )
         await self._release(item.id)
         await self._recompute(job.id)
 

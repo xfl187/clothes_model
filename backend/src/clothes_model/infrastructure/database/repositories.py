@@ -613,6 +613,20 @@ class SqlAlchemyJobRepository:
         result = await self._session.execute(statement)
         return [str(row[0]) for row in result.all()]
 
+    async def list_external_reconciliation_candidates(
+        self, *, limit: int = 20
+    ) -> list[JobItem]:
+        result = await self._session.execute(
+            select(models.job_items)
+            .where(
+                models.job_items.c.external_execution_id.is_not(None),
+                models.job_items.c.state.in_(["needs_attention", "waiting_provider", "running"]),
+            )
+            .order_by(models.job_items.c.updated_at, models.job_items.c.id)
+            .limit(limit)
+        )
+        return [JobItem(**dict(row)) for row in result.mappings().all()]
+
     async def claim_item(
         self,
         item_id: str,

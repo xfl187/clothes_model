@@ -2,7 +2,7 @@
 
 ## Progress
 
-- Status: IN PROGRESS — Task 7 complete
+- Status: IN PROGRESS — Task 8 complete
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Task 1: COMPLETE (contract, ADR, generated clients, and boundary verification)
@@ -12,10 +12,13 @@
 - Task 5: COMPLETE (live validation, activation, retirement, rollback, and restart persistence)
 - Task 6: COMPLETE (production Comfy adapter, deterministic fixture, and error/cleanup semantics)
 - Task 7: COMPLETE (active Workflow locking, capability/category/mask rejection, and offline waiting)
-- Tasks 8–10: NOT STARTED
+- Task 8: COMPLETE (storage admission/pause, restart requery, availability pre-check, no-resubmit resume)
+- Tasks 9–10: NOT STARTED
 - Prerequisite: Phase 4 complete with credentialed real-Provider acceptance
-- Last verified: 2026-09-28 with contract/generated gates plus 96 Backend tests, Ruff, and Pyright
-- Next action: implement Task 8 — scheduler recovery, storage pause, cancellation, and cleanup semantics
+- Last verified: 2026-09-28 with contract/generated gates plus 100 Backend tests, Ruff, and Pyright
+- Task 8 deviation: in-process remote temp tracking is not persisted across restart; restart reconciles
+  known `prompt_id` results but cannot re-issue remote temporary-file cleanup. Track in Task 9/10.
+- Next action: implement Task 9 — observability, CI, and deployment verification
 
 ## Goal
 

@@ -72,6 +72,7 @@ class JobScheduler:
         lease_minutes: int = 5,
         claimant_token: str | None = None,
         clock: Callable[[], datetime] | None = None,
+        capacity: Callable[[], bool] | None = None,
     ) -> None:
         self._sessions = sessions
         self._execution = execution
@@ -80,6 +81,7 @@ class JobScheduler:
         self._lease = timedelta(minutes=lease_minutes)
         self._claimant_token = claimant_token or str(uuid4())
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._capacity = capacity or (lambda: True)
         self._task: asyncio.Task[None] | None = None
         self._running = False
         self.claimed_total = 0
@@ -92,6 +94,7 @@ class JobScheduler:
         if self._running:
             return
         await reconcile_claims(self._sessions, self._clock())
+        await self._execution.reconcile_external()
         self._running = True
         self._task = asyncio.create_task(self._loop(), name="job-scheduler")
 
@@ -115,6 +118,20 @@ class JobScheduler:
 
     async def tick(self) -> int:
         now = self._clock()
+        if not self._capacity():
+            # Already-persisted work stays queued and resumes automatically when space
+            # returns; it is never failed and no external execution is started.
+            async with SqlAlchemyUnitOfWork(self._sessions) as uow:
+                await uow.session.execute(
+                    update(db.job_items)
+                    .where(
+                        db.job_items.c.state.in_(list(CLAIMABLE_STATES)),
+                        db.job_items.c.claimant_token.is_(None),
+                    )
+                    .values(block_reason="storage_capacity", updated_at=now)
+                )
+                await uow.commit()
+            return 0
         async with SqlAlchemyUnitOfWork(self._sessions) as uow:
             claimable = await uow.jobs.list_claimable_item_ids(
                 now=now, states=CLAIMABLE_STATES, limit=self._batch_size

@@ -55,6 +55,10 @@ class JobRepository(Protocol):
         self, *, now: datetime, states: Collection[str], limit: int = 1
     ) -> list[str]: ...
 
+    async def list_external_reconciliation_candidates(
+        self, *, limit: int = 20
+    ) -> list[JobItem]: ...
+
     async def claim_item(
         self,
         item_id: str,

@@ -1,6 +1,7 @@
 """FastAPI application factory and lifecycle."""
 
 import asyncio
+import shutil
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -74,11 +75,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     provider_registry = ProviderRegistry(adapters, environment=resolved_settings.environment)
 
     provider_service = ProviderConfigService(uow_factory, provider_registry, secret_cipher)
+
+    def capacity_available() -> bool:
+        usage = shutil.disk_usage(storage.root)
+        return usage.free - resolved_settings.storage_reserve_bytes > 0
+
     job_execution = JobExecutionService(
         uow_factory,
         provider_service,
         provider_registry,
         storage,
+        capacity=capacity_available,
     )
     scheduler = SchedulerCoordinator(
         enabled=resolved_settings.scheduler_enabled,
@@ -89,6 +96,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             poll_interval_seconds=resolved_settings.scheduler_poll_interval_seconds,
             batch_size=resolved_settings.scheduler_batch_size,
             lease_minutes=resolved_settings.scheduler_lease_minutes,
+            capacity=capacity_available,
         ),
     )
 
