@@ -2,7 +2,7 @@
 
 Private Android AI virtual try-on system with a fixed-server backend and a Web Admin control plane.
 
-The repository has completed **Phase 2 — Trusted Data, Auth and Asset Plane** and is ready to implement **Phase 3 — Durable Jobs and Provider Core**. The confirmed sequence is defined by the [Project Implementation Roadmap](docs/roadmap/implementation-roadmap.md), and the executable current scope is defined by the [Phase 3 Implementation Plan](docs/plans/phase-3-durable-jobs-provider-core.md).
+The repository has completed **Phase 3 — Durable Jobs and Provider Core** and is ready to plan **Phase 4 — Minimum V1 End-to-End Vertical Slice**. The confirmed sequence is defined by the [Project Implementation Roadmap](docs/roadmap/implementation-roadmap.md), and the completed Phase 3 scope is recorded in the [Phase 3 Implementation Plan](docs/plans/phase-3-durable-jobs-provider-core.md).
 
 ## Current scope
 
@@ -14,7 +14,7 @@ The completed foundation includes:
 - minimal Android connection/import recovery and Web Admin session foundations;
 - the enforced V1 single-instance runtime constraint.
 
-Phase 3 adds durable jobs, Provider configuration/ports, the task state machine, scheduler recovery, cancellation/retry, and private generated outputs. It uses a contract-level fake Provider; the first real LLM end-to-end slice remains Phase 4.
+Phase 3 delivered durable jobs, Provider configuration/ports, the task state machine, a single-instance scheduler with leases and restart reconciliation, cancellation/retry/requery, and private generated outputs. It uses a contract-level deterministic fake Provider; the first real LLM end-to-end slice remains Phase 4.
 
 ## Sources of truth
 
@@ -41,7 +41,7 @@ When these artifacts differ, use the authority order recorded in the Phase Plan;
 | `.github/workflows/` | CI quality gates | Task 9 |
 | `docs/`, `prototypes/`, `DESIGN.md` | Confirmed product, design, planning, and prototype inputs | Preserved project memory |
 
-Phase 1–2 foundations are implemented and verified. Jobs and Providers remain contract-shaped Backend stubs until Phase 3 implementation; full Android and Web Admin product surfaces remain in later roadmap phases.
+Phase 1–3 foundations are implemented and verified. Jobs and Providers are real Backend behavior; Workflows, Cleanup, ComfyNode, Retention, and storage-scan routes remain contract-shaped stubs. Full Android and Web Admin product surfaces remain in later roadmap phases.
 
 ## Repository policies
 

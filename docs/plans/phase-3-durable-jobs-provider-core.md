@@ -8,13 +8,11 @@
 
 ## Progress
 
-- Status: IN PROGRESS
-- Task 1 — COMPLETE (2026-09-27; contract additions, ADR-0008, Phase 3 boundary gate)
-- Task 2 — COMPLETE (2026-09-27; migration 0003, provider/job repositories, invariant tests)
-- Tasks 3–11 — NOT_STARTED
-- Current: Task 3 — Implement Provider configuration, snapshots, and adapter contract
+- Status: COMPLETE
+- Tasks 1–11 — COMPLETE (2026-09-27)
+- Current: Phase 3 exit gate passed (contract, generated consumers, and backend suites)
 - Last updated: 2026-09-27
-- Next: implementation Task 3 only, then verify the Provider contract suite boundary
+- Next: plan Phase 4 — Minimum V1 End-to-End Vertical Slice
 
 ## Confirmed Inputs
 
@@ -416,47 +414,47 @@ Verify:
 
 ### Contract and architecture
 
-- [ ] Phase 3 contract additions are additive, generated without drift, and compile for Backend/Android/Web.
-- [ ] ADR-0008 is accepted and consistent with ADR-0003/0005.
-- [ ] Job state and Provider error semantics have one Backend owner and no platform-local variants.
-- [ ] No Phase 4–9 UI, ComfyUI/Workflow, or Outfits implementation was pulled forward.
+- [x] Phase 3 contract additions are additive, generated without drift, and compile for Backend/Android/Web.
+- [x] ADR-0008 is accepted and consistent with ADR-0003/0005.
+- [x] Job state and Provider error semantics have one Backend owner and no platform-local variants.
+- [x] No Phase 4–9 UI, ComfyUI/Workflow, or Outfits implementation was pulled forward.
 
 ### Persistence and migration
 
-- [ ] Empty and Phase 2 databases upgrade deterministically to Phase 3 head; downgrade/re-upgrade passes.
-- [ ] Provider revisions, jobs, items, outputs, claims, events, and references survive restart.
-- [ ] Atomic claim, candidate-attempt uniqueness, generated-output references, and rollback/compensation are verified.
+- [x] Empty and Phase 2 databases upgrade deterministically to Phase 3 head; downgrade/re-upgrade passes.
+- [x] Provider revisions, jobs, items, outputs, claims, events, and references survive restart.
+- [x] Atomic claim, candidate-attempt uniqueness, generated-output references, and rollback/compensation are verified.
 
 ### Job semantics
 
-- [ ] Duplicate creation does not create duplicate jobs or execution.
-- [ ] Provider config/model/capability snapshot is locked at creation and unchanged by later defaults.
-- [ ] All item transitions and aggregate states match Product Spec, including partial success.
-- [ ] Retry creates a traceable new item and preserves prior attempts.
-- [ ] Candidate and whole-job cancellation preserve successful outputs and reject late results.
+- [x] Duplicate creation does not create duplicate jobs or execution.
+- [x] Provider config/model/capability snapshot is locked at creation and unchanged by later defaults.
+- [x] All item transitions and aggregate states match Product Spec, including partial success.
+- [x] Retry creates a traceable new item and preserves prior attempts.
+- [x] Candidate and whole-job cancellation preserve successful outputs and reject late results.
 
 ### Scheduler and recovery
 
-- [ ] One scheduler owner atomically claims each item once with bounded leases/concurrency.
-- [ ] Restart restores queued/waiting work and does not blindly resubmit uncertain running work.
-- [ ] `waiting_provider` remains indefinitely until recovery or cancellation.
-- [ ] Storage-blocked persisted work resumes only after safe capacity returns.
-- [ ] Backoff is persisted, bounded, and excludes permanent/configuration failures.
+- [x] One scheduler owner atomically claims each item once with bounded leases/concurrency.
+- [x] Restart restores queued/waiting work and does not blindly resubmit uncertain running work.
+- [x] `waiting_provider` remains indefinitely until recovery or cancellation.
+- [x] Storage-blocked persisted work resumes only after safe capacity returns.
+- [x] Backoff is persisted, bounded, and excludes permanent/configuration failures.
 
 ### Provider boundary and outputs
 
-- [ ] Fake adapter passes the reusable Provider contract suite and is production-disabled.
-- [ ] Every Provider submission uses the internal JobItem correlation/idempotency identity.
-- [ ] Ambiguous external state enters `needs_attention`; requery never submits new work.
-- [ ] Outputs are normalized, privately stored, authenticated, referenced, and restart-safe.
-- [ ] Secrets, bodies, and images are absent from logs, events, errors, reports, and API snapshots.
+- [x] Fake adapter passes the reusable Provider contract suite and is production-disabled.
+- [x] Every Provider submission uses the internal JobItem correlation/idempotency identity.
+- [x] Ambiguous external state enters `needs_attention`; requery never submits new work.
+- [x] Outputs are normalized, privately stored, authenticated, referenced, and restart-safe.
+- [x] Secrets, bodies, and images are absent from logs, events, errors, reports, and API snapshots.
 
 ### Integration and operations
 
-- [ ] Fresh local deployment can configure fake Provider, create/execute/query/cancel/retry jobs, and survive restart.
-- [ ] CI covers migration, state machine, Provider contract, scheduler, job HTTP, generated clients, and redaction gates.
-- [ ] Single-instance restriction remains enforced; no distributed queue or worker was introduced.
-- [ ] Operator documentation explains safe recovery and `needs_attention` handling.
+- [x] Fresh local deployment can configure fake Provider, create/execute/query/cancel/retry jobs, and survive restart.
+- [x] CI covers migration, state machine, Provider contract, scheduler, job HTTP, generated clients, and redaction gates.
+- [x] Single-instance restriction remains enforced; no distributed queue or worker was introduced.
+- [x] Operator documentation explains safe recovery and `needs_attention` handling.
 
 ## Risks
 

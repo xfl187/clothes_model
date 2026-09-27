@@ -4,8 +4,8 @@
 
 - Phase 1 — COMPLETE
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
-- Phase 3 — IN PROGRESS (2 / 11 tasks; contracts closed, Phase 3 schema and repositories implemented)
-- Next — implement Phase 3 Task 3: Provider configuration, snapshots, and adapter contract
+- Phase 3 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
+- Next — plan Phase 4: Minimum V1 end-to-end vertical slice
 
 ## Current Repository State
 
@@ -22,7 +22,7 @@
 | Visual System | [DESIGN.md](../../DESIGN.md) 已确认 | Android/Web 共享 token 与平台规则的实现依据 |
 | Repository | Git `main` 已建立，Phase 1–2 提交完整 | 可从可审计的干净基线继续 |
 | Android 源码 | Compose 工程、生成客户端、连接认证与未完成导入恢复已存在 | 正式任务 UI 留在 Phase 6 |
-| Backend 源码 | FastAPI、SQLite/Alembic、认证、私有存储、上传与素材基础已存在 | Jobs/Providers 仍是 stub，Phase 3 实现 |
+| Backend 源码 | FastAPI、SQLite/Alembic、认证、私有存储、上传与素材基础，以及 Phase 3 持久任务/Provider 执行平面已存在 | 正式 Android/Web 产品界面留在 Phase 6/7 |
 | Web Admin 源码 | React 工程、生成客户端和 Admin 登录/session 壳已存在 | 正式控制台留在 Phase 7 |
 | 配置/部署 | Compose、Caddy、单实例锁、环境模板与 CI 基线已存在 | Phase 3 扩展任务运行验证 |
 | 测试 | Phase 1–2 contract/backend/web/android/deployment 门禁已建立 | Phase 3 增加状态机、Provider、调度和恢复测试 |
@@ -575,6 +575,6 @@ Phase 4 之后可以并行：
 
 ## Recommended Current Phase
 
-执行 Phase 3：[Durable Jobs and Provider Core Plan](../plans/phase-3-durable-jobs-provider-core.md)。
+Phase 3（持久任务与 Provider 执行平面）已完成并通过退出验收；实现依据见 [Phase 3 Plan](../plans/phase-3-durable-jobs-provider-core.md) 与 [ADR-0008](../../docs/adr/0008-durable-job-execution.md)。
 
-从 Task 1 开始关闭契约与持久执行语义，再按迁移、Provider port、状态机、任务 API、调度、执行、取消与恢复的依赖顺序实施。Phase 3 不接入真实厂商；真实 LLM 纵向闭环属于 Phase 4。
+下一步为 Phase 4：打通 V1 最小端到端闭环（选择一个真实 LLM Provider，连接 Android/Web 最小流程与部署）。进入 Phase 4 前应先由 `planning` 制定 Phase 4 计划；真实厂商协议、测试凭据与费用方式是该阶段的必要外部输入。
