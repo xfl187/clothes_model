@@ -99,6 +99,61 @@ async def _asset_available(
     return found is not None
 
 
+async def _lock_workflow(
+    uow: SqlAlchemyUnitOfWork,
+    revision_adapter_type: str,
+    revision_vendor_parameters_json: str,
+    garment_asset_id: str,
+    mask_asset_id: str | None,
+    candidate_count: int,
+) -> tuple[str, str] | None:
+    """Lock the active Workflow for a Comfy job and reject permanent incompatibility.
+
+    Returns ``None`` for non-Comfy adapters so LLM jobs stay Workflow-free.
+    """
+    if revision_adapter_type != "comfyui":
+        return None
+    active = await uow.workflows.get_active("precise_try_on")
+    if active is None:
+        raise _problem(409, "workflow_not_active", "当前没有可用的换装 Workflow。")
+    locked_revision_workflow = _as_mapping(
+        json.loads(revision_vendor_parameters_json or "{}")
+    ).get("workflow_version_id")
+    if locked_revision_workflow != active.id:
+        raise _problem(409, "workflow_incompatible", "Provider 配置与当前 Workflow 不一致。")
+    manifest = _as_mapping(json.loads(active.manifest_json or "{}"))
+    capabilities = _as_mapping(manifest.get("capabilities"))
+    bindings = _as_mapping(manifest.get("bindings"))
+    category = await uow.session.scalar(
+        select(db.garment_assets.c.category).where(
+            db.garment_assets.c.asset_id == garment_asset_id
+        )
+    )
+    allowed = _as_mapping(capabilities.get("garment_categories")).get("values")
+    if isinstance(allowed, list) and allowed and category not in allowed:
+        raise _problem(409, "workflow_incompatible", "该衣物类别不被当前 Workflow 支持。")
+    requires_mask = "mask" in bindings
+    if requires_mask != (mask_asset_id is not None):
+        raise _problem(409, "workflow_incompatible", "遮罩输入与 Workflow 要求不一致。")
+    max_candidates = _as_int(
+        _as_mapping(capabilities.get("output_constraints")).get("max_candidates"), 1
+    )
+    if candidate_count > max_candidates:
+        raise _problem(409, "workflow_incompatible", "当前 Workflow 不支持该候选数量。")
+    snapshot = {
+        "workflow_version_id": active.id,
+        "workflow_id": active.workflow_id,
+        "version": active.version,
+        "mode": active.mode,
+        "workflow_sha256": active.workflow_sha256,
+        "manifest_sha256": active.manifest_sha256,
+        "bindings_schema_version": active.bindings_schema_version,
+        "bindings": bindings,
+        "capabilities": capabilities,
+    }
+    return active.id, json.dumps(snapshot, separators=(",", ":"), sort_keys=True)
+
+
 @router.get("/api/v1/jobs", operation_id="listJobs")
 async def list_jobs(
     request: Request,
@@ -181,6 +236,17 @@ async def create_job(
             if related is None:
                 raise _problem(422, "validation_error", "关联任务不存在。")
 
+        workflow_lock = await _lock_workflow(
+            uow,
+            revision.adapter_type,
+            revision.vendor_parameters_json,
+            garment_asset_id,
+            str(body.mask_asset_id) if body.mask_asset_id is not None else None,
+            candidate_count,
+        )
+        workflow_version_id = workflow_lock[0] if workflow_lock is not None else None
+        workflow_snapshot_json = workflow_lock[1] if workflow_lock is not None else None
+
         _ensure_capacity(request)
 
         availability = await service.availability_for(config, revision)
@@ -213,6 +279,8 @@ async def create_job(
                 sort_keys=True,
             ),
             related_job_id=str(body.related_job_id) if body.related_job_id else None,
+            workflow_version_id=workflow_version_id,
+            workflow_snapshot_json=workflow_snapshot_json,
             created_at=now,
             updated_at=now,
         )

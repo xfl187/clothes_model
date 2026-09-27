@@ -208,6 +208,12 @@ class JobCommandService:
         config = await self._provider_service.get(provider_id)
         if config is None or config.state not in {"active", "validated"}:
             raise JobCommandError(409, "provider_not_usable", "所选 Provider 不可用。")
+        revision = await self._provider_service.current_revision(provider_id)
+        if revision is not None and revision.adapter_type == "comfyui":
+            async with self._uow_factory() as uow:
+                active = await uow.workflows.get_active("precise_try_on")
+            if active is None:
+                raise JobCommandError(409, "workflow_not_active", "当前没有可用的换装 Workflow。")
 
     async def _reload(self, job_id: str) -> Job:
         async with self._uow_factory() as uow:
