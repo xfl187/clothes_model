@@ -9,6 +9,9 @@ from clothes_model.modules.providers.domain import (
 )
 from clothes_model.modules.providers.infrastructure.fake import FakeImageEditAdapter
 from clothes_model.modules.providers.infrastructure.registry import ProviderRegistry
+from clothes_model.modules.providers.infrastructure.volcengine_ark import (
+    VolcengineArkSeedreamAdapter,
+)
 
 
 def invocation(scenario: str, **parameters: object) -> ProviderInvocation:
@@ -102,3 +105,10 @@ def test_registry_rejects_fake_adapter_in_production() -> None:
 
     development = ProviderRegistry([FakeImageEditAdapter()], environment="development")
     assert development.resolve("fake_image_edit").adapter_type == "fake_image_edit"
+
+
+def test_registry_accepts_seedream_adapter_in_production() -> None:
+    registry = ProviderRegistry([VolcengineArkSeedreamAdapter()], environment="production")
+    assert registry.resolve("volcengine_ark_seedream").adapter_type == (
+        "volcengine_ark_seedream"
+    )

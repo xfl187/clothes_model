@@ -185,6 +185,7 @@ dependencies = [
     { name = "argon2-cffi" },
     { name = "cryptography" },
     { name = "fastapi" },
+    { name = "httpx2" },
     { name = "pillow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -195,7 +196,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "datamodel-code-generator" },
-    { name = "httpx2" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
@@ -208,6 +208,7 @@ requires-dist = [
     { name = "argon2-cffi", specifier = ">=25,<26" },
     { name = "cryptography", specifier = ">=46,<47" },
     { name = "fastapi", specifier = ">=0.141,<0.142" },
+    { name = "httpx2", specifier = ">=2,<3" },
     { name = "pillow", specifier = ">=12,<13" },
     { name = "pydantic", specifier = ">=2.12,<3" },
     { name = "pydantic-settings", specifier = ">=2.11,<3" },
@@ -218,7 +219,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "datamodel-code-generator", specifier = ">=0.35,<0.36" },
-    { name = "httpx2", specifier = ">=2,<3" },
     { name = "pyright", specifier = ">=1.1.405,<2" },
     { name = "pytest", specifier = ">=9,<10" },
     { name = "ruff", specifier = ">=0.14,<1" },

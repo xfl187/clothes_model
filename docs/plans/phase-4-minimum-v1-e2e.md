@@ -4,13 +4,14 @@
 
 - Status: IN PROGRESS
 - Planning mode: PHASE_PLAN (LARGE)
-- Current: Task 1 verified; Task 2 — Volcengine Ark Seedream adapter
+- Current: Task 2 verified; Task 3 — paid Provider validation behavior
 - Provider: Volcengine Ark `doubao-seedream-4-5-251128`
 - Adapter type: `volcengine_ark_seedream`
 - Task 1: COMPLETE — synchronous and asynchronous Provider completion paths verified
-- Task 2: IN PROGRESS
-- Tasks 3–8: PENDING
-- Next action: implement the canonical-host Seedream adapter and deterministic transport/error tests
+- Task 2: COMPLETE — canonical Seedream adapter and deterministic error mapping verified
+- Task 3: IN PROGRESS
+- Tasks 4–8: PENDING
+- Next action: make explicit validation execute a synthetic one-image generation and discard it
 
 ## Goal
 

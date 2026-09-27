@@ -23,8 +23,13 @@ from clothes_model.infrastructure.security import (
 )
 from clothes_model.infrastructure.storage import LocalFileStorage, reconcile_upload_sessions
 from clothes_model.modules.jobs.infrastructure.execution import JobExecutionService
+from clothes_model.modules.providers.application.ports import ProviderAdapter
 from clothes_model.modules.providers.application.services import ProviderConfigService
-from clothes_model.modules.providers.infrastructure import FakeImageEditAdapter, ProviderRegistry
+from clothes_model.modules.providers.infrastructure import (
+    FakeImageEditAdapter,
+    ProviderRegistry,
+    VolcengineArkSeedreamAdapter,
+)
 
 
 def _load_secret_cipher(settings: Settings) -> AesGcmSecretCipher | None:
@@ -47,9 +52,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     storage = LocalFileStorage(resolved_settings.storage_root)
     secret_cipher = _load_secret_cipher(resolved_settings)
-    provider_registry = ProviderRegistry(
-        [FakeImageEditAdapter()], environment=resolved_settings.environment
-    )
+    ark_adapter = VolcengineArkSeedreamAdapter()
+    adapters: list[ProviderAdapter] = [ark_adapter]
+    if resolved_settings.environment != "production":
+        adapters.append(FakeImageEditAdapter())
+    provider_registry = ProviderRegistry(adapters, environment=resolved_settings.environment)
 
     def uow_factory() -> SqlAlchemyUnitOfWork:
         return SqlAlchemyUnitOfWork(database.sessions)
@@ -108,6 +115,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 except asyncio.CancelledError:
                     pass
             await scheduler.stop()
+            await ark_adapter.close()
             await database.close()
             logger.info("application_stopped")
 

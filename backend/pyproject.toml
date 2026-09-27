@@ -10,6 +10,7 @@ dependencies = [
   "argon2-cffi>=25,<26",
   "cryptography>=46,<47",
   "fastapi>=0.141,<0.142",
+  "httpx2>=2,<3",
   "pillow>=12,<13",
   "pydantic>=2.12,<3",
   "pydantic-settings>=2.11,<3",
@@ -23,7 +24,6 @@ clothes-model-security = "clothes_model.operator:main"
 [dependency-groups]
 dev = [
   "datamodel-code-generator>=0.35,<0.36",
-  "httpx2>=2,<3",
   "pyright>=1.1.405,<2",
   "pytest>=9,<10",
   "ruff>=0.14,<1",
