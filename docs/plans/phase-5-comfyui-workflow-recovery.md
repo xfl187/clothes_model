@@ -2,7 +2,7 @@
 
 ## Progress
 
-- Status: IN PROGRESS — Task 9 complete
+- Status: IN PROGRESS — Task 10 deterministic exit gate passed; credentialed operator acceptance pending
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Task 1: COMPLETE (contract, ADR, generated clients, and boundary verification)
@@ -14,15 +14,19 @@
 - Task 7: COMPLETE (active Workflow locking, capability/category/mask rejection, and offline waiting)
 - Task 8: COMPLETE (storage admission/pause, restart requery, availability pre-check, no-resubmit resume)
 - Task 9: COMPLETE (redacted readiness diagnostics, CI Phase 5 gates, deployment script, proxy docs)
-- Task 10: NOT STARTED (final integrated exit gate and operator acceptance)
+- Task 10: DETERMINISTIC GATE PASS — credentialed AutoDL/Comfy operator acceptance not yet recorded
 - Prerequisite: Phase 4 complete with credentialed real-Provider acceptance
 - Last verified: 2026-09-28 with contract/generated gates plus 100 Backend tests, Ruff, and Pyright;
-  `infra/verify-phase5-deployment.ps1` deterministic gate passed (31 focused tests).
+  `infra/verify-phase5-deployment.ps1` deterministic gate passed (31 focused tests); migration
+  upgrade/downgrade and Phase 5 persistence suites passed.
 - Task 8 deviation: in-process remote temp tracking is not persisted across restart; restart reconciles
   known `prompt_id` results but cannot re-issue remote temporary-file cleanup. Track in Task 10.
-- Task 9 note: the Phase 5 contract boundary script and Compose deployment smoke run in CI; this
-  environment ran the deterministic backend gate only.
-- Next action: run Task 10 — the integrated Phase 5 exit gate (bounded operator acceptance remains manual)
+- Task 9/10 note: the Phase 5 contract boundary script and Compose deployment smoke run in CI; this
+  environment ran the deterministic backend and migration gates only.
+- Blocker for phase completion: one bounded operator acceptance against an authenticated AutoDL/Comfy
+  node (node config, Workflow validate/activate, real prompt, output persistence, compatible-node
+  resume) with sanitized evidence.
+- Next action: record the credentialed AutoDL/Comfy operator acceptance; only then mark Phase 5 complete
 
 ## Goal
 
@@ -455,48 +459,64 @@ Dependencies and parallelization:
 
 ## Phase Exit Checklist
 
+### Deterministic exit evidence recorded 2026-09-28
+
+- Backend Ruff, strict Pyright, and the full Pytest suite passed (100 tests) without network, GPU, or paid access.
+- `infra/verify-phase5-deployment.ps1` deterministic gate passed (31 focused Comfy/Workflow/recovery tests).
+- Migration upgrade/downgrade/re-upgrade and Phase 5 persistence suites passed.
+- Phase 5 contract generation, generated-client drift, Backend model typing, and Phase 5 boundary assertions are enforced by CI.
+- Deterministic scenarios covered: node configuration/redaction, immutable artifacts, structural + live validation, activation/retirement/rollback, Workflow locking at creation, category/mask/candidate rejection, offline waiting, storage pause/resume, blocked-completion no-resubmit, and restart requery.
+- Not yet recorded: one bounded operator acceptance against a real authenticated AutoDL/Comfy node and compatible-node replacement on real infrastructure.
+
 ### Contract and architecture
 
 - [x] Logical Comfy Provider, physical node, and locked Workflow responsibilities are explicit and ADR-backed.
 - [x] Phase 5 contract additions are additive, generated without drift, and compile for Backend/Android/Web.
 - [x] Existing Ark/LLM and Phase 4 client behavior remains compatible.
-- [ ] No Phase 6/7 full UI or Phase 9 Outfits implementation is pulled forward.
+- [x] No Phase 6/7 full UI or Phase 9 Outfits implementation is pulled forward.
 
 ### Persistence and Workflow lifecycle
 
-- [ ] All supported prior databases upgrade and downgrade/re-upgrade deterministically.
-- [ ] Workflow JSON/manifest artifacts are canonical, hashed, confined, immutable, and restart-safe.
+- [x] All supported prior databases upgrade and downgrade/re-upgrade deterministically.
+- [x] Workflow JSON/manifest artifacts are canonical, hashed, confined, immutable, and restart-safe.
 - [ ] Structural/live validation and `draft -> validated -> active -> retired` transitions are persisted.
-- [ ] Only one Workflow per mode is active; rollback changes future jobs only.
+      (Deviation: validation is persisted as `validated_at` plus recorded checks; the lifecycle state
+      column remains the 3-state `draft/active/retired` set. Behavior matches; the literal `validated`
+      state name is not stored. Reconcile contract enum vs domain in a follow-up.)
+- [x] Only one Workflow per mode is active; rollback changes future jobs only.
 
 ### Node and Provider security
 
-- [ ] The singleton node credential is encrypted, write-only, redacted, and retained when omitted on update.
-- [ ] Endpoint/redirect/size/timeout controls prevent unrestricted proxying and credential exfiltration.
-- [ ] Raw ComfyUI is documented and verified behind an authenticated proxy or private channel.
-- [ ] A reachable but incompatible node cannot execute a locked Workflow.
+- [x] The singleton node credential is encrypted, write-only, redacted, and retained when omitted on update.
+- [x] Endpoint/redirect/size/timeout controls prevent unrestricted proxying and credential exfiltration.
+- [x] Raw ComfyUI is documented and verified behind an authenticated proxy or private channel.
+- [x] A reachable but incompatible node cannot execute a locked Workflow.
 
 ### Execution and recovery
 
-- [ ] Comfy upload, bind, submit, query, fetch, cancel attempt, and output publication pass the Provider contract suite.
-- [ ] Jobs lock Provider and Workflow versions while compatible replacement nodes can resume waiting work.
-- [ ] Offline nodes wait indefinitely; cancelled work never resumes.
-- [ ] Restart/requery and ambiguous outcomes never duplicate prompts, fees, or visible outputs.
-- [ ] Pending cancellation, running interruption, and `needs_attention` retain distinct truthful semantics.
+- [x] Comfy upload, bind, submit, query, fetch, cancel attempt, and output publication pass the Provider contract suite.
+- [x] Jobs lock Provider and Workflow versions while compatible replacement nodes can resume waiting work.
+- [x] Offline nodes wait indefinitely; cancelled work never resumes.
+- [x] Restart/requery and ambiguous outcomes never duplicate prompts, fees, or visible outputs.
+- [x] Pending cancellation, running interruption, and `needs_attention` retain distinct truthful semantics.
 
 ### Storage and cleanup
 
-- [ ] Storage pressure rejects new work and pauses persisted queued work without failing it.
-- [ ] Space recovery resumes eligible work automatically.
+- [x] Storage pressure rejects new work and pauses persisted queued work without failing it.
+- [x] Space recovery resumes eligible work automatically.
 - [ ] Remote and local temporary files are cleaned after success, failure, cancellation, and late-result paths.
-- [ ] Cleanup never removes locked Workflow artifacts, source assets, or published outputs required by history.
+      (Partial: in-process remote cleanup is verified; restart cannot re-issue cleanup for a lost
+      `prompt_id`→remote-file map. Local staging uses the existing reconcile path.)
+- [x] Cleanup never removes locked Workflow artifacts, source assets, or published outputs required by history.
 
 ### Integration and operations
 
-- [ ] Deterministic no-GPU/no-network Phase 5 verification runs in normal CI.
+- [x] Deterministic no-GPU/no-network Phase 5 verification runs in normal CI.
 - [ ] Clean deployment can configure a node, create/validate/activate a Workflow, execute a job, persist output, restart, and recover.
+      (Deterministic equivalent verified in tests; the real Compose + AutoDL loop requires operator infrastructure.)
 - [ ] Compatible-node replacement is verified without mutating the locked job snapshot.
-- [ ] Logs, events, diagnostics, reports, and artifacts are free of secrets, Workflow bodies, prompts, and image payloads.
+      (Locking and compatibility rejection verified deterministically; live node-swap requires operator infrastructure.)
+- [x] Logs, events, diagnostics, reports, and artifacts are free of secrets, Workflow bodies, prompts, and image payloads.
 - [ ] A bounded credentialed operator acceptance against the target AutoDL/Comfy environment is recorded.
 
 ## Migration and Rollback

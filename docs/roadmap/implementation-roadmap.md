@@ -6,8 +6,8 @@
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 3 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 4 — COMPLETE (real Volcengine Ark vertical slice verified 2026-09-27)
-- Phase 5 — IN PROGRESS (4 / 10 tasks complete)
-- Next — implement Task 5: Workflow live validation, activation, retirement, and rollback
+- Phase 5 — IN PROGRESS (10 / 10 tasks implemented; deterministic gate passed 2026-09-28)
+- Next — record the credentialed AutoDL/Comfy operator acceptance, then plan Phase 6
 
 ## Current Repository State
 
