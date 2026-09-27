@@ -4,11 +4,12 @@
 
 - Phase 1 — COMPLETE
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
-- Next — plan Phase 3: Durable jobs and provider core
+- Phase 3 — PLANNED (0 / 11 tasks; ready for implementation)
+- Next — implement Phase 3 Task 1: close contracts and record execution semantics
 
 ## Current Repository State
 
-已检查当前工作目录及全部非 Git 文件。当前状态是“设计交付完成、工程尚未初始化”：
+当前状态是“Phase 2 已完成，Phase 3 已具备实施计划”：
 
 | 区域 | 当前状态 | 可复用程度 |
 |---|---|---|
@@ -19,15 +20,15 @@
 | Web Admin UI Spec | 已确认，见 [2026-09-24-web-admin-ui-design.md](../superpowers/specs/2026-09-24-web-admin-ui-design.md) | 页面、操作、状态与响应式规则可直接实施 |
 | Web Admin Prototype | [index.html](../../prototypes/web-admin-high-fi/index.html) 与 [states.html](../../prototypes/web-admin-high-fi/states.html) | 可提取 token、构图与状态参考；当前是内联 CSS/JS 静态原型 |
 | Visual System | [DESIGN.md](../../DESIGN.md) 已确认 | Android/Web 共享 token 与平台规则的实现依据 |
-| Repository | 当前目录不是 Git repository | 无历史实现、分支、构建基线可继承 |
-| Android 源码 | 不存在 | 全新实现 |
-| Backend 源码 | 不存在 | 全新实现 |
-| Web Admin 源码 | 不存在 | 全新实现 |
-| 配置/部署 | 无 Gradle、package、后端依赖、容器或环境模板 | 全新建立 |
-| 测试 | 无现有测试 | 从工程基线开始建立 |
-| README/运维说明 | 除 Product Spec 内嵌运维规则外不存在 | 需要工程化交付 |
+| Repository | Git `main` 已建立，Phase 1–2 提交完整 | 可从可审计的干净基线继续 |
+| Android 源码 | Compose 工程、生成客户端、连接认证与未完成导入恢复已存在 | 正式任务 UI 留在 Phase 6 |
+| Backend 源码 | FastAPI、SQLite/Alembic、认证、私有存储、上传与素材基础已存在 | Jobs/Providers 仍是 stub，Phase 3 实现 |
+| Web Admin 源码 | React 工程、生成客户端和 Admin 登录/session 壳已存在 | 正式控制台留在 Phase 7 |
+| 配置/部署 | Compose、Caddy、单实例锁、环境模板与 CI 基线已存在 | Phase 3 扩展任务运行验证 |
+| 测试 | Phase 1–2 contract/backend/web/android/deployment 门禁已建立 | Phase 3 增加状态机、Provider、调度和恢复测试 |
+| README/运维说明 | Phase 1–2 启动、验证和安全边界已记录 | 需随 Phase 3 更新任务运维说明 |
 
-可以直接保留的内容是全部已确认规格、流程、原型和视觉系统。当前没有需要迁移、兼容或重构的生产代码。
+Phase 3 直接复用已确认规格、共享契约、持久化/UoW、认证、私有存储、素材引用和单实例调度所有权边界；不重新建立工程基线。
 
 ---
 
@@ -544,7 +545,7 @@ Phase 4 之后可以并行：
 
 ## Risks / Migration
 
-- 当前不是 Git 仓库，第一阶段必须先建立可审计版本历史。
+- Phase 1–2 已形成可审计 Git 历史；后续仍需配置远端和托管 CI/分支保护。
 - SQLite + 进程内调度要求 V1 单实例执行；错误地水平扩展会导致重复领取。
 - 外部 Provider 是否支持取消、状态查询和幂等差异很大，必须保守映射到统一语义。
 - ComfyUI Workflow 的“声明能力”不能只信管理员输入，需结构验证与真实试运行。
@@ -572,10 +573,8 @@ Phase 4 之后可以并行：
 
 ---
 
-## Recommended First Phase
+## Recommended Current Phase
 
-首先执行 Phase 1：建立 Repository、技术 ADR、API/状态契约和三个可构建工程骨架。
+执行 Phase 3：[Durable Jobs and Provider Core Plan](../plans/phase-3-durable-jobs-provider-core.md)。
 
-它是当前最关键的依赖，因为当前没有任何生产代码或构建系统。Phase 1 完成后，Backend 基础能力、Android UI 壳和 Web Admin UI 壳才能安全并行，且不会分别发明不兼容的数据结构和状态语义。
-
-本轮 Roadmap 到此停止；未修改任何代码，也未开始 Implementation。
+从 Task 1 开始关闭契约与持久执行语义，再按迁移、Provider port、状态机、任务 API、调度、执行、取消与恢复的依赖顺序实施。Phase 3 不接入真实厂商；真实 LLM 纵向闭环属于 Phase 4。

@@ -2,26 +2,26 @@
 
 Private Android AI virtual try-on system with a fixed-server backend and a Web Admin control plane.
 
-The repository is currently in **Phase 1 — Engineering Baseline and Contracts**. The confirmed implementation sequence is defined by the [Project Implementation Roadmap](docs/roadmap/implementation-roadmap.md), and the executable Phase 1 scope is defined by the [Phase 1 Implementation Plan](docs/plans/phase-1-engineering-baseline.md).
+The repository has completed **Phase 2 — Trusted Data, Auth and Asset Plane** and is ready to implement **Phase 3 — Durable Jobs and Provider Core**. The confirmed sequence is defined by the [Project Implementation Roadmap](docs/roadmap/implementation-roadmap.md), and the executable current scope is defined by the [Phase 3 Implementation Plan](docs/plans/phase-3-durable-jobs-provider-core.md).
 
-## Phase 1 scope
+## Current scope
 
-Phase 1 establishes:
+The completed foundation includes:
 
-- a reproducible monorepo;
-- Backend, Android, and Web Admin engineering skeletons;
-- the shared OpenAPI contract and generated-client boundary;
-- build, lint, test, CI, local-development, and deployment baselines;
-- the V1 single-instance runtime constraint.
+- a reproducible monorepo and shared OpenAPI/generated-client boundary;
+- Backend, Android, Web Admin, CI, local-development, and deployment baselines;
+- SQLite migrations, authentication/session security, encrypted secrets, private storage, resumable uploads, and assets/references;
+- minimal Android connection/import recovery and Web Admin session foundations;
+- the enforced V1 single-instance runtime constraint.
 
-Phase 1 may use stubs, fakes, mocks, and a contract server. It does **not** implement production authentication, business database schemas, private file storage, provider execution, durable job behavior, full Android screens, or full Web Admin screens. Those remain in Roadmap Phases 2–9.
+Phase 3 adds durable jobs, Provider configuration/ports, the task state machine, scheduler recovery, cancellation/retry, and private generated outputs. It uses a contract-level fake Provider; the first real LLM end-to-end slice remains Phase 4.
 
 ## Sources of truth
 
 - Product behavior: [Product Spec](docs/superpowers/specs/2026-09-23-android-virtual-try-on-design.md)
 - Confirmed behavior flows: [Product Flow](docs/product-flow.md)
 - Phase boundaries: [Implementation Roadmap](docs/roadmap/implementation-roadmap.md)
-- Current implementation scope: [Phase 1 Implementation Plan](docs/plans/phase-1-engineering-baseline.md)
+- Current implementation scope: [Phase 3 Implementation Plan](docs/plans/phase-3-durable-jobs-provider-core.md)
 - UI behavior: the Android and Web Admin UI Specs under `docs/superpowers/specs/`
 - Visual language: [DESIGN.md](DESIGN.md)
 - Long-lived technical decisions: [Architecture Decision Records](docs/adr/README.md)
@@ -41,7 +41,7 @@ When these artifacts differ, use the authority order recorded in the Phase Plan;
 | `.github/workflows/` | CI quality gates | Task 9 |
 | `docs/`, `prototypes/`, `DESIGN.md` | Confirmed product, design, planning, and prototype inputs | Preserved project memory |
 
-Backend, Android, Web Admin, contract tooling, and deployment engineering skeletons are present. They remain Phase 1 proofs and intentionally omit Phase 2–9 business behavior.
+Phase 1–2 foundations are implemented and verified. Jobs and Providers remain contract-shaped Backend stubs until Phase 3 implementation; full Android and Web Admin product surfaces remain in later roadmap phases.
 
 ## Repository policies
 
