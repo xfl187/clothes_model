@@ -1,5 +1,7 @@
 """Persistence ports used by future authentication application services."""
 
+from collections.abc import Sequence
+from datetime import datetime
 from typing import Protocol
 
 from clothes_model.core.persistence import UnitOfWork
@@ -18,6 +20,10 @@ class AccessTokenRepository(Protocol):
 
     async def get_by_public_id(self, public_id: str) -> AccessToken | None: ...
 
+    async def list_active(self, scope: str) -> Sequence[AccessToken]: ...
+
+    async def replace(self, token: AccessToken) -> None: ...
+
 
 class AdminSessionRepository(Protocol):
     async def add(self, session: AdminSession) -> None: ...
@@ -26,11 +32,17 @@ class AdminSessionRepository(Protocol):
 
     async def get_by_digest(self, digest: str) -> AdminSession | None: ...
 
+    async def revoke_for_token(self, token_id: str, revoked_at: datetime) -> None: ...
+
+    async def replace(self, session: AdminSession) -> None: ...
+
 
 class AuthThrottleRepository(Protocol):
     async def add(self, throttle: AuthThrottle) -> None: ...
 
     async def get_by_key(self, throttle_key: str) -> AuthThrottle | None: ...
+
+    async def replace(self, throttle: AuthThrottle) -> None: ...
 
 
 class SecurityAuditRepository(Protocol):

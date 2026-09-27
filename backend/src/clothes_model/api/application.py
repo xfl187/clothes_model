@@ -1,5 +1,6 @@
 """FastAPI application factory and lifecycle."""
 
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -19,6 +20,7 @@ from clothes_model.infrastructure.scheduler import (
     NoOpScheduler,
     SchedulerCoordinator,
 )
+from clothes_model.infrastructure.storage import LocalFileStorage, reconcile_upload_sessions
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -35,11 +37,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lock_path=resolved_settings.instance_lock_path,
         scheduler=NoOpScheduler(NoOpJobSource()),
     )
+    storage = LocalFileStorage(resolved_settings.storage_root)
+
+    async def maintain_uploads() -> None:
+        while True:
+            await asyncio.sleep(resolved_settings.upload_maintenance_interval_seconds)
+            try:
+                await reconcile_upload_sessions(database.sessions, storage)
+            except Exception:
+                logger.exception("upload_maintenance_failed")
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
+        maintenance_task: asyncio.Task[None] | None = None
         try:
+            await reconcile_upload_sessions(database.sessions, storage)
             await scheduler.start()
+            maintenance_task = asyncio.create_task(
+                maintain_uploads(), name="upload-session-maintenance"
+            )
             logger.info(
                 "application_started",
                 extra={
@@ -51,6 +67,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
             yield
         finally:
+            if maintenance_task is not None:
+                maintenance_task.cancel()
+                try:
+                    await maintenance_task
+                except asyncio.CancelledError:
+                    pass
             await scheduler.stop()
             await database.close()
             logger.info("application_stopped")
@@ -66,6 +88,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = resolved_settings
     app.state.database = database
     app.state.scheduler = scheduler
+    app.state.storage = storage
     app.add_middleware(RequestContextMiddleware)
     if resolved_settings.cors_allowlist:
         app.add_middleware(

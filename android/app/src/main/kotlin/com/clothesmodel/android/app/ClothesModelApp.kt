@@ -4,9 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.clothesmodel.android.contractstatus.ContractStatusRoute
+import com.clothesmodel.android.connection.ConnectionRoute
 
-private const val CONTRACT_STATUS_ROUTE = "contract-status"
+private const val CONNECTION_ROUTE = "connection"
 
 @Composable
 fun ClothesModelApp() {
@@ -14,10 +14,10 @@ fun ClothesModelApp() {
 
     NavHost(
         navController = navController,
-        startDestination = CONTRACT_STATUS_ROUTE,
+        startDestination = CONNECTION_ROUTE,
     ) {
-        composable(CONTRACT_STATUS_ROUTE) {
-            ContractStatusRoute()
+        composable(CONNECTION_ROUTE) {
+            ConnectionRoute()
         }
     }
 }

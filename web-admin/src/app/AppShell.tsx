@@ -1,8 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom';
 
 import styles from './AppShell.module.css';
+import { useAdminSession } from '../features/auth/adminSessionState';
 
 export function AppShell() {
+  const session = useAdminSession();
   return (
     <div className={styles.layout}>
       <aside className={styles.sidebar} aria-label="工程验证导航">
@@ -10,7 +12,7 @@ export function AppShell() {
           <span className={styles.mark} aria-hidden="true">CM</span>
           <span>Clothes Model</span>
         </div>
-        <p className={styles.groupLabel}>Phase 1</p>
+        <p className={styles.groupLabel}>Phase 2</p>
         <nav>
           <NavLink
             className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
@@ -24,7 +26,7 @@ export function AppShell() {
       <div className={styles.workspace}>
         <header className={styles.topbar}>
           <span>工程基线 / 契约状态</span>
-          <span className={styles.snapshot}>Contract mock</span>
+          <button type="button" onClick={() => void session.logout()}>退出登录</button>
         </header>
         <Outlet />
       </div>

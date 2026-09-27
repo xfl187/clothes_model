@@ -1,5 +1,11 @@
 # Implementation Roadmap
 
+## Delivery Progress
+
+- Phase 1 — COMPLETE
+- Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
+- Next — plan Phase 3: Durable jobs and provider core
+
 ## Current Repository State
 
 已检查当前工作目录及全部非 Git 文件。当前状态是“设计交付完成、工程尚未初始化”：

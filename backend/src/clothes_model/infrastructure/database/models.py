@@ -207,17 +207,13 @@ Index("ix_assets_kind_favorite", assets.c.kind, assets.c.favorite)
 person_assets = Table(
     "person_assets",
     metadata,
-    Column(
-        "asset_id", String(36), ForeignKey("assets.id", ondelete="CASCADE"), primary_key=True
-    ),
+    Column("asset_id", String(36), ForeignKey("assets.id", ondelete="CASCADE"), primary_key=True),
 )
 
 garment_assets = Table(
     "garment_assets",
     metadata,
-    Column(
-        "asset_id", String(36), ForeignKey("assets.id", ondelete="CASCADE"), primary_key=True
-    ),
+    Column("asset_id", String(36), ForeignKey("assets.id", ondelete="CASCADE"), primary_key=True),
     Column("category", String(32), nullable=False),
     Column("source", String(32), nullable=False),
     CheckConstraint(
@@ -286,9 +282,7 @@ asset_references = Table(
     "asset_references",
     metadata,
     Column("id", String(36), primary_key=True),
-    Column(
-        "asset_id", String(36), ForeignKey("assets.id", ondelete="RESTRICT"), nullable=False
-    ),
+    Column("asset_id", String(36), ForeignKey("assets.id", ondelete="RESTRICT"), nullable=False),
     Column("source_kind", String(64), nullable=False),
     Column("source_id", String(64), nullable=False),
     Column("display_label", String(255), nullable=True),

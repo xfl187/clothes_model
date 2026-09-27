@@ -91,6 +91,7 @@ def test_phase_1_database_upgrades_to_phase_2_and_has_no_future_tables(
     assert not tables & {"jobs", "job_items", "outputs", "providers", "workflows", "outfits"}
     command.check(config)
 
+
 def test_alembic_config_uses_runtime_working_directory(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

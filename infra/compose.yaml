@@ -102,7 +102,7 @@ services:
 
 secrets:
   encryption_master_key:
-    environment: CLOTHES_MODEL_ENCRYPTION_MASTER_KEY
+    file: ${CLOTHES_MODEL_ENCRYPTION_MASTER_KEY_FILE_SOURCE:?set the host master-key file path}
 
 volumes:
   backend_dev_db:

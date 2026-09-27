@@ -31,15 +31,7 @@ object ContractNetworkModule {
     @Singleton
     fun provideApiClient(): ApiClient {
         val baseUrl = BuildConfig.API_BASE_URL.ifBlank { "https://example.invalid/" }
-        return if (BuildConfig.CONTRACT_TOKEN.isBlank()) {
-            ApiClient(baseUrl = baseUrl)
-        } else {
-            ApiClient(
-                baseUrl = baseUrl,
-                authName = "AppBearer",
-                bearerToken = BuildConfig.CONTRACT_TOKEN,
-            )
-        }
+        return ApiClient(baseUrl = baseUrl)
     }
 
     @Provides

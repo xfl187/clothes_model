@@ -8,13 +8,11 @@
 
 ## Progress
 
-- Status: ACTIVE
-- Tasks: 2 / 11 complete
-- Task 1 — COMPLETE
-- Task 2 — COMPLETE
-- Tasks 3–11 — NOT STARTED
-- Last verified: 2026-09-26
-- Next: Task 3 — Establish token bootstrap, rotation foundation, and secret cryptography
+- Status: COMPLETE
+- Tasks: 11 / 11 complete
+- Tasks 1–11 — COMPLETE
+- Last verified: 2026-09-27
+- Next: return to planning for Phase 3 — Durable jobs and provider core
 
 ## Confirmed Inputs
 
@@ -646,68 +644,78 @@ Verify:
 
 ### Contract and architecture
 
-- [ ] Phase 2 OpenAPI additions are additive, linted, bundled, validated, and generated for all three consumers.
-- [ ] Shared auth, error, cursor, idempotency, version, upload, asset-reference, and storage semantics are documented once and consumed consistently.
-- [ ] ADR-0006 and ADR-0007 are accepted and linked from relevant code/documentation.
-- [ ] No Phase 3–9 business modules or tables were implemented.
+- [x] Phase 2 OpenAPI additions are additive, linted, bundled, validated, and generated for all three consumers.
+- [x] Shared auth, error, cursor, idempotency, version, upload, asset-reference, and storage semantics are documented once and consumed consistently.
+- [x] ADR-0006 and ADR-0007 are accepted and linked from relevant code/documentation.
+- [x] No Phase 3–9 business modules or tables were implemented.
 
 ### Database and migration
 
-- [ ] Empty SQLite database upgrades to head deterministically.
-- [ ] Phase 1 database upgrades to Phase 2 head and the Phase 2 revision downgrade/re-upgrade test passes.
-- [ ] Foreign keys, checks, uniqueness, indexes, UTC timestamps, and delete rules are verified.
-- [ ] Backend restart preserves tokens, sessions as intended, uploads, assets, references, and stored-object consistency.
+- [x] Empty SQLite database upgrades to head deterministically.
+- [x] Phase 1 database upgrades to Phase 2 head and the Phase 2 revision downgrade/re-upgrade test passes.
+- [x] Foreign keys, checks, uniqueness, indexes, UTC timestamps, and delete rules are verified.
+- [x] Backend restart preserves tokens, sessions as intended, uploads, assets, references, and stored-object consistency.
 
 ### Authentication and secrets
 
-- [ ] First-deploy tooling creates high-entropy App/Admin tokens and displays full values once only.
-- [ ] SQLite contains slow hashes and safe metadata, never full App/Admin tokens.
-- [ ] App Token cannot call Admin APIs; Admin cookie cannot substitute for App bearer auth.
-- [ ] Revoked/rotated App Token forces Android re-authentication while retaining server URL and recoverable import state.
-- [ ] Admin login produces a bounded Secure/HttpOnly/SameSite cookie session; logout, expiry, reset, and revocation work.
-- [ ] State-changing Admin APIs enforce CSRF and same-origin protections.
-- [ ] Login throttling survives restart and does not persist attempted secrets.
-- [ ] AES-256-GCM master-key facility passes round-trip and tamper/wrong-key failure tests.
-- [ ] Tokens, session secrets, CSRF values, master keys, plaintext encrypted test secrets, request bodies, and image bodies are absent from logs.
+- [x] First-deploy tooling creates high-entropy App/Admin tokens and displays full values once only.
+- [x] SQLite contains slow hashes and safe metadata, never full App/Admin tokens.
+- [x] App Token cannot call Admin APIs; Admin cookie cannot substitute for App bearer auth.
+- [x] Revoked/rotated App Token forces Android re-authentication while retaining server URL and recoverable import state.
+- [x] Admin login produces a bounded Secure/HttpOnly/SameSite cookie session; logout, expiry, reset, and revocation work.
+- [x] State-changing Admin APIs enforce CSRF and same-origin protections.
+- [x] Login throttling survives restart and does not persist attempted secrets.
+- [x] AES-256-GCM master-key facility passes round-trip and tamper/wrong-key failure tests.
+- [x] Tokens, session secrets, CSRF values, master keys, plaintext encrypted test secrets, request bodies, and image bodies are absent from logs.
 
 ### Storage, uploads, and assets
 
-- [ ] All uploaded/stored images remain private and are served only through authenticated API handlers.
-- [ ] JPEG/PNG validation, orientation normalization, EXIF/GPS stripping, limits, and safe serialization pass.
-- [ ] Atomic content-addressed storage and deduplication work without premature deletion.
-- [ ] Resumable upload supports retry, confirmed offset, restart recovery, and deterministic idempotent completion.
-- [ ] Cancel and expiry remove server temporary content and are safe to repeat.
-- [ ] Insufficient capacity blocks new/unsafe writes with the contracted response while preserving recoverable state.
-- [ ] Asset list/detail/favorite/content behavior conforms to the contract.
-- [ ] Active references block content deletion with inspectable blocker metadata.
-- [ ] Unreferenced deletion leaves the contracted placeholder and releases physical content only after the last reference.
+- [x] All uploaded/stored images remain private and are served only through authenticated API handlers.
+- [x] JPEG/PNG validation, orientation normalization, EXIF/GPS stripping, limits, and safe serialization pass.
+- [x] Atomic content-addressed storage and deduplication work without premature deletion.
+- [x] Resumable upload supports retry, confirmed offset, restart recovery, and deterministic idempotent completion.
+- [x] Cancel and expiry remove server temporary content and are safe to repeat.
+- [x] Insufficient capacity blocks new/unsafe writes with the contracted response while preserving recoverable state.
+- [x] Asset list/detail/favorite/content behavior conforms to the contract.
+- [x] Active references block content deletion with inspectable blocker metadata.
+- [x] Unreferenced deletion leaves the contracted placeholder and releases physical content only after the last reference.
 
 ### Android
 
-- [ ] Android clean build, lint/static analysis, unit tests, and required instrumentation tests pass.
-- [ ] Server URL/auth state restores after process restart; App Token is encrypted with an Android Keystore-backed key.
-- [ ] Release builds enforce HTTPS and contain no debug credentials or permissive network policy.
-- [ ] Invalidated App Token retains the server URL and returns to re-authentication without an infinite retry.
-- [ ] Pending import persists in Room and app-private staging across activity/process/app restart.
-- [ ] Network interruption resumes from server-confirmed offset without duplicate asset creation.
-- [ ] Retry and cancel match Product Flow; cancel removes server temp and then local pending state.
+- [x] Android clean build, lint/static analysis, unit tests, and required instrumentation tests pass.
+- [x] Server URL/auth state restores after process restart; App Token is encrypted with an Android Keystore-backed key.
+- [x] Release builds enforce HTTPS and contain no debug credentials or permissive network policy.
+- [x] Invalidated App Token retains the server URL and returns to re-authentication without an infinite retry.
+- [x] Pending import persists in Room and app-private staging across activity/process/app restart.
+- [x] Network interruption resumes from server-confirmed offset without duplicate asset creation.
+- [x] Retry and cancel match Product Flow; cancel removes server temp and then local pending state.
 
 ### Web Admin
 
-- [ ] Web Admin clean build, lint/static analysis, unit/component tests, and browser auth tests pass.
-- [ ] Admin login distinguishes invalid credentials, throttle, offline/unreachable, and session expiry.
-- [ ] Cookie session restores after reload and CSRF state is refreshed into memory only.
-- [ ] Logout and expiry route to login and safely restore the intended internal destination.
-- [ ] Admin Token, session ID, and CSRF value are absent from localStorage/sessionStorage and production bundles.
+- [x] Web Admin clean build, lint/static analysis, unit/component tests, and browser auth tests pass.
+- [x] Admin login distinguishes invalid credentials, throttle, offline/unreachable, and session expiry.
+- [x] Cookie session restores after reload and CSRF state is refreshed into memory only.
+- [x] Logout and expiry route to login and safely restore the intended internal destination.
+- [x] Admin Token, session ID, and CSRF value are absent from localStorage/sessionStorage and production bundles.
 
 ### Integration and operations
 
-- [ ] Fresh single-instance local deployment can migrate, initialize tokens, start, authenticate, import, restart, resume, and retrieve a private asset.
-- [ ] Backend, Android, and Web consume the same checked-in/generated contract without drift.
-- [ ] CI covers contract validation, migrations, builds, lint/static analysis, tests, and deterministic security checks.
-- [ ] Environment template documents all non-secret Phase 2 settings and secret-file boundaries without example production secrets.
-- [ ] Operator documentation covers bootstrap, Admin reset, App rotation foundation, storage paths, master-key preservation, restart reconciliation, and safe diagnostics.
-- [ ] V1 single-instance ownership of maintenance, upload serialization, SQLite, and local storage remains explicit and enforced.
+- [x] Fresh single-instance local deployment can migrate, initialize tokens, start, authenticate, import, restart, resume, and retrieve a private asset.
+- [x] Backend, Android, and Web consume the same checked-in/generated contract without drift.
+- [x] CI covers contract validation, migrations, builds, lint/static analysis, tests, and deterministic security checks.
+- [x] Environment template documents all non-secret Phase 2 settings and secret-file boundaries without example production secrets.
+- [x] Operator documentation covers bootstrap, Admin reset, App rotation foundation, storage paths, master-key preservation, restart reconciliation, and safe diagnostics.
+- [x] V1 single-instance ownership of maintenance, upload serialization, SQLite, and local storage remains explicit and enforced.
+
+## Verification Evidence — 2026-09-27
+
+- Backend: Ruff passed; Pyright reported 0 errors; 31 Pytest cases passed.
+- Contract: lint, bundle validation, generated drift, Backend generated typing, Android generated-client compilation, and Phase 2 boundary checks passed.
+- Web Admin: lint, typecheck, unit tests, production build, bundle credential scan, and the real-Backend browser auth scenario passed. On Windows the Playwright command emitted a passing result before hanging during web-server teardown; CI runs the same scenario on Linux.
+- Android: generated client compilation, unit tests, lint, debug build, release build, and release-boundary credential/network scan passed. All 4 instrumentation tests passed on `127.0.0.1:16416` (`SM-S9110`, API 32), including Keystore ciphertext/non-exportability, connection-state re-creation and 401 retention semantics, and Room close/reopen recovery.
+- Infrastructure: Compose configuration and production service-boundary checks passed locally. A no-cache production image build and `infra/verify-phase2-deployment.ps1` passed against fresh volumes, covering migration, one-time token bootstrap, App/Admin scope isolation, HTTPS, resumable upload, Backend restart, confirmed-offset recovery, idempotent asset completion, authenticated private download, Admin cookie/CSRF restoration/logout, and the Web shell.
+- Security scan: the fresh deployment's container logs and SQLite bytes contained zero complete App/Admin credential-shaped values. Smoke containers, volumes, and the temporary master key were removed after verification.
+- CI: the exit matrix now includes the same deployment smoke plus an independent emulator-backed `connectedDebugAndroidTest` job.
 
 ## Risks
 

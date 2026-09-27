@@ -7,12 +7,18 @@ requires-python = ">=3.14,<3.15"
 dependencies = [
   "aiosqlite>=0.21,<1",
   "alembic>=1.16,<2",
+  "argon2-cffi>=25,<26",
+  "cryptography>=46,<47",
   "fastapi>=0.141,<0.142",
+  "pillow>=12,<13",
   "pydantic>=2.12,<3",
   "pydantic-settings>=2.11,<3",
   "sqlalchemy>=2.0,<2.1",
   "uvicorn[standard]>=0.38,<1",
 ]
+
+[project.scripts]
+clothes-model-security = "clothes_model.operator:main"
 
 [dependency-groups]
 dev = [

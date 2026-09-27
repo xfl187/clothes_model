@@ -9,6 +9,8 @@
         android:fullBackupContent="false"
         android:icon="@drawable/ic_launcher"
         android:label="Contract Baseline"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false"
         android:supportsRtl="true"
         android:theme="@style/Theme.ClothesModel">
         <activity

@@ -91,6 +91,10 @@ jobs:
           ./contracts/tooling/verify-generated.ps1 *>&1 |
             Tee-Object -FilePath artifacts/contract-verification.log
 
+      - name: Verify Phase 2 contract boundaries
+        shell: pwsh
+        run: ./contracts/tooling/verify-phase2-boundaries.ps1
+
       - name: Upload contract reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -292,13 +296,87 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  android-instrumentation:
+    name: Android instrumentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x android/gradlew
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' |
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Create and start test emulator
+        run: |
+          mkdir -p android/artifacts
+          sdkmanager "platforms;android-37" "build-tools;36.0.0" \
+            "system-images;android-34;google_apis;x86_64"
+          echo no | avdmanager create avd --force --name phase2-ci \
+            --package "system-images;android-34;google_apis;x86_64"
+          nohup emulator -avd phase2-ci -no-window -no-audio -no-boot-anim \
+            -no-snapshot -gpu swiftshader_indirect \
+            > android/artifacts/emulator.log 2>&1 &
+          timeout 180 adb wait-for-device
+          for attempt in $(seq 1 120); do
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
+              adb shell input keyevent 82
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Run device security and persistence tests
+        run: |
+          android/gradlew -p android --no-daemon --stacktrace --console=plain \
+            :app:connectedDebugAndroidTest \
+            2>&1 | tee android/artifacts/android-instrumentation.log
+
+      - name: Stop emulator
+        if: always()
+        run: adb emu kill || true
+
+      - name: Upload instrumentation reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-instrumentation-reports
+          path: |
+            android/artifacts/
+            android/**/build/reports/androidTests/
+            android/**/build/outputs/androidTest-results/
+          if-no-files-found: warn
+          retention-days: 14
+
   deployment:
     name: Deployment smoke
     runs-on: ubuntu-latest
     needs: [backend, web, android]
     timeout-minutes: 30
     env:
-      CLOTHES_MODEL_ENCRYPTION_MASTER_KEY: ci-only-placeholder-not-a-production-secret
+      CLOTHES_MODEL_ENCRYPTION_MASTER_KEY_FILE_SOURCE: ../artifacts/encryption_master_key
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -306,6 +384,7 @@ jobs:
       - name: Record container runtime versions
         run: |
           mkdir -p artifacts
+          printf 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' > artifacts/encryption_master_key
           {
             docker version
             docker compose version
@@ -325,20 +404,9 @@ jobs:
       - name: Start production profile
         run: docker compose -f infra/compose.yaml --profile production up -d --no-build
 
-      - name: Verify HTTPS health and Web shell
-        run: |
-          for attempt in $(seq 1 45); do
-            if curl --fail --silent --show-error --insecure https://localhost:8443/health/ready > artifacts/ready.json; then
-              break
-            fi
-            if [ "$attempt" = 45 ]; then
-              exit 1
-            fi
-            sleep 2
-          done
-          grep -q '"scheduler":"owned"' artifacts/ready.json
-          curl --fail --silent --show-error --insecure https://localhost:8443/ > artifacts/web-shell.html
-          grep -q '<div id="root"></div>' artifacts/web-shell.html
+      - name: Verify fresh auth, restart, resumable upload, private asset, and Web shell
+        shell: pwsh
+        run: ./infra/verify-phase2-deployment.ps1 *>&1 | Tee-Object -FilePath artifacts/deployment-smoke.log
 
       - name: Capture deployment logs
         if: always()
@@ -356,3 +424,16 @@ jobs:
       - name: Stop deployment
         if: always()
         run: docker compose -f infra/compose.yaml --profile contract --profile production down --volumes --remove-orphans
+
+  phase2-exit:
+    name: Phase 2 exit matrix
+    if: always()
+    needs: [contract, backend, web, android, android-instrumentation, deployment]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every Phase 2 verification boundary
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+        run: |
+          echo "$NEEDS_JSON"
+          test "$(echo "$NEEDS_JSON" | jq -r '[.[].result] | all(. == "success")')" = "true"

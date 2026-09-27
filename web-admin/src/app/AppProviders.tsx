@@ -4,6 +4,7 @@ import type { PropsWithChildren } from 'react';
 
 import type { ContractGateway } from '../api/contractGateway';
 import { ContractGatewayProvider } from './ContractGatewayContext';
+import { AdminSessionProvider } from '../features/auth/AdminSessionContext';
 
 export function AppProviders({
   children,
@@ -20,7 +21,7 @@ export function AppProviders({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ContractGatewayProvider gateway={gateway}>{children}</ContractGatewayProvider>
+      <ContractGatewayProvider gateway={gateway}><AdminSessionProvider>{children}</AdminSessionProvider></ContractGatewayProvider>
     </QueryClientProvider>
   );
 }

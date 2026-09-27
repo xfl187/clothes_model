@@ -23,13 +23,13 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:4010/\"")
-            buildConfigField("String", "CONTRACT_TOKEN", "\"contract-placeholder\"")
+            buildConfigField("String", "LOCAL_HTTP_HOSTS", "\"10.0.2.2,localhost,127.0.0.1\"")
             buildConfigField("String", "SAMPLE_JOB_ID", "\"01992b5a-0000-7000-8000-000000000001\"")
         }
         release {
             isMinifyEnabled = false
             buildConfigField("String", "API_BASE_URL", "\"\"")
-            buildConfigField("String", "CONTRACT_TOKEN", "\"\"")
+            buildConfigField("String", "LOCAL_HTTP_HOSTS", "\"\"")
             buildConfigField("String", "SAMPLE_JOB_ID", "\"\"")
         }
     }
@@ -46,6 +46,10 @@ android {
 
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
     }
 
     lint {
@@ -65,6 +69,10 @@ kotlin {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(project(":core:api-contract"))
 
@@ -81,7 +89,12 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.hilt.android)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
     ksp(libs.hilt.compiler)
+    ksp(libs.androidx.room.compiler)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
@@ -92,4 +105,5 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.room.testing)
 }

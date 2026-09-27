@@ -7,11 +7,21 @@ from clothes_model.modules.auth.application.ports import (
     AuthUnitOfWork,
     SecurityAuditRepository,
 )
+from clothes_model.modules.auth.application.services import (
+    AuditedSecretCipher,
+    IssuedCredential,
+    TokenService,
+    VerifiedCredential,
+)
 
 __all__ = [
     "AccessTokenRepository",
     "AdminSessionRepository",
+    "AuditedSecretCipher",
     "AuthThrottleRepository",
     "AuthUnitOfWork",
+    "IssuedCredential",
     "SecurityAuditRepository",
+    "TokenService",
+    "VerifiedCredential",
 ]

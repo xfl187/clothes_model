@@ -2,9 +2,10 @@
 
 from collections.abc import Mapping
 from dataclasses import asdict
+from datetime import datetime
 from typing import Any
 
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, update
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,9 +36,7 @@ async def _insert(session: AsyncSession, table: Any, values: Mapping[str, object
         raise PersistenceConflict(f"constraint conflict in {table.name}") from error
 
 
-async def _one_mapping(
-    session: AsyncSession, statement: Any
-) -> RowMapping | None:
+async def _one_mapping(session: AsyncSession, statement: Any) -> RowMapping | None:
     result = await session.execute(statement)
     row = result.mappings().one_or_none()
     return None if row is None else row
@@ -64,6 +63,24 @@ class SqlAlchemyAccessTokenRepository:
         )
         return None if row is None else _access_token(row)
 
+    async def list_active(self, scope: str) -> list[AccessToken]:
+        result = await self._session.execute(
+            select(models.access_tokens)
+            .where(
+                models.access_tokens.c.scope == scope,
+                models.access_tokens.c.status == "active",
+            )
+            .order_by(models.access_tokens.c.created_at, models.access_tokens.c.id)
+        )
+        return [_access_token(row) for row in result.mappings().all()]
+
+    async def replace(self, token: AccessToken) -> None:
+        await self._session.execute(
+            update(models.access_tokens)
+            .where(models.access_tokens.c.id == token.id)
+            .values(**asdict(token))
+        )
+
 
 class SqlAlchemyAdminSessionRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -86,6 +103,23 @@ class SqlAlchemyAdminSessionRepository:
         )
         return None if row is None else _admin_session(row)
 
+    async def revoke_for_token(self, token_id: str, revoked_at: datetime) -> None:
+        await self._session.execute(
+            update(models.admin_sessions)
+            .where(
+                models.admin_sessions.c.token_id == token_id,
+                models.admin_sessions.c.state == "active",
+            )
+            .values(state="revoked", revoked_at=revoked_at)
+        )
+
+    async def replace(self, session: AdminSession) -> None:
+        await self._session.execute(
+            update(models.admin_sessions)
+            .where(models.admin_sessions.c.id == session.id)
+            .values(**asdict(session))
+        )
+
 
 class SqlAlchemyAuthThrottleRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -102,6 +136,13 @@ class SqlAlchemyAuthThrottleRepository:
             ),
         )
         return None if row is None else AuthThrottle(**dict(row))
+
+    async def replace(self, throttle: AuthThrottle) -> None:
+        await self._session.execute(
+            update(models.auth_throttle_state)
+            .where(models.auth_throttle_state.c.id == throttle.id)
+            .values(**asdict(throttle))
+        )
 
 
 class SqlAlchemyIdempotencyRepository:
@@ -184,9 +225,7 @@ class SqlAlchemyAssetRepository:
         try:
             await self._session.execute(insert(models.assets).values(**values))
             if asset.kind == "person" and asset.person is not None and asset.garment is None:
-                await self._session.execute(
-                    insert(models.person_assets).values(asset_id=asset.id)
-                )
+                await self._session.execute(insert(models.person_assets).values(asset_id=asset.id))
             elif asset.kind == "garment" and asset.garment is not None and asset.person is None:
                 await self._session.execute(
                     insert(models.garment_assets).values(

@@ -5,6 +5,7 @@ from clothes_model.modules.auth.domain.models import (
     AdminSession,
     AuthThrottle,
     SecurityAuditEvent,
+    TokenScope,
 )
 
-__all__ = ["AccessToken", "AdminSession", "AuthThrottle", "SecurityAuditEvent"]
+__all__ = ["AccessToken", "AdminSession", "AuthThrottle", "SecurityAuditEvent", "TokenScope"]

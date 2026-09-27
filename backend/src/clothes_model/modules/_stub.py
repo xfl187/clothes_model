@@ -3,10 +3,11 @@
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from clothes_model.core.problems import FeatureNotImplementedProblem
 from clothes_model.generated.models import ProblemDetails
+from clothes_model.modules.auth.http import require_admin, require_app
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +26,7 @@ def add_stub_routes(router: APIRouter, routes: Sequence[StubRoute]) -> None:
             operation_id=route.operation_id,
             name=route.operation_id,
             responses={501: {"model": ProblemDetails}},
+            dependencies=[Depends(require_admin if "/admin/" in route.path else require_app)],
         )
 
 
