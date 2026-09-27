@@ -23,6 +23,7 @@
 
 package com.clothesmodel.contract.model
 
+import com.clothesmodel.contract.model.ProviderCapabilities
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -36,25 +37,26 @@ import kotlinx.serialization.encoding.Encoder
 /**
  * 
  *
- * @param confirmNewJobsOnly Confirms that activation affects new jobs only.
- * @param expectedCurrentActiveWorkflowVersionId Optional optimistic guard against activating over an unexpected current version.
- * @param reason Safe operator reason retained as audit metadata.
+ * @param schemaVersion 
+ * @param bindingKeys 
+ * @param outputCount 
+ * @param capabilities 
  */
 @Serializable
 
-data class WorkflowActivateRequest (
+data class WorkflowManifestSummary (
 
-    /* Confirms that activation affects new jobs only. */
-    @SerialName(value = "confirm_new_jobs_only")
-    val confirmNewJobsOnly: kotlin.Boolean,
+    @SerialName(value = "schema_version")
+    val schemaVersion: kotlin.Int,
 
-    /* Optional optimistic guard against activating over an unexpected current version. */
-    @Contextual @SerialName(value = "expected_current_active_workflow_version_id")
-    val expectedCurrentActiveWorkflowVersionId: java.util.UUID? = null,
+    @SerialName(value = "binding_keys")
+    val bindingKeys: kotlin.collections.Set<kotlin.String>,
 
-    /* Safe operator reason retained as audit metadata. */
-    @SerialName(value = "reason")
-    val reason: kotlin.String? = null
+    @SerialName(value = "output_count")
+    val outputCount: kotlin.Int,
+
+    @SerialName(value = "capabilities")
+    val capabilities: ProviderCapabilities? = null
 
 ) {
 

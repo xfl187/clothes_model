@@ -20,92 +20,82 @@ import {
     WorkflowValidationCheckToJSON,
     WorkflowValidationCheckToJSONTyped,
 } from './WorkflowValidationCheck';
-import type { WorkflowCompatibilityResult } from './WorkflowCompatibilityResult';
+import type { WorkflowCompatibilityState } from './WorkflowCompatibilityState';
 import {
-    WorkflowCompatibilityResultFromJSON,
-    WorkflowCompatibilityResultFromJSONTyped,
-    WorkflowCompatibilityResultToJSON,
-    WorkflowCompatibilityResultToJSONTyped,
-} from './WorkflowCompatibilityResult';
+    WorkflowCompatibilityStateFromJSON,
+    WorkflowCompatibilityStateFromJSONTyped,
+    WorkflowCompatibilityStateToJSON,
+    WorkflowCompatibilityStateToJSONTyped,
+} from './WorkflowCompatibilityState';
 
 /**
  * 
  * @export
- * @interface WorkflowValidationResult
+ * @interface WorkflowCompatibilityResult
  */
-export interface WorkflowValidationResult {
+export interface WorkflowCompatibilityResult {
     /**
      * 
      */
-    status: WorkflowValidationResultStatusEnum;
+    status: WorkflowCompatibilityState;
     /**
      * UTC RFC 3339 timestamp.
      */
     checkedAt: Date;
     /**
-     * 
+     * Safe server version label observed during the compatibility check.
      */
-    checks: Array<WorkflowValidationCheck>;
+    observedServerVersion?: string | null;
     /**
      * 
      */
-    compatibility?: WorkflowCompatibilityResult;
+    checks: Array<WorkflowValidationCheck>;
 }
 
 
-/**
- * @export
- */
-export const WorkflowValidationResultStatusEnum = {
-    Passed: 'passed',
-    Failed: 'failed',
-    UnknownDefaultOpenApi: '11184809',
-} as const;
-export type WorkflowValidationResultStatusEnum = typeof WorkflowValidationResultStatusEnum[keyof typeof WorkflowValidationResultStatusEnum];
-
 
 /**
- * Check if a given object implements the WorkflowValidationResult interface.
+ * Check if a given object implements the WorkflowCompatibilityResult interface.
  */
-export function instanceOfWorkflowValidationResult(value: object): value is WorkflowValidationResult {
+export function instanceOfWorkflowCompatibilityResult(value: object): value is WorkflowCompatibilityResult {
     if (!('status' in value) || value['status'] === undefined) return false;
     if ((!('checkedAt' in (value as Record<string, any>)) && !('checked_at' in (value as Record<string, any>))) || ((value as Record<string, any>)['checkedAt'] === undefined && (value as Record<string, any>)['checked_at'] === undefined)) return false;
     if (!('checks' in value) || value['checks'] === undefined) return false;
     return true;
 }
 
-export function WorkflowValidationResultFromJSON(json: any): WorkflowValidationResult {
-    return WorkflowValidationResultFromJSONTyped(json, false);
+export function WorkflowCompatibilityResultFromJSON(json: any): WorkflowCompatibilityResult {
+    return WorkflowCompatibilityResultFromJSONTyped(json, false);
 }
 
-export function WorkflowValidationResultFromJSONTyped(json: any, ignoreDiscriminator: boolean): WorkflowValidationResult {
+export function WorkflowCompatibilityResultFromJSONTyped(json: any, ignoreDiscriminator: boolean): WorkflowCompatibilityResult {
     if (json == null) {
         return json;
     }
     return {
         
-        'status': json['status'],
+        'status': WorkflowCompatibilityStateFromJSON(json['status']),
         'checkedAt': (json['checked_at'] == null ? json['checked_at'] : parseDateTime(json['checked_at'])),
+        'observedServerVersion': json['observed_server_version'] === undefined ? undefined : json['observed_server_version'] === null ? null : json['observed_server_version'],
         'checks': ((json['checks'] as Array<any>).map(WorkflowValidationCheckFromJSON)),
-        'compatibility': json['compatibility'] == null ? undefined : WorkflowCompatibilityResultFromJSON(json['compatibility']),
     };
 }
 
-export function WorkflowValidationResultToJSON(json: any): WorkflowValidationResult {
-    return WorkflowValidationResultToJSONTyped(json, false);
+export function WorkflowCompatibilityResultToJSON(json: any): WorkflowCompatibilityResult {
+    return WorkflowCompatibilityResultToJSONTyped(json, false);
 }
 
-export function WorkflowValidationResultToJSONTyped(value?: WorkflowValidationResult | null, ignoreDiscriminator: boolean = false): any {
+export function WorkflowCompatibilityResultToJSONTyped(value?: WorkflowCompatibilityResult | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
 
     return {
         
-        'status': value['status'],
+        'status': WorkflowCompatibilityStateToJSON(value['status']),
         'checked_at': value['checkedAt'] == null ? value['checkedAt'] : serializeDateTime(value['checkedAt']),
+        'observed_server_version': value['observedServerVersion'],
         'checks': ((value['checks'] as Array<any>).map(WorkflowValidationCheckToJSON)),
-        'compatibility': WorkflowCompatibilityResultToJSON(value['compatibility']),
     };
 }
 

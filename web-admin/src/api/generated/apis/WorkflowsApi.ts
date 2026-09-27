@@ -34,6 +34,11 @@ import {
     WorkflowPageToJSON,
 } from '../models/WorkflowPage';
 import {
+    type WorkflowRetireRequest,
+    WorkflowRetireRequestFromJSON,
+    WorkflowRetireRequestToJSON,
+} from '../models/WorkflowRetireRequest';
+import {
     type WorkflowValidationResult,
     WorkflowValidationResultFromJSON,
     WorkflowValidationResultToJSON,
@@ -88,6 +93,21 @@ export interface ListWorkflowVersionsRequest {
     limit?: number;
 }
 
+export interface RetireWorkflowVersionRequest {
+    /**
+     * 
+     */
+    workflowVersionId: string;
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
+    /**
+     * 
+     */
+    workflowRetireRequest: WorkflowRetireRequest;
+}
+
 export interface ValidateWorkflowVersionRequest {
     /**
      * 
@@ -117,8 +137,8 @@ export interface WorkflowsApiInterface {
     activateWorkflowVersionRequestOpts(requestParameters: ActivateWorkflowVersionRequest): Promise<runtime.RequestOpts>;
 
     /**
-     * 
-     * @summary Activate a validated version for new jobs and retire the previous active version
+     * Activating a validated draft, validated version, or previously retired immutable version atomically retires the prior active version for the same mode. This is the rollback operation. Existing jobs retain their locked Provider and Workflow versions.
+     * @summary Activate or roll back to a compatible validated version for new jobs
      * @param {string} workflowVersionId 
      * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {WorkflowActivateRequest} workflowActivateRequest 
@@ -129,7 +149,8 @@ export interface WorkflowsApiInterface {
     activateWorkflowVersionRaw(requestParameters: ActivateWorkflowVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WorkflowVersion>>;
 
     /**
-     * Activate a validated version for new jobs and retire the previous active version
+     * Activating a validated draft, validated version, or previously retired immutable version atomically retires the prior active version for the same mode. This is the rollback operation. Existing jobs retain their locked Provider and Workflow versions.
+     * Activate or roll back to a compatible validated version for new jobs
      */
     activateWorkflowVersion(requestParameters: ActivateWorkflowVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WorkflowVersion>;
 
@@ -205,6 +226,34 @@ export interface WorkflowsApiInterface {
      * List immutable Workflow versions
      */
     listWorkflowVersions(requestParameters: ListWorkflowVersionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WorkflowPage>;
+
+    /**
+     * Creates request options for retireWorkflowVersion without sending the request
+     * @param {string} workflowVersionId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {WorkflowRetireRequest} workflowRetireRequest 
+     * @throws {RequiredError}
+     * @memberof WorkflowsApiInterface
+     */
+    retireWorkflowVersionRequestOpts(requestParameters: RetireWorkflowVersionRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * Retirement prevents the version from being selected for new jobs. Existing jobs keep their locked Workflow and may continue on a compatible replacement physical node. A retired immutable version may later be activated again as an explicit rollback.
+     * @summary Retire an active or validated Workflow for future jobs without changing history
+     * @param {string} workflowVersionId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {WorkflowRetireRequest} workflowRetireRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof WorkflowsApiInterface
+     */
+    retireWorkflowVersionRaw(requestParameters: RetireWorkflowVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WorkflowVersion>>;
+
+    /**
+     * Retirement prevents the version from being selected for new jobs. Existing jobs keep their locked Workflow and may continue on a compatible replacement physical node. A retired immutable version may later be activated again as an explicit rollback.
+     * Retire an active or validated Workflow for future jobs without changing history
+     */
+    retireWorkflowVersion(requestParameters: RetireWorkflowVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WorkflowVersion>;
 
     /**
      * Creates request options for validateWorkflowVersion without sending the request
@@ -291,7 +340,8 @@ export class WorkflowsApi extends runtime.BaseAPI implements WorkflowsApiInterfa
     }
 
     /**
-     * Activate a validated version for new jobs and retire the previous active version
+     * Activating a validated draft, validated version, or previously retired immutable version atomically retires the prior active version for the same mode. This is the rollback operation. Existing jobs retain their locked Provider and Workflow versions.
+     * Activate or roll back to a compatible validated version for new jobs
      */
     async activateWorkflowVersionRaw(requestParameters: ActivateWorkflowVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WorkflowVersion>> {
         const requestOptions = await this.activateWorkflowVersionRequestOpts(requestParameters);
@@ -301,7 +351,8 @@ export class WorkflowsApi extends runtime.BaseAPI implements WorkflowsApiInterfa
     }
 
     /**
-     * Activate a validated version for new jobs and retire the previous active version
+     * Activating a validated draft, validated version, or previously retired immutable version atomically retires the prior active version for the same mode. This is the rollback operation. Existing jobs retain their locked Provider and Workflow versions.
+     * Activate or roll back to a compatible validated version for new jobs
      */
     async activateWorkflowVersion(requestParameters: ActivateWorkflowVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WorkflowVersion> {
         const response = await this.activateWorkflowVersionRaw(requestParameters, initOverrides);
@@ -457,6 +508,78 @@ export class WorkflowsApi extends runtime.BaseAPI implements WorkflowsApiInterfa
      */
     async listWorkflowVersions(requestParameters: ListWorkflowVersionsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WorkflowPage> {
         const response = await this.listWorkflowVersionsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for retireWorkflowVersion without sending the request
+     */
+    async retireWorkflowVersionRequestOpts(requestParameters: RetireWorkflowVersionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['workflowVersionId'] == null) {
+            throw new runtime.RequiredError(
+                'workflowVersionId',
+                'Required parameter "workflowVersionId" was null or undefined when calling retireWorkflowVersion().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling retireWorkflowVersion().'
+            );
+        }
+
+        if (requestParameters['workflowRetireRequest'] == null) {
+            throw new runtime.RequiredError(
+                'workflowRetireRequest',
+                'Required parameter "workflowRetireRequest" was null or undefined when calling retireWorkflowVersion().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/workflows/{workflow_version_id}/retire`;
+        urlPath = urlPath.replace('{workflow_version_id}', encodeURIComponent(String(requestParameters['workflowVersionId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WorkflowRetireRequestToJSON(requestParameters['workflowRetireRequest']),
+        };
+    }
+
+    /**
+     * Retirement prevents the version from being selected for new jobs. Existing jobs keep their locked Workflow and may continue on a compatible replacement physical node. A retired immutable version may later be activated again as an explicit rollback.
+     * Retire an active or validated Workflow for future jobs without changing history
+     */
+    async retireWorkflowVersionRaw(requestParameters: RetireWorkflowVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WorkflowVersion>> {
+        const requestOptions = await this.retireWorkflowVersionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WorkflowVersionFromJSON(jsonValue));
+    }
+
+    /**
+     * Retirement prevents the version from being selected for new jobs. Existing jobs keep their locked Workflow and may continue on a compatible replacement physical node. A retired immutable version may later be activated again as an explicit rollback.
+     * Retire an active or validated Workflow for future jobs without changing history
+     */
+    async retireWorkflowVersion(requestParameters: RetireWorkflowVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WorkflowVersion> {
+        const response = await this.retireWorkflowVersionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

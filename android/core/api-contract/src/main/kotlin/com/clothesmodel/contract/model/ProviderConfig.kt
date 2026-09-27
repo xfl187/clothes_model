@@ -44,7 +44,7 @@ import kotlinx.serialization.encoding.Encoder
  * @param displayName 
  * @param type 
  * @param adapterType 
- * @param endpoint 
+ * @param endpoint Logical adapter endpoint for ordinary Providers. The ComfyUI physical node endpoint is owned by ComfyNodeConfiguration and is not locked into historical jobs.
  * @param model 
  * @param timeoutSeconds 
  * @param state 
@@ -71,6 +71,7 @@ data class ProviderConfig (
     @SerialName(value = "adapter_type")
     val adapterType: kotlin.String,
 
+    /* Logical adapter endpoint for ordinary Providers. The ComfyUI physical node endpoint is owned by ComfyNodeConfiguration and is not locked into historical jobs. */
     @Contextual @SerialName(value = "endpoint")
     val endpoint: java.net.URI,
 

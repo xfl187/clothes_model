@@ -23,6 +23,7 @@
 
 package com.clothesmodel.contract.model
 
+import com.clothesmodel.contract.model.WorkflowCheckStatus
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -36,25 +37,24 @@ import kotlinx.serialization.encoding.Encoder
 /**
  * 
  *
- * @param confirmNewJobsOnly Confirms that activation affects new jobs only.
- * @param expectedCurrentActiveWorkflowVersionId Optional optimistic guard against activating over an unexpected current version.
- * @param reason Safe operator reason retained as audit metadata.
+ * @param key Stable machine-readable check key.
+ * @param status 
+ * @param detail Safe redacted explanation without Workflow bodies, paths, prompts, or secrets.
  */
 @Serializable
 
-data class WorkflowActivateRequest (
+data class WorkflowValidationCheck (
 
-    /* Confirms that activation affects new jobs only. */
-    @SerialName(value = "confirm_new_jobs_only")
-    val confirmNewJobsOnly: kotlin.Boolean,
+    /* Stable machine-readable check key. */
+    @SerialName(value = "key")
+    val key: kotlin.String,
 
-    /* Optional optimistic guard against activating over an unexpected current version. */
-    @Contextual @SerialName(value = "expected_current_active_workflow_version_id")
-    val expectedCurrentActiveWorkflowVersionId: java.util.UUID? = null,
+    @Contextual @SerialName(value = "status")
+    val status: WorkflowCheckStatus,
 
-    /* Safe operator reason retained as audit metadata. */
-    @SerialName(value = "reason")
-    val reason: kotlin.String? = null
+    /* Safe redacted explanation without Workflow bodies, paths, prompts, or secrets. */
+    @SerialName(value = "detail")
+    val detail: kotlin.String? = null
 
 ) {
 

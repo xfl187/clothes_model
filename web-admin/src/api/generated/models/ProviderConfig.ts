@@ -65,7 +65,7 @@ export interface ProviderConfig {
      */
     adapterType: string;
     /**
-     * 
+     * Logical adapter endpoint for ordinary Providers. The ComfyUI physical node endpoint is owned by ComfyNodeConfiguration and is not locked into historical jobs.
      */
     endpoint: string;
     /**

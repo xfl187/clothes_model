@@ -59,6 +59,10 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Phase 3 boundary verification failed with exit code $LASTEXITCODE."
     }
+    & (Join-Path $PSScriptRoot 'verify-phase5-boundaries.ps1') -Current $bundle
+    if ($LASTEXITCODE -ne 0) {
+        throw "Phase 5 boundary verification failed with exit code $LASTEXITCODE."
+    }
 
     $requiredContractTokens = @(
         'UploadSession',
@@ -108,6 +112,12 @@ try {
         'upload_offset_conflict',
         'asset_referenced',
         'invalid_image'
+        'WorkflowArtifactMetadata'
+        'WorkflowCompatibilityResult'
+        'retireWorkflowVersion'
+        'logical_provider_id'
+        'workflow_sha256'
+        'manifest_sha256'
     )
 
     foreach ($token in $requiredContractTokens) {

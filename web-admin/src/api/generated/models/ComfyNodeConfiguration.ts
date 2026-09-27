@@ -13,6 +13,14 @@
  */
 
 import { mapValues, parseDate, parseDateTime, serializeDate, serializeDateTime } from '../runtime';
+import type { WorkflowCompatibilityResult } from './WorkflowCompatibilityResult';
+import {
+    WorkflowCompatibilityResultFromJSON,
+    WorkflowCompatibilityResultFromJSONTyped,
+    WorkflowCompatibilityResultToJSON,
+    WorkflowCompatibilityResultToJSONTyped,
+} from './WorkflowCompatibilityResult';
+
 /**
  * 
  * @export
@@ -23,6 +31,10 @@ export interface ComfyNodeConfiguration {
      * 
      */
     endpoint: string;
+    /**
+     * Stable selectable Comfy Provider identity. It is distinct from this replaceable physical node and remains unchanged when the node endpoint is replaced.
+     */
+    logicalProviderId?: string;
     /**
      * 
      */
@@ -43,6 +55,18 @@ export interface ComfyNodeConfiguration {
      * 
      */
     health: ComfyNodeConfigurationHealthEnum;
+    /**
+     * Safe redacted health conclusion without endpoint credentials or upstream bodies.
+     */
+    healthDetail?: string | null;
+    /**
+     * 
+     */
+    observedServerVersion?: string | null;
+    /**
+     * 
+     */
+    activeWorkflowCompatibility?: WorkflowCompatibilityResult;
     /**
      * 
      */
@@ -92,11 +116,15 @@ export function ComfyNodeConfigurationFromJSONTyped(json: any, ignoreDiscriminat
     return {
         
         'endpoint': json['endpoint'],
+        'logicalProviderId': json['logical_provider_id'] == null ? undefined : json['logical_provider_id'],
         'timeoutSeconds': json['timeout_seconds'],
         'enabled': json['enabled'],
         'credentialConfigured': json['credential_configured'],
         'credentialUpdatedAt': json['credential_updated_at'] == null ? undefined : (parseDateTime(json['credential_updated_at'])),
         'health': json['health'],
+        'healthDetail': json['health_detail'] === undefined ? undefined : json['health_detail'] === null ? null : json['health_detail'],
+        'observedServerVersion': json['observed_server_version'] === undefined ? undefined : json['observed_server_version'] === null ? null : json['observed_server_version'],
+        'activeWorkflowCompatibility': json['active_workflow_compatibility'] == null ? undefined : WorkflowCompatibilityResultFromJSON(json['active_workflow_compatibility']),
         'lastCheckedAt': json['last_checked_at'] == null ? undefined : (parseDateTime(json['last_checked_at'])),
         'updatedAt': (json['updated_at'] == null ? json['updated_at'] : parseDateTime(json['updated_at'])),
     };
@@ -114,11 +142,15 @@ export function ComfyNodeConfigurationToJSONTyped(value?: ComfyNodeConfiguration
     return {
         
         'endpoint': value['endpoint'],
+        'logical_provider_id': value['logicalProviderId'],
         'timeout_seconds': value['timeoutSeconds'],
         'enabled': value['enabled'],
         'credential_configured': value['credentialConfigured'],
         'credential_updated_at': value['credentialUpdatedAt'] == null ? value['credentialUpdatedAt'] : serializeDateTime(value['credentialUpdatedAt']),
         'health': value['health'],
+        'health_detail': value['healthDetail'],
+        'observed_server_version': value['observedServerVersion'],
+        'active_workflow_compatibility': WorkflowCompatibilityResultToJSON(value['activeWorkflowCompatibility']),
         'last_checked_at': value['lastCheckedAt'] == null ? value['lastCheckedAt'] : serializeDateTime(value['lastCheckedAt']),
         'updated_at': value['updatedAt'] == null ? value['updatedAt'] : serializeDateTime(value['updatedAt']),
     };

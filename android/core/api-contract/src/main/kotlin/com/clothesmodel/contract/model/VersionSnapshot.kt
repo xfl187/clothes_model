@@ -37,6 +37,9 @@ import kotlinx.serialization.encoding.Encoder
  * 
  *
  * @param label Read-only display label captured when the owning resource was created.
+ * @param artifactSha256 Immutable artifact digest captured when the owning resource was created.
+ * @param manifestSha256 Immutable manifest digest captured when the owning resource was created.
+ * @param bindingsSchemaVersion Version of the Workflow binding contract captured by the job.
  */
 @Serializable
 
@@ -44,7 +47,19 @@ data class VersionSnapshot (
 
     /* Read-only display label captured when the owning resource was created. */
     @SerialName(value = "label")
-    val label: kotlin.String
+    val label: kotlin.String,
+
+    /* Immutable artifact digest captured when the owning resource was created. */
+    @SerialName(value = "artifact_sha256")
+    val artifactSha256: kotlin.String? = null,
+
+    /* Immutable manifest digest captured when the owning resource was created. */
+    @SerialName(value = "manifest_sha256")
+    val manifestSha256: kotlin.String? = null,
+
+    /* Version of the Workflow binding contract captured by the job. */
+    @SerialName(value = "bindings_schema_version")
+    val bindingsSchemaVersion: kotlin.Int? = null
 
 ) {
 

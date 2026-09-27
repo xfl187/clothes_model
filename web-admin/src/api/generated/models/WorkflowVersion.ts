@@ -20,6 +20,20 @@ import {
     ProviderCapabilitiesToJSON,
     ProviderCapabilitiesToJSONTyped,
 } from './ProviderCapabilities';
+import type { WorkflowArtifactMetadata } from './WorkflowArtifactMetadata';
+import {
+    WorkflowArtifactMetadataFromJSON,
+    WorkflowArtifactMetadataFromJSONTyped,
+    WorkflowArtifactMetadataToJSON,
+    WorkflowArtifactMetadataToJSONTyped,
+} from './WorkflowArtifactMetadata';
+import type { WorkflowManifestSummary } from './WorkflowManifestSummary';
+import {
+    WorkflowManifestSummaryFromJSON,
+    WorkflowManifestSummaryFromJSONTyped,
+    WorkflowManifestSummaryToJSON,
+    WorkflowManifestSummaryToJSONTyped,
+} from './WorkflowManifestSummary';
 import type { WorkflowState } from './WorkflowState';
 import {
     WorkflowStateFromJSON,
@@ -27,6 +41,20 @@ import {
     WorkflowStateToJSON,
     WorkflowStateToJSONTyped,
 } from './WorkflowState';
+import type { ProviderConfigRef } from './ProviderConfigRef';
+import {
+    ProviderConfigRefFromJSON,
+    ProviderConfigRefFromJSONTyped,
+    ProviderConfigRefToJSON,
+    ProviderConfigRefToJSONTyped,
+} from './ProviderConfigRef';
+import type { WorkflowCompatibilityResult } from './WorkflowCompatibilityResult';
+import {
+    WorkflowCompatibilityResultFromJSON,
+    WorkflowCompatibilityResultFromJSONTyped,
+    WorkflowCompatibilityResultToJSON,
+    WorkflowCompatibilityResultToJSONTyped,
+} from './WorkflowCompatibilityResult';
 
 /**
  * 
@@ -59,6 +87,18 @@ export interface WorkflowVersion {
      */
     capabilities: ProviderCapabilities;
     /**
+     * Stable logical Comfy Provider revision used for selection and job locking. The replaceable physical node endpoint and credential are never part of this reference.
+     */
+    logicalProviderRef?: ProviderConfigRef;
+    /**
+     * 
+     */
+    artifacts?: WorkflowArtifactMetadata;
+    /**
+     * 
+     */
+    manifestSummary?: WorkflowManifestSummary;
+    /**
      * 
      */
     validationStatus?: WorkflowVersionValidationStatusEnum;
@@ -73,7 +113,19 @@ export interface WorkflowVersion {
     /**
      * 
      */
-    activatedAt?: Date;
+    validatedAt?: Date | null;
+    /**
+     * 
+     */
+    activatedAt?: Date | null;
+    /**
+     * 
+     */
+    retiredAt?: Date | null;
+    /**
+     * 
+     */
+    compatibility?: WorkflowCompatibilityResult;
 }
 
 
@@ -130,10 +182,16 @@ export function WorkflowVersionFromJSONTyped(json: any, ignoreDiscriminator: boo
         'mode': json['mode'],
         'state': WorkflowStateFromJSON(json['state']),
         'capabilities': ProviderCapabilitiesFromJSON(json['capabilities']),
+        'logicalProviderRef': json['logical_provider_ref'] == null ? undefined : ProviderConfigRefFromJSON(json['logical_provider_ref']),
+        'artifacts': json['artifacts'] == null ? undefined : WorkflowArtifactMetadataFromJSON(json['artifacts']),
+        'manifestSummary': json['manifest_summary'] == null ? undefined : WorkflowManifestSummaryFromJSON(json['manifest_summary']),
         'validationStatus': json['validation_status'] == null ? undefined : json['validation_status'],
         'validationMessages': json['validation_messages'] == null ? undefined : json['validation_messages'],
         'createdAt': (json['created_at'] == null ? json['created_at'] : parseDateTime(json['created_at'])),
-        'activatedAt': json['activated_at'] == null ? undefined : (parseDateTime(json['activated_at'])),
+        'validatedAt': json['validated_at'] === undefined ? undefined : json['validated_at'] === null ? null : (parseDateTime(json['validated_at'])),
+        'activatedAt': json['activated_at'] === undefined ? undefined : json['activated_at'] === null ? null : (parseDateTime(json['activated_at'])),
+        'retiredAt': json['retired_at'] === undefined ? undefined : json['retired_at'] === null ? null : (parseDateTime(json['retired_at'])),
+        'compatibility': json['compatibility'] == null ? undefined : WorkflowCompatibilityResultFromJSON(json['compatibility']),
     };
 }
 
@@ -154,10 +212,16 @@ export function WorkflowVersionToJSONTyped(value?: WorkflowVersion | null, ignor
         'mode': value['mode'],
         'state': WorkflowStateToJSON(value['state']),
         'capabilities': ProviderCapabilitiesToJSON(value['capabilities']),
+        'logical_provider_ref': ProviderConfigRefToJSON(value['logicalProviderRef']),
+        'artifacts': WorkflowArtifactMetadataToJSON(value['artifacts']),
+        'manifest_summary': WorkflowManifestSummaryToJSON(value['manifestSummary']),
         'validation_status': value['validationStatus'],
         'validation_messages': value['validationMessages'],
         'created_at': value['createdAt'] == null ? value['createdAt'] : serializeDateTime(value['createdAt']),
+        'validated_at': value['validatedAt'] == null ? value['validatedAt'] : serializeDateTime(value['validatedAt']),
         'activated_at': value['activatedAt'] == null ? value['activatedAt'] : serializeDateTime(value['activatedAt']),
+        'retired_at': value['retiredAt'] == null ? value['retiredAt'] : serializeDateTime(value['retiredAt']),
+        'compatibility': WorkflowCompatibilityResultToJSON(value['compatibility']),
     };
 }
 

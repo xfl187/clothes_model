@@ -16,17 +16,13 @@ import { mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface WorkflowActivateRequest
+ * @interface WorkflowRetireRequest
  */
-export interface WorkflowActivateRequest {
+export interface WorkflowRetireRequest {
     /**
-     * Confirms that activation affects new jobs only.
+     * Confirms that retiring the active version affects new jobs only.
      */
     confirmNewJobsOnly: boolean;
-    /**
-     * Optional optimistic guard against activating over an unexpected current version.
-     */
-    expectedCurrentActiveWorkflowVersionId?: string | null;
     /**
      * Safe operator reason retained as audit metadata.
      */
@@ -34,34 +30,33 @@ export interface WorkflowActivateRequest {
 }
 
 /**
- * Check if a given object implements the WorkflowActivateRequest interface.
+ * Check if a given object implements the WorkflowRetireRequest interface.
  */
-export function instanceOfWorkflowActivateRequest(value: object): value is WorkflowActivateRequest {
+export function instanceOfWorkflowRetireRequest(value: object): value is WorkflowRetireRequest {
     if ((!('confirmNewJobsOnly' in (value as Record<string, any>)) && !('confirm_new_jobs_only' in (value as Record<string, any>))) || ((value as Record<string, any>)['confirmNewJobsOnly'] === undefined && (value as Record<string, any>)['confirm_new_jobs_only'] === undefined)) return false;
     return true;
 }
 
-export function WorkflowActivateRequestFromJSON(json: any): WorkflowActivateRequest {
-    return WorkflowActivateRequestFromJSONTyped(json, false);
+export function WorkflowRetireRequestFromJSON(json: any): WorkflowRetireRequest {
+    return WorkflowRetireRequestFromJSONTyped(json, false);
 }
 
-export function WorkflowActivateRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): WorkflowActivateRequest {
+export function WorkflowRetireRequestFromJSONTyped(json: any, ignoreDiscriminator: boolean): WorkflowRetireRequest {
     if (json == null) {
         return json;
     }
     return {
         
         'confirmNewJobsOnly': json['confirm_new_jobs_only'],
-        'expectedCurrentActiveWorkflowVersionId': json['expected_current_active_workflow_version_id'] === undefined ? undefined : json['expected_current_active_workflow_version_id'] === null ? null : json['expected_current_active_workflow_version_id'],
         'reason': json['reason'] === undefined ? undefined : json['reason'] === null ? null : json['reason'],
     };
 }
 
-export function WorkflowActivateRequestToJSON(json: any): WorkflowActivateRequest {
-    return WorkflowActivateRequestToJSONTyped(json, false);
+export function WorkflowRetireRequestToJSON(json: any): WorkflowRetireRequest {
+    return WorkflowRetireRequestToJSONTyped(json, false);
 }
 
-export function WorkflowActivateRequestToJSONTyped(value?: WorkflowActivateRequest | null, ignoreDiscriminator: boolean = false): any {
+export function WorkflowRetireRequestToJSONTyped(value?: WorkflowRetireRequest | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
@@ -69,7 +64,6 @@ export function WorkflowActivateRequestToJSONTyped(value?: WorkflowActivateReque
     return {
         
         'confirm_new_jobs_only': value['confirmNewJobsOnly'],
-        'expected_current_active_workflow_version_id': value['expectedCurrentActiveWorkflowVersionId'],
         'reason': value['reason'],
     };
 }

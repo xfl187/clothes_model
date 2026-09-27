@@ -1,0 +1,279 @@
+DraftWorkflow:
+  summary: Immutable draft with canonical artifact identities
+  value:
+    id: 01992b5a-0000-7000-8000-000000000401
+    workflow_id: precise-vton
+    version: 3
+    mode: precise_try_on
+    state: draft
+    capabilities: &verifiedComfyCapabilities
+      schema_version: 1
+      garment_categories:
+        values: [upper_body, lower_body, dress]
+        source: workflow_declared
+        verification: verified
+      manual_mask:
+        supported: true
+        source: workflow_declared
+        verification: verified
+      multiple_candidates:
+        supported: true
+        source: derived
+        verification: verified
+      multi_person_reference:
+        supported: false
+        source: workflow_declared
+        verification: declared
+      batch_input:
+        supported: false
+        source: workflow_declared
+        verification: declared
+      interrupt_running:
+        supported: true
+        source: adapter
+        verification: verified
+      sequential_layering:
+        supported: false
+        source: workflow_declared
+        verification: declared
+      supported_layer_roles:
+        values: []
+        source: workflow_declared
+        verification: declared
+      preserve_existing_garments:
+        supported: false
+        source: workflow_declared
+        verification: declared
+      outfit_context:
+        supported: false
+        source: workflow_declared
+        verification: declared
+      region_mask:
+        supported: true
+        source: workflow_declared
+        verification: verified
+      input_constraints:
+        content_types: [image/jpeg, image/png]
+        max_size_bytes: 20971520
+        max_width: 4096
+        max_height: 4096
+      output_constraints:
+        max_candidates: 4
+    logical_provider_ref:
+      provider_id: 01992b5a-0000-7000-8000-000000000201
+      config_version_id: 01992b5a-0000-7000-8000-000000000202
+      revision: 3
+    artifacts:
+      workflow_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      manifest_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      workflow_size_bytes: 18432
+      manifest_size_bytes: 2048
+    manifest_summary:
+      schema_version: 1
+      binding_keys: [person_image, garment_image, mask_image, seed, candidate_count]
+      output_count: 1
+    validation_status: not_run
+    validation_messages: []
+    created_at: '2026-09-28T07:00:00Z'
+
+ActiveWorkflow:
+  summary: Active immutable Workflow used only by newly created jobs
+  value:
+    id: 01992b5a-0000-7000-8000-000000000402
+    workflow_id: precise-vton
+    version: 2
+    mode: precise_try_on
+    state: active
+    capabilities: *verifiedComfyCapabilities
+    logical_provider_ref:
+      provider_id: 01992b5a-0000-7000-8000-000000000201
+      config_version_id: 01992b5a-0000-7000-8000-000000000202
+      revision: 3
+    artifacts:
+      workflow_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      manifest_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+      workflow_size_bytes: 17600
+      manifest_size_bytes: 1980
+    manifest_summary:
+      schema_version: 1
+      binding_keys: [person_image, garment_image, mask_image, seed, candidate_count]
+      output_count: 1
+    validation_status: passed
+    validation_messages: []
+    validated_at: '2026-09-28T07:20:00Z'
+    activated_at: '2026-09-28T07:25:00Z'
+    retired_at: null
+    compatibility:
+      status: compatible
+      checked_at: '2026-09-28T07:24:00Z'
+      observed_server_version: 0.3.60
+      checks:
+        - key: required_nodes
+          status: passed
+        - key: bound_inputs
+          status: passed
+        - key: minimal_execution
+          status: passed
+    created_at: '2026-09-28T06:00:00Z'
+
+RetiredWorkflow:
+  summary: Retired immutable version retained for history and explicit rollback
+  value:
+    id: 01992b5a-0000-7000-8000-000000000403
+    workflow_id: precise-vton
+    version: 1
+    mode: precise_try_on
+    state: retired
+    capabilities: *verifiedComfyCapabilities
+    logical_provider_ref:
+      provider_id: 01992b5a-0000-7000-8000-000000000201
+      config_version_id: 01992b5a-0000-7000-8000-000000000204
+      revision: 2
+    artifacts:
+      workflow_sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+      manifest_sha256: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    manifest_summary:
+      schema_version: 1
+      binding_keys: [person_image, garment_image, seed, candidate_count]
+      output_count: 1
+    validation_status: passed
+    validation_messages: []
+    validated_at: '2026-09-27T07:20:00Z'
+    activated_at: '2026-09-27T07:25:00Z'
+    retired_at: '2026-09-28T07:25:00Z'
+    created_at: '2026-09-27T06:00:00Z'
+
+IncompatibleValidation:
+  summary: Reachable replacement node lacks requirements of the locked Workflow
+  value:
+    status: failed
+    checked_at: '2026-09-28T08:00:00Z'
+    checks:
+      - key: structure
+        status: passed
+      - key: required_nodes
+        status: failed
+        detail: 当前节点缺少工作流所需节点。
+      - key: minimal_execution
+        status: skipped
+        detail: 兼容性检查未通过，未执行试运行。
+    compatibility:
+      status: incompatible
+      checked_at: '2026-09-28T08:00:00Z'
+      observed_server_version: 0.3.60
+      checks:
+        - key: required_nodes
+          status: failed
+          detail: 当前节点缺少工作流所需节点。
+
+OfflineValidation:
+  summary: Physical node is offline; draft remains unchanged and waiting jobs remain waiting
+  value:
+    status: failed
+    checked_at: '2026-09-28T08:05:00Z'
+    checks:
+      - key: structure
+        status: passed
+      - key: node_connection
+        status: failed
+        detail: ComfyUI 节点暂时离线。
+      - key: minimal_execution
+        status: skipped
+        detail: 节点离线，未执行试运行。
+    compatibility:
+      status: offline
+      checked_at: '2026-09-28T08:05:00Z'
+      checks:
+        - key: node_connection
+          status: failed
+          detail: ComfyUI 节点暂时离线。
+
+FailedValidation:
+  summary: Structural validation fails without sending inputs to the physical node
+  value:
+    status: failed
+    checked_at: '2026-09-28T08:10:00Z'
+    checks:
+      - key: structure
+        status: failed
+        detail: person_image 绑定的节点不存在。
+      - key: node_connection
+        status: skipped
+      - key: minimal_execution
+        status: skipped
+    compatibility:
+      status: unchecked
+      checked_at: '2026-09-28T08:10:00Z'
+      checks:
+        - key: structure
+          status: failed
+          detail: 结构校验未通过，未检查节点兼容性。
+
+HealthyNode:
+  summary: Healthy physical node associated with a stable logical Provider
+  value:
+    endpoint: https://comfy-node.internal
+    logical_provider_id: 01992b5a-0000-7000-8000-000000000201
+    timeout_seconds: 300
+    enabled: true
+    credential_configured: true
+    credential_updated_at: '2026-09-28T06:30:00Z'
+    health: healthy
+    health_detail: ComfyUI 节点连接正常。
+    observed_server_version: 0.3.60
+    active_workflow_compatibility:
+      status: compatible
+      checked_at: '2026-09-28T07:24:00Z'
+      observed_server_version: 0.3.60
+      checks:
+        - key: required_nodes
+          status: passed
+        - key: bound_inputs
+          status: passed
+    last_checked_at: '2026-09-28T08:00:00Z'
+    updated_at: '2026-09-28T08:00:00Z'
+
+OfflineNode:
+  summary: Physical node is offline while its logical Provider and locked jobs remain stable
+  value:
+    endpoint: https://comfy-node.internal
+    logical_provider_id: 01992b5a-0000-7000-8000-000000000201
+    timeout_seconds: 300
+    enabled: true
+    credential_configured: true
+    credential_updated_at: '2026-09-28T06:30:00Z'
+    health: offline
+    health_detail: ComfyUI 节点暂时离线。
+    observed_server_version: null
+    active_workflow_compatibility:
+      status: offline
+      checked_at: '2026-09-28T08:05:00Z'
+      checks:
+        - key: node_connection
+          status: failed
+          detail: ComfyUI 节点暂时离线。
+    last_checked_at: '2026-09-28T08:05:00Z'
+    updated_at: '2026-09-28T08:05:00Z'
+
+IncompatibleNode:
+  summary: Reachable replacement node is incompatible with the active Workflow
+  value:
+    endpoint: https://replacement-comfy-node.internal
+    logical_provider_id: 01992b5a-0000-7000-8000-000000000201
+    timeout_seconds: 300
+    enabled: true
+    credential_configured: true
+    credential_updated_at: '2026-09-28T08:20:00Z'
+    health: incompatible
+    health_detail: 节点可连接，但与活动工作流不兼容。
+    observed_server_version: 0.3.60
+    active_workflow_compatibility:
+      status: incompatible
+      checked_at: '2026-09-28T08:21:00Z'
+      observed_server_version: 0.3.60
+      checks:
+        - key: required_nodes
+          status: failed
+          detail: 当前节点缺少工作流所需节点。
+    last_checked_at: '2026-09-28T08:21:00Z'
+    updated_at: '2026-09-28T08:21:00Z'

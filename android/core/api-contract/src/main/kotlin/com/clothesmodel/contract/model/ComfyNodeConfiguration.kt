@@ -23,6 +23,7 @@
 
 package com.clothesmodel.contract.model
 
+import com.clothesmodel.contract.model.WorkflowCompatibilityResult
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -42,7 +43,11 @@ import kotlinx.serialization.encoding.Encoder
  * @param credentialConfigured 
  * @param health 
  * @param updatedAt UTC RFC 3339 timestamp.
+ * @param logicalProviderId Stable selectable Comfy Provider identity. It is distinct from this replaceable physical node and remains unchanged when the node endpoint is replaced.
  * @param credentialUpdatedAt 
+ * @param healthDetail Safe redacted health conclusion without endpoint credentials or upstream bodies.
+ * @param observedServerVersion 
+ * @param activeWorkflowCompatibility 
  * @param lastCheckedAt 
  */
 @Serializable
@@ -68,8 +73,22 @@ data class ComfyNodeConfiguration (
     @Contextual @SerialName(value = "updated_at")
     val updatedAt: java.time.OffsetDateTime,
 
+    /* Stable selectable Comfy Provider identity. It is distinct from this replaceable physical node and remains unchanged when the node endpoint is replaced. */
+    @Contextual @SerialName(value = "logical_provider_id")
+    val logicalProviderId: java.util.UUID? = null,
+
     @Contextual @SerialName(value = "credential_updated_at")
     val credentialUpdatedAt: java.time.OffsetDateTime? = null,
+
+    /* Safe redacted health conclusion without endpoint credentials or upstream bodies. */
+    @SerialName(value = "health_detail")
+    val healthDetail: kotlin.String? = null,
+
+    @SerialName(value = "observed_server_version")
+    val observedServerVersion: kotlin.String? = null,
+
+    @SerialName(value = "active_workflow_compatibility")
+    val activeWorkflowCompatibility: WorkflowCompatibilityResult? = null,
 
     @Contextual @SerialName(value = "last_checked_at")
     val lastCheckedAt: java.time.OffsetDateTime? = null

@@ -108,6 +108,14 @@ WorkflowVersionRef:
     version:
       type: integer
       minimum: 1
+    workflow_sha256:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+      description: Digest of the immutable canonical API-format Workflow locked by the job.
+    manifest_sha256:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+      description: Digest of the immutable canonical manifest locked by the job.
 
 VersionSnapshot:
   type: object
@@ -117,3 +125,15 @@ VersionSnapshot:
     label:
       type: string
       description: Read-only display label captured when the owning resource was created.
+    artifact_sha256:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+      description: Immutable artifact digest captured when the owning resource was created.
+    manifest_sha256:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+      description: Immutable manifest digest captured when the owning resource was created.
+    bindings_schema_version:
+      type: integer
+      minimum: 1
+      description: Version of the Workflow binding contract captured by the job.

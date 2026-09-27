@@ -24,6 +24,10 @@
 package com.clothesmodel.contract.model
 
 import com.clothesmodel.contract.model.ProviderCapabilities
+import com.clothesmodel.contract.model.ProviderConfigRef
+import com.clothesmodel.contract.model.WorkflowArtifactMetadata
+import com.clothesmodel.contract.model.WorkflowCompatibilityResult
+import com.clothesmodel.contract.model.WorkflowManifestSummary
 import com.clothesmodel.contract.model.WorkflowState
 
 import kotlinx.serialization.Serializable
@@ -45,9 +49,15 @@ import kotlinx.serialization.encoding.Encoder
  * @param state 
  * @param capabilities 
  * @param createdAt UTC RFC 3339 timestamp.
+ * @param logicalProviderRef Stable logical Comfy Provider revision used for selection and job locking. The replaceable physical node endpoint and credential are never part of this reference.
+ * @param artifacts 
+ * @param manifestSummary 
  * @param validationStatus 
  * @param validationMessages 
+ * @param validatedAt 
  * @param activatedAt 
+ * @param retiredAt 
+ * @param compatibility 
  */
 @Serializable
 
@@ -76,14 +86,33 @@ data class WorkflowVersion (
     @Contextual @SerialName(value = "created_at")
     val createdAt: java.time.OffsetDateTime,
 
+    /* Stable logical Comfy Provider revision used for selection and job locking. The replaceable physical node endpoint and credential are never part of this reference. */
+    @SerialName(value = "logical_provider_ref")
+    val logicalProviderRef: ProviderConfigRef? = null,
+
+    @SerialName(value = "artifacts")
+    val artifacts: WorkflowArtifactMetadata? = null,
+
+    @SerialName(value = "manifest_summary")
+    val manifestSummary: WorkflowManifestSummary? = null,
+
     @SerialName(value = "validation_status")
     val validationStatus: WorkflowVersion.ValidationStatus? = null,
 
     @SerialName(value = "validation_messages")
     val validationMessages: kotlin.collections.List<kotlin.String>? = null,
 
+    @Contextual @SerialName(value = "validated_at")
+    val validatedAt: java.time.OffsetDateTime? = null,
+
     @Contextual @SerialName(value = "activated_at")
-    val activatedAt: java.time.OffsetDateTime? = null
+    val activatedAt: java.time.OffsetDateTime? = null,
+
+    @Contextual @SerialName(value = "retired_at")
+    val retiredAt: java.time.OffsetDateTime? = null,
+
+    @SerialName(value = "compatibility")
+    val compatibility: WorkflowCompatibilityResult? = null
 
 ) {
 

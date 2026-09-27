@@ -435,6 +435,16 @@ class WorkflowVersionRef(BaseModel):
     workflow_id: str = Field(..., max_length=100, min_length=1)
     workflow_version_id: Identifier
     version: int = Field(..., ge=1)
+    workflow_sha256: str | None = Field(
+        None,
+        description='Digest of the immutable canonical API-format Workflow locked by the job.',
+        pattern='^[a-f0-9]{64}$',
+    )
+    manifest_sha256: str | None = Field(
+        None,
+        description='Digest of the immutable canonical manifest locked by the job.',
+        pattern='^[a-f0-9]{64}$',
+    )
 
 
 class VersionSnapshot(BaseModel):
@@ -444,6 +454,21 @@ class VersionSnapshot(BaseModel):
     label: str = Field(
         ...,
         description='Read-only display label captured when the owning resource was created.',
+    )
+    artifact_sha256: str | None = Field(
+        None,
+        description='Immutable artifact digest captured when the owning resource was created.',
+        pattern='^[a-f0-9]{64}$',
+    )
+    manifest_sha256: str | None = Field(
+        None,
+        description='Immutable manifest digest captured when the owning resource was created.',
+        pattern='^[a-f0-9]{64}$',
+    )
+    bindings_schema_version: int | None = Field(
+        None,
+        description='Version of the Workflow binding contract captured by the job.',
+        ge=1,
     )
 
 
@@ -599,6 +624,10 @@ class ProviderAvailability(Enum):
 
 
 class ProviderSummary(BaseModel):
+    """
+    Selectable logical Provider summary. For ComfyUI, id does not identify or lock the replaceable physical node endpoint.
+    """
+
     model_config = ConfigDict(
         extra='forbid',
     )
@@ -637,7 +666,10 @@ class ProviderConfig(BaseModel):
     display_name: str
     type: ProviderType
     adapter_type: str
-    endpoint: AnyUrl
+    endpoint: AnyUrl = Field(
+        ...,
+        description='Logical adapter endpoint for ordinary Providers. The ComfyUI physical node endpoint is owned by ComfyNodeConfiguration and is not locked into historical jobs.',
+    )
     model: str
     timeout_seconds: int
     state: ProviderConfigState
@@ -712,6 +744,66 @@ class WorkflowState(Enum):
     unknown = 'unknown'
 
 
+class WorkflowArtifactMetadata(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    workflow_sha256: str = Field(..., pattern='^[a-f0-9]{64}$')
+    manifest_sha256: str = Field(..., pattern='^[a-f0-9]{64}$')
+    workflow_size_bytes: int | None = Field(None, ge=1)
+    manifest_size_bytes: int | None = Field(None, ge=1)
+
+
+class WorkflowManifestSummary(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    schema_version: int = Field(..., ge=1)
+    binding_keys: list[str]
+    output_count: int = Field(..., ge=1)
+    capabilities: ProviderCapabilities | None = None
+
+
+class WorkflowCompatibilityState(Enum):
+    compatible = 'compatible'
+    incompatible = 'incompatible'
+    offline = 'offline'
+    unchecked = 'unchecked'
+    unknown = 'unknown'
+
+
+class WorkflowCheckStatus(Enum):
+    passed = 'passed'
+    failed = 'failed'
+    skipped = 'skipped'
+    unknown = 'unknown'
+
+
+class WorkflowValidationCheck(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    key: str = Field(..., description='Stable machine-readable check key.')
+    status: WorkflowCheckStatus
+    detail: str | None = Field(
+        None,
+        description='Safe redacted explanation without Workflow bodies, paths, prompts, or secrets.',
+    )
+
+
+class WorkflowCompatibilityResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    status: WorkflowCompatibilityState
+    checked_at: Timestamp
+    observed_server_version: str | None = Field(
+        None,
+        description='Safe server version label observed during the compatibility check.',
+    )
+    checks: list[WorkflowValidationCheck]
+
+
 class Mode(Enum):
     precise_try_on = 'precise_try_on'
 
@@ -732,10 +824,19 @@ class WorkflowVersion(BaseModel):
     mode: Mode
     state: WorkflowState
     capabilities: ProviderCapabilities
+    logical_provider_ref: ProviderConfigRef | None = Field(
+        None,
+        description='Stable logical Comfy Provider revision used for selection and job locking. The replaceable physical node endpoint and credential are never part of this reference.',
+    )
+    artifacts: WorkflowArtifactMetadata | None = None
+    manifest_summary: WorkflowManifestSummary | None = None
     validation_status: ValidationStatus | None = None
     validation_messages: list[str] | None = None
     created_at: Timestamp
+    validated_at: AwareDatetime | None = None
     activated_at: AwareDatetime | None = None
+    retired_at: AwareDatetime | None = None
+    compatibility: WorkflowCompatibilityResult | None = None
 
 
 class WorkflowPage(BaseModel):
@@ -767,28 +868,14 @@ class Status3(Enum):
     failed = 'failed'
 
 
-class Status4(Enum):
-    passed = 'passed'
-    failed = 'failed'
-    skipped = 'skipped'
-
-
-class Check(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    key: str
-    status: Status4
-    detail: str | None = None
-
-
 class WorkflowValidationResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
     status: Status3
     checked_at: Timestamp
-    checks: list[Check]
+    checks: list[WorkflowValidationCheck]
+    compatibility: WorkflowCompatibilityResult | None = None
 
 
 class ConfirmNewJobsOnly(Enum):
@@ -806,6 +893,38 @@ class WorkflowActivateRequest(BaseModel):
     confirm_new_jobs_only: ConfirmNewJobsOnly = Field(
         ..., description='Confirms that activation affects new jobs only.'
     )
+    expected_current_active_workflow_version_id: UUID | None = Field(
+        None,
+        description='Optional optimistic guard against activating over an unexpected current version.',
+    )
+    reason: str | None = Field(
+        None,
+        description='Safe operator reason retained as audit metadata.',
+        max_length=500,
+    )
+
+
+class ConfirmNewJobsOnly1(Enum):
+    """
+    Confirms that retiring the active version affects new jobs only.
+    """
+
+    boolean_True = True
+
+
+class WorkflowRetireRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    confirm_new_jobs_only: ConfirmNewJobsOnly1 = Field(
+        ...,
+        description='Confirms that retiring the active version affects new jobs only.',
+    )
+    reason: str | None = Field(
+        None,
+        description='Safe operator reason retained as audit metadata.',
+        max_length=500,
+    )
 
 
 class DefaultProviderConfiguration(BaseModel):
@@ -817,7 +936,7 @@ class DefaultProviderConfiguration(BaseModel):
     updated_at: Timestamp
 
 
-class ConfirmNewJobsOnly1(Enum):
+class ConfirmNewJobsOnly2(Enum):
     boolean_True = True
 
 
@@ -826,7 +945,7 @@ class DefaultProviderUpdateRequest(BaseModel):
         extra='forbid',
     )
     provider_id: Identifier
-    confirm_new_jobs_only: ConfirmNewJobsOnly1
+    confirm_new_jobs_only: ConfirmNewJobsOnly2
 
 
 class Health(Enum):
@@ -842,11 +961,21 @@ class ComfyNodeConfiguration(BaseModel):
         extra='forbid',
     )
     endpoint: AnyUrl
+    logical_provider_id: Identifier | None = Field(
+        None,
+        description='Stable selectable Comfy Provider identity. It is distinct from this replaceable physical node and remains unchanged when the node endpoint is replaced.',
+    )
     timeout_seconds: int
     enabled: bool
     credential_configured: bool
     credential_updated_at: AwareDatetime | None = None
     health: Health
+    health_detail: str | None = Field(
+        None,
+        description='Safe redacted health conclusion without endpoint credentials or upstream bodies.',
+    )
+    observed_server_version: str | None = None
+    active_workflow_compatibility: WorkflowCompatibilityResult | None = None
     last_checked_at: AwareDatetime | None = None
     updated_at: Timestamp
 
@@ -864,16 +993,11 @@ class ComfyNodeConfigurationRequest(BaseModel):
     enabled: bool
 
 
-class Status5(Enum):
-    passed = 'passed'
-    failed = 'failed'
-
-
 class ConnectionTestResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    status: Status5
+    status: Status3
     checked_at: Timestamp
     detail: str
 

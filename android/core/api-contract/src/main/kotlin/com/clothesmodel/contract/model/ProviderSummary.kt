@@ -38,7 +38,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * 
+ * Selectable logical Provider summary. For ComfyUI, id does not identify or lock the replaceable physical node endpoint.
  *
  * @param id Server-issued UUIDv7 represented as a canonical UUID string.
  * @param displayName 

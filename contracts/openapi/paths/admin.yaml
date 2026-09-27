@@ -52,6 +52,13 @@ ComfyNode:
           application/json:
             schema:
               $ref: ../components/admin/schemas.yaml#/ComfyNodeConfiguration
+            examples:
+              healthy:
+                $ref: ../examples/workflows.yaml#/HealthyNode
+              offline:
+                $ref: ../examples/workflows.yaml#/OfflineNode
+              incompatible:
+                $ref: ../examples/workflows.yaml#/IncompatibleNode
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
   put:
@@ -74,6 +81,9 @@ ComfyNode:
           application/json:
             schema:
               $ref: ../components/admin/schemas.yaml#/ComfyNodeConfiguration
+            examples:
+              healthy:
+                $ref: ../examples/workflows.yaml#/HealthyNode
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
 TestComfyNode:
@@ -93,6 +103,13 @@ TestComfyNode:
           application/json:
             schema:
               $ref: ../components/admin/schemas.yaml#/ConnectionTestResult
+            examples:
+              passed:
+                summary: Physical node is reachable; Workflow compatibility is reported separately
+                value:
+                  status: passed
+                  checked_at: '2026-09-28T08:00:00Z'
+                  detail: ComfyUI 节点连接正常。
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
 Retention:

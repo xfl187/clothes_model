@@ -6,11 +6,12 @@
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 3 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 4 — COMPLETE (real Volcengine Ark vertical slice verified 2026-09-27)
-- Next — plan Phase 5: ComfyUI, workflow versioning, and recovery
+- Phase 5 — IN PROGRESS (1 / 10 tasks complete)
+- Next — review Task 1, then implement Task 2: persistence and migration
 
 ## Current Repository State
 
-当前状态是“Phase 1–4 已完成；Phase 5 待规划”：
+当前状态是“Phase 1–4 已完成；Phase 5 正在实施，Task 1 已完成待审阅”：
 
 | 区域 | 当前状态 | 可复用程度 |
 |---|---|---|
@@ -21,15 +22,15 @@
 | Web Admin UI Spec | 已确认，见 [2026-09-24-web-admin-ui-design.md](../superpowers/specs/2026-09-24-web-admin-ui-design.md) | 页面、操作、状态与响应式规则可直接实施 |
 | Web Admin Prototype | [index.html](../../prototypes/web-admin-high-fi/index.html) 与 [states.html](../../prototypes/web-admin-high-fi/states.html) | 可提取 token、构图与状态参考；当前是内联 CSS/JS 静态原型 |
 | Visual System | [DESIGN.md](../../DESIGN.md) 已确认 | Android/Web 共享 token 与平台规则的实现依据 |
-| Repository | Git `main` 已建立，Phase 1–2 提交完整 | 可从可审计的干净基线继续 |
-| Android 源码 | Compose 工程、生成客户端、连接认证与未完成导入恢复已存在 | 正式任务 UI 留在 Phase 6 |
-| Backend 源码 | FastAPI、SQLite/Alembic、认证、私有存储、上传与素材基础，以及 Phase 3 持久任务/Provider 执行平面已存在 | 正式 Android/Web 产品界面留在 Phase 6/7 |
-| Web Admin 源码 | React 工程、生成客户端和 Admin 登录/session 壳已存在 | 正式控制台留在 Phase 7 |
-| 配置/部署 | Compose、Caddy、单实例锁、环境模板与 CI 基线已存在 | Phase 3 扩展任务运行验证 |
-| 测试 | Phase 1–2 contract/backend/web/android/deployment 门禁已建立 | Phase 3 增加状态机、Provider、调度和恢复测试 |
-| README/运维说明 | Phase 1–2 启动、验证和安全边界已记录 | 需随 Phase 3 更新任务运维说明 |
+| Repository | Git `main` 上 Phase 1–4 提交与验收证据完整 | 可从可审计的 Phase 4 基线实施 Phase 5 |
+| Android 源码 | Compose 工程、连接认证、持久上传、单候选任务轮询/恢复和私有结果展示已存在 | 完整素材、历史、结果与遮罩体验留在 Phase 6 |
+| Backend 源码 | FastAPI、SQLite/Alembic、认证、私有存储、持久任务调度、Provider 执行平面和真实 Seedream Adapter 已存在 | Phase 5 增加 ComfyUI、Workflow 与完整恢复语义 |
+| Web Admin 源码 | React 工程、Admin 登录/session 与 Seedream Provider 最小配置流程已存在 | ComfyUI/Workflow 完整控制台留在 Phase 7；Phase 5 先实现 API |
+| 配置/部署 | Compose、Caddy、单实例锁、环境模板、Phase 4 部署验证与 CI 门禁已存在 | Phase 5 扩展 Comfy 节点、Workflow 和恢复验证 |
+| 测试 | Contract/Backend/Web/Android/deployment 门禁及 Phase 4 真实验收已建立 | Phase 5 增加 Comfy fixture、兼容节点迁移、存储暂停与清理测试 |
+| README/运维说明 | Phase 1–4 启动、验证、安全边界和真实 Ark 验收已记录 | 随 Phase 5 增补 ComfyUI/AutoDL 运维与恢复手册 |
 
-Phase 3 直接复用已确认规格、共享契约、持久化/UoW、认证、私有存储、素材引用和单实例调度所有权边界；不重新建立工程基线。
+Phase 5 直接复用共享契约、持久化/UoW、认证、私有存储、素材引用、Provider port、任务状态机和单实例调度所有权边界；不重写 Phase 1–4 基础设施。
 
 ---
 
@@ -578,4 +579,4 @@ Phase 4 之后可以并行：
 
 Phase 4 已完成并通过带凭据的人工验收（2026-09-27）：Web Admin 写入并验证真实 Ark Key、启用并设为默认，Android 上传两类素材并完成一条单候选任务，输出经固定后端私有持久化并在 Android 显示，后端重启后仍可恢复。实现依据见 [Phase 4 Plan](../plans/phase-4-minimum-v1-e2e.md)、[ADR-0008](../../docs/adr/0008-durable-job-execution.md) 与 [ADR-0009](../../docs/adr/0009-synchronous-provider-completion.md)。
 
-下一步为 Phase 5：ComfyUI 节点、不可变 Workflow 版本与完整恢复语义（进入前应由 `planning` 制定 Phase 5 计划）。Mask Editor、结果放大/保存/分享、素材库与历史、结果网格等完整 Android 体验属于 Phase 6。
+Phase 5 已进入实施，见 [Phase 5 Plan](../plans/phase-5-comfyui-workflow-recovery.md)。Task 1 已固化逻辑 Comfy Provider、可替换物理节点、锁定 Workflow 与外部执行安全边界；下一步审阅后实施 Task 2 的持久化与迁移。Mask Editor、结果放大/保存/分享、素材库与历史、结果网格等完整 Android 体验属于 Phase 6。

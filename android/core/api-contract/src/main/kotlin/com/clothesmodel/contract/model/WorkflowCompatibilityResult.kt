@@ -23,7 +23,7 @@
 
 package com.clothesmodel.contract.model
 
-import com.clothesmodel.contract.model.WorkflowCompatibilityResult
+import com.clothesmodel.contract.model.WorkflowCompatibilityState
 import com.clothesmodel.contract.model.WorkflowValidationCheck
 
 import kotlinx.serialization.Serializable
@@ -41,14 +41,14 @@ import kotlinx.serialization.encoding.Encoder
  * @param status 
  * @param checkedAt UTC RFC 3339 timestamp.
  * @param checks 
- * @param compatibility 
+ * @param observedServerVersion Safe server version label observed during the compatibility check.
  */
 @Serializable
 
-data class WorkflowValidationResult (
+data class WorkflowCompatibilityResult (
 
-    @SerialName(value = "status")
-    val status: WorkflowValidationResult.Status,
+    @Contextual @SerialName(value = "status")
+    val status: WorkflowCompatibilityState,
 
     /* UTC RFC 3339 timestamp. */
     @Contextual @SerialName(value = "checked_at")
@@ -57,36 +57,12 @@ data class WorkflowValidationResult (
     @SerialName(value = "checks")
     val checks: kotlin.collections.List<WorkflowValidationCheck>,
 
-    @SerialName(value = "compatibility")
-    val compatibility: WorkflowCompatibilityResult? = null
+    /* Safe server version label observed during the compatibility check. */
+    @SerialName(value = "observed_server_version")
+    val observedServerVersion: kotlin.String? = null
 
 ) {
 
-    /**
-     * 
-     *
-     * Values: passed,failed,unknown_default_open_api
-     */
-    @Serializable(with = StatusSerializer::class)
-    enum class Status(val value: kotlin.String) {
-        @SerialName(value = "passed") passed("passed"),
-        @SerialName(value = "failed") failed("failed"),
-        @SerialName(value = "unknown_default_open_api") unknown_default_open_api("unknown_default_open_api");
-    }
-
-    internal object StatusSerializer : KSerializer<Status> {
-        override val descriptor = kotlin.String.serializer().descriptor
-
-        override fun deserialize(decoder: Decoder): Status {
-            val value = decoder.decodeSerializableValue(kotlin.String.serializer())
-            return Status.entries.firstOrNull { it.value == value }
-                ?: Status.unknown_default_open_api
-        }
-
-        override fun serialize(encoder: Encoder, value: Status) {
-            encoder.encodeSerializableValue(kotlin.String.serializer(), value.value)
-        }
-    }
 
 }
 

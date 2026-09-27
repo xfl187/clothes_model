@@ -2,7 +2,7 @@
 
 Private Android AI virtual try-on system with a fixed-server backend and a Web Admin control plane.
 
-The repository has completed **Phase 4 — Minimum V1 End-to-End Vertical Slice** for Volcengine Ark `doubao-seedream-4-5-251128`. A credentialed operator run on 2026-09-27 verified the real loop: Web Admin configured, validated, enabled, and defaulted the Provider; Android uploaded one person and one garment image and created one candidate; Ark executed it; and the private output was persisted, survived a Backend restart, and displayed in Android. Details and evidence are in the [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md). The next stage is Phase 5 (ComfyUI, workflow versioning, recovery).
+The repository has completed **Phase 4 — Minimum V1 End-to-End Vertical Slice** for Volcengine Ark `doubao-seedream-4-5-251128`. A credentialed operator run on 2026-09-27 verified the real loop: Web Admin configured, validated, enabled, and defaulted the Provider; Android uploaded one person and one garment image and created one candidate; Ark executed it; and the private output was persisted, survived a Backend restart, and displayed in Android. Details and evidence are in the [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md). Phase 5 (ComfyUI, workflow versioning, recovery) is in progress; Task 1 has closed the shared contract and execution boundary.
 
 ## Current scope
 
@@ -21,7 +21,8 @@ Phase 4 added the production Seedream adapter, synchronous paid-call safety, exp
 - Product behavior: [Product Spec](docs/superpowers/specs/2026-09-23-android-virtual-try-on-design.md)
 - Confirmed behavior flows: [Product Flow](docs/product-flow.md)
 - Phase boundaries: [Implementation Roadmap](docs/roadmap/implementation-roadmap.md)
-- Current implementation scope: [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md)
+- Completed implementation evidence: [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md)
+- Current implementation plan: [Phase 5 Implementation Plan](docs/plans/phase-5-comfyui-workflow-recovery.md)
 - UI behavior: the Android and Web Admin UI Specs under `docs/superpowers/specs/`
 - Visual language: [DESIGN.md](DESIGN.md)
 - Long-lived technical decisions: [Architecture Decision Records](docs/adr/README.md)

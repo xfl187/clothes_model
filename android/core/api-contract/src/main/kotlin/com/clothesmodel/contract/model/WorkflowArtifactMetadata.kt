@@ -36,33 +36,26 @@ import kotlinx.serialization.encoding.Encoder
 /**
  * 
  *
- * @param workflowId 
- * @param workflowVersionId Server-issued UUIDv7 represented as a canonical UUID string.
- * @param version 
- * @param workflowSha256 Digest of the immutable canonical API-format Workflow locked by the job.
- * @param manifestSha256 Digest of the immutable canonical manifest locked by the job.
+ * @param workflowSha256 
+ * @param manifestSha256 
+ * @param workflowSizeBytes 
+ * @param manifestSizeBytes 
  */
 @Serializable
 
-data class WorkflowVersionRef (
+data class WorkflowArtifactMetadata (
 
-    @SerialName(value = "workflow_id")
-    val workflowId: kotlin.String,
-
-    /* Server-issued UUIDv7 represented as a canonical UUID string. */
-    @Contextual @SerialName(value = "workflow_version_id")
-    val workflowVersionId: java.util.UUID,
-
-    @SerialName(value = "version")
-    val version: kotlin.Int,
-
-    /* Digest of the immutable canonical API-format Workflow locked by the job. */
     @SerialName(value = "workflow_sha256")
-    val workflowSha256: kotlin.String? = null,
+    val workflowSha256: kotlin.String,
 
-    /* Digest of the immutable canonical manifest locked by the job. */
     @SerialName(value = "manifest_sha256")
-    val manifestSha256: kotlin.String? = null
+    val manifestSha256: kotlin.String,
+
+    @SerialName(value = "workflow_size_bytes")
+    val workflowSizeBytes: kotlin.Long? = null,
+
+    @SerialName(value = "manifest_size_bytes")
+    val manifestSizeBytes: kotlin.Long? = null
 
 ) {
 

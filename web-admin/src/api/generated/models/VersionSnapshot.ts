@@ -23,6 +23,18 @@ export interface VersionSnapshot {
      * Read-only display label captured when the owning resource was created.
      */
     label: string;
+    /**
+     * Immutable artifact digest captured when the owning resource was created.
+     */
+    artifactSha256?: string;
+    /**
+     * Immutable manifest digest captured when the owning resource was created.
+     */
+    manifestSha256?: string;
+    /**
+     * Version of the Workflow binding contract captured by the job.
+     */
+    bindingsSchemaVersion?: number;
 }
 
 /**
@@ -44,6 +56,9 @@ export function VersionSnapshotFromJSONTyped(json: any, ignoreDiscriminator: boo
     return {
         
         'label': json['label'],
+        'artifactSha256': json['artifact_sha256'] == null ? undefined : json['artifact_sha256'],
+        'manifestSha256': json['manifest_sha256'] == null ? undefined : json['manifest_sha256'],
+        'bindingsSchemaVersion': json['bindings_schema_version'] == null ? undefined : json['bindings_schema_version'],
     };
 }
 
@@ -59,6 +74,9 @@ export function VersionSnapshotToJSONTyped(value?: VersionSnapshot | null, ignor
     return {
         
         'label': value['label'],
+        'artifact_sha256': value['artifactSha256'],
+        'manifest_sha256': value['manifestSha256'],
+        'bindings_schema_version': value['bindingsSchemaVersion'],
     };
 }
 

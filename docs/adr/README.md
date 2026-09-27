@@ -13,3 +13,4 @@ Current records:
 - [ADR-0007: Private local content-addressed storage](0007-private-content-addressed-storage.md)
 - [ADR-0008: Durable job execution, leases, and provider ambiguity](0008-durable-job-execution.md)
 - [ADR-0009: Synchronous Provider completion and paid side-effect boundary](0009-synchronous-provider-completion.md)
+- [ADR-0010: Logical Comfy Provider, replaceable physical node, and Workflow locking](0010-logical-comfy-provider-physical-node-and-workflow-locking.md)

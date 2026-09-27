@@ -986,10 +986,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkflowVersion'
+              examples:
+                draft:
+                  $ref: '#/components/examples/DraftWorkflow'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '507':
+          $ref: '#/components/responses/StorageBlocked'
   /api/v1/admin/workflows/{workflow_version_id}:
     parameters:
       - name: workflow_version_id
@@ -1011,6 +1018,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkflowVersion'
+              examples:
+                active:
+                  $ref: '#/components/examples/ActiveWorkflow'
+                retired:
+                  $ref: '#/components/examples/RetiredWorkflow'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1039,10 +1051,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkflowValidationResult'
+              examples:
+                incompatibleNode:
+                  $ref: '#/components/examples/IncompatibleValidation'
+                offlineNode:
+                  $ref: '#/components/examples/OfflineValidation'
+                failedValidation:
+                  $ref: '#/components/examples/FailedValidation'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '507':
+          $ref: '#/components/responses/StorageBlocked'
   /api/v1/admin/workflows/{workflow_version_id}/activate:
     parameters:
       - name: workflow_version_id
@@ -1054,7 +1079,8 @@ paths:
       tags:
         - Workflows
       operationId: activateWorkflowVersion
-      summary: Activate a validated version for new jobs and retire the previous active version
+      summary: Activate or roll back to a compatible validated version for new jobs
+      description: Activating a validated draft, validated version, or previously retired immutable version atomically retires the prior active version for the same mode. This is the rollback operation. Existing jobs retain their locked Provider and Workflow versions.
       security:
         - AdminSession: []
           AdminCsrf: []
@@ -1073,6 +1099,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkflowVersion'
+              examples:
+                active:
+                  $ref: '#/components/examples/ActiveWorkflow'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/workflows/{workflow_version_id}/retire:
+    parameters:
+      - name: workflow_version_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Workflows
+      operationId: retireWorkflowVersion
+      summary: Retire an active or validated Workflow for future jobs without changing history
+      description: Retirement prevents the version from being selected for new jobs. Existing jobs keep their locked Workflow and may continue on a compatible replacement physical node. A retired immutable version may later be activated again as an explicit rollback.
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowRetireRequest'
+      responses:
+        '200':
+          description: Workflow retired for future jobs only.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowVersion'
+              examples:
+                retired:
+                  $ref: '#/components/examples/RetiredWorkflow'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1136,6 +1205,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ComfyNodeConfiguration'
+              examples:
+                healthy:
+                  $ref: '#/components/examples/HealthyNode'
+                offline:
+                  $ref: '#/components/examples/OfflineNode'
+                incompatible:
+                  $ref: '#/components/examples/IncompatibleNode'
         '401':
           $ref: '#/components/responses/Unauthorized'
     put:
@@ -1159,6 +1235,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ComfyNodeConfiguration'
+              examples:
+                healthy:
+                  $ref: '#/components/examples/HealthyNode'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/v1/admin/configuration/comfy-node/test:
@@ -1179,6 +1258,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConnectionTestResult'
+              examples:
+                passed:
+                  summary: Physical node is reachable; Workflow compatibility is reported separately
+                  value:
+                    status: passed
+                    checked_at: '2026-09-28T08:00:00Z'
+                    detail: ComfyUI 节点连接正常。
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/v1/admin/configuration/retention:
@@ -2144,6 +2230,14 @@ components:
         version:
           type: integer
           minimum: 1
+        workflow_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          description: Digest of the immutable canonical API-format Workflow locked by the job.
+        manifest_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          description: Digest of the immutable canonical manifest locked by the job.
     VersionSnapshot:
       type: object
       additionalProperties: false
@@ -2153,6 +2247,18 @@ components:
         label:
           type: string
           description: Read-only display label captured when the owning resource was created.
+        artifact_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          description: Immutable artifact digest captured when the owning resource was created.
+        manifest_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          description: Immutable manifest digest captured when the owning resource was created.
+        bindings_schema_version:
+          type: integer
+          minimum: 1
+          description: Version of the Workflow binding contract captured by the job.
     JobItemState:
       type: string
       enum:
@@ -2414,6 +2520,7 @@ components:
     ProviderSummary:
       type: object
       additionalProperties: false
+      description: Selectable logical Provider summary. For ComfyUI, id does not identify or lock the replaceable physical node endpoint.
       required:
         - id
         - display_name
@@ -2492,6 +2599,7 @@ components:
         endpoint:
           type: string
           format: uri
+          description: Logical adapter endpoint for ordinary Providers. The ComfyUI physical node endpoint is owned by ComfyNodeConfiguration and is not locked into historical jobs.
         model:
           type: string
         timeout_seconds:
@@ -2606,6 +2714,99 @@ components:
         - active
         - retired
         - unknown
+    WorkflowArtifactMetadata:
+      type: object
+      additionalProperties: false
+      required:
+        - workflow_sha256
+        - manifest_sha256
+      properties:
+        workflow_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        manifest_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        workflow_size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+        manifest_size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+    WorkflowManifestSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - binding_keys
+        - output_count
+      properties:
+        schema_version:
+          type: integer
+          minimum: 1
+        binding_keys:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        output_count:
+          type: integer
+          minimum: 1
+        capabilities:
+          $ref: '#/components/schemas/ProviderCapabilities'
+    WorkflowCompatibilityState:
+      type: string
+      enum:
+        - compatible
+        - incompatible
+        - offline
+        - unchecked
+        - unknown
+    WorkflowCheckStatus:
+      type: string
+      enum:
+        - passed
+        - failed
+        - skipped
+        - unknown
+    WorkflowValidationCheck:
+      type: object
+      additionalProperties: false
+      required:
+        - key
+        - status
+      properties:
+        key:
+          type: string
+          description: Stable machine-readable check key.
+        status:
+          $ref: '#/components/schemas/WorkflowCheckStatus'
+        detail:
+          type: string
+          nullable: true
+          description: Safe redacted explanation without Workflow bodies, paths, prompts, or secrets.
+    WorkflowCompatibilityResult:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - checked_at
+        - checks
+      properties:
+        status:
+          $ref: '#/components/schemas/WorkflowCompatibilityState'
+        checked_at:
+          $ref: '#/components/schemas/Timestamp'
+        observed_server_version:
+          type: string
+          nullable: true
+          description: Safe server version label observed during the compatibility check.
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowValidationCheck'
     WorkflowVersion:
       type: object
       additionalProperties: false
@@ -2633,6 +2834,14 @@ components:
           $ref: '#/components/schemas/WorkflowState'
         capabilities:
           $ref: '#/components/schemas/ProviderCapabilities'
+        logical_provider_ref:
+          allOf:
+            - $ref: '#/components/schemas/ProviderConfigRef'
+          description: Stable logical Comfy Provider revision used for selection and job locking. The replaceable physical node endpoint and credential are never part of this reference.
+        artifacts:
+          $ref: '#/components/schemas/WorkflowArtifactMetadata'
+        manifest_summary:
+          $ref: '#/components/schemas/WorkflowManifestSummary'
         validation_status:
           type: string
           enum:
@@ -2645,9 +2854,20 @@ components:
             type: string
         created_at:
           $ref: '#/components/schemas/Timestamp'
+        validated_at:
+          type: string
+          format: date-time
+          nullable: true
         activated_at:
           type: string
           format: date-time
+          nullable: true
+        retired_at:
+          type: string
+          format: date-time
+          nullable: true
+        compatibility:
+          $ref: '#/components/schemas/WorkflowCompatibilityResult'
     WorkflowPage:
       type: object
       additionalProperties: false
@@ -2712,23 +2932,9 @@ components:
         checks:
           type: array
           items:
-            type: object
-            additionalProperties: false
-            required:
-              - key
-              - status
-            properties:
-              key:
-                type: string
-              status:
-                type: string
-                enum:
-                  - passed
-                  - failed
-                  - skipped
-              detail:
-                type: string
-                nullable: true
+            $ref: '#/components/schemas/WorkflowValidationCheck'
+        compatibility:
+          $ref: '#/components/schemas/WorkflowCompatibilityResult'
     WorkflowActivateRequest:
       type: object
       additionalProperties: false
@@ -2740,6 +2946,32 @@ components:
           enum:
             - true
           description: Confirms that activation affects new jobs only.
+        expected_current_active_workflow_version_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional optimistic guard against activating over an unexpected current version.
+        reason:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Safe operator reason retained as audit metadata.
+    WorkflowRetireRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - confirm_new_jobs_only
+      properties:
+        confirm_new_jobs_only:
+          type: boolean
+          enum:
+            - true
+          description: Confirms that retiring the active version affects new jobs only.
+        reason:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Safe operator reason retained as audit metadata.
     DefaultProviderConfiguration:
       type: object
       additionalProperties: false
@@ -2781,6 +3013,10 @@ components:
         endpoint:
           type: string
           format: uri
+        logical_provider_id:
+          allOf:
+            - $ref: '#/components/schemas/Identifier'
+          description: Stable selectable Comfy Provider identity. It is distinct from this replaceable physical node and remains unchanged when the node endpoint is replaced.
         timeout_seconds:
           type: integer
         enabled:
@@ -2798,6 +3034,15 @@ components:
             - unchecked
             - incompatible
             - unknown
+        health_detail:
+          type: string
+          nullable: true
+          description: Safe redacted health conclusion without endpoint credentials or upstream bodies.
+        observed_server_version:
+          type: string
+          nullable: true
+        active_workflow_compatibility:
+          $ref: '#/components/schemas/WorkflowCompatibilityResult'
         last_checked_at:
           type: string
           format: date-time
@@ -3899,6 +4144,410 @@ components:
           output_constraints:
             max_candidates: 4
         updated_at: '2026-09-27T02:00:00Z'
+    DraftWorkflow:
+      summary: Immutable draft with canonical artifact identities
+      value:
+        id: 01992b5a-0000-7000-8000-000000000401
+        workflow_id: precise-vton
+        version: 3
+        mode: precise_try_on
+        state: draft
+        capabilities:
+          schema_version: 1
+          garment_categories:
+            values:
+              - upper_body
+              - lower_body
+              - dress
+            source: workflow_declared
+            verification: verified
+          manual_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          multiple_candidates:
+            supported: true
+            source: derived
+            verification: verified
+          multi_person_reference:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          batch_input:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          interrupt_running:
+            supported: true
+            source: adapter
+            verification: verified
+          sequential_layering:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          supported_layer_roles:
+            values: []
+            source: workflow_declared
+            verification: declared
+          preserve_existing_garments:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          outfit_context:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          region_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          input_constraints:
+            content_types:
+              - image/jpeg
+              - image/png
+            max_size_bytes: 20971520
+            max_width: 4096
+            max_height: 4096
+          output_constraints:
+            max_candidates: 4
+        logical_provider_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        artifacts:
+          workflow_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          manifest_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          workflow_size_bytes: 18432
+          manifest_size_bytes: 2048
+        manifest_summary:
+          schema_version: 1
+          binding_keys:
+            - person_image
+            - garment_image
+            - mask_image
+            - seed
+            - candidate_count
+          output_count: 1
+        validation_status: not_run
+        validation_messages: []
+        created_at: '2026-09-28T07:00:00Z'
+    ActiveWorkflow:
+      summary: Active immutable Workflow used only by newly created jobs
+      value:
+        id: 01992b5a-0000-7000-8000-000000000402
+        workflow_id: precise-vton
+        version: 2
+        mode: precise_try_on
+        state: active
+        capabilities:
+          schema_version: 1
+          garment_categories:
+            values:
+              - upper_body
+              - lower_body
+              - dress
+            source: workflow_declared
+            verification: verified
+          manual_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          multiple_candidates:
+            supported: true
+            source: derived
+            verification: verified
+          multi_person_reference:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          batch_input:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          interrupt_running:
+            supported: true
+            source: adapter
+            verification: verified
+          sequential_layering:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          supported_layer_roles:
+            values: []
+            source: workflow_declared
+            verification: declared
+          preserve_existing_garments:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          outfit_context:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          region_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          input_constraints:
+            content_types:
+              - image/jpeg
+              - image/png
+            max_size_bytes: 20971520
+            max_width: 4096
+            max_height: 4096
+          output_constraints:
+            max_candidates: 4
+        logical_provider_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        artifacts:
+          workflow_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+          manifest_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+          workflow_size_bytes: 17600
+          manifest_size_bytes: 1980
+        manifest_summary:
+          schema_version: 1
+          binding_keys:
+            - person_image
+            - garment_image
+            - mask_image
+            - seed
+            - candidate_count
+          output_count: 1
+        validation_status: passed
+        validation_messages: []
+        validated_at: '2026-09-28T07:20:00Z'
+        activated_at: '2026-09-28T07:25:00Z'
+        retired_at: null
+        compatibility:
+          status: compatible
+          checked_at: '2026-09-28T07:24:00Z'
+          observed_server_version: 0.3.60
+          checks:
+            - key: required_nodes
+              status: passed
+            - key: bound_inputs
+              status: passed
+            - key: minimal_execution
+              status: passed
+        created_at: '2026-09-28T06:00:00Z'
+    RetiredWorkflow:
+      summary: Retired immutable version retained for history and explicit rollback
+      value:
+        id: 01992b5a-0000-7000-8000-000000000403
+        workflow_id: precise-vton
+        version: 1
+        mode: precise_try_on
+        state: retired
+        capabilities:
+          schema_version: 1
+          garment_categories:
+            values:
+              - upper_body
+              - lower_body
+              - dress
+            source: workflow_declared
+            verification: verified
+          manual_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          multiple_candidates:
+            supported: true
+            source: derived
+            verification: verified
+          multi_person_reference:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          batch_input:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          interrupt_running:
+            supported: true
+            source: adapter
+            verification: verified
+          sequential_layering:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          supported_layer_roles:
+            values: []
+            source: workflow_declared
+            verification: declared
+          preserve_existing_garments:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          outfit_context:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          region_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          input_constraints:
+            content_types:
+              - image/jpeg
+              - image/png
+            max_size_bytes: 20971520
+            max_width: 4096
+            max_height: 4096
+          output_constraints:
+            max_candidates: 4
+        logical_provider_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000204
+          revision: 2
+        artifacts:
+          workflow_sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+          manifest_sha256: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+        manifest_summary:
+          schema_version: 1
+          binding_keys:
+            - person_image
+            - garment_image
+            - seed
+            - candidate_count
+          output_count: 1
+        validation_status: passed
+        validation_messages: []
+        validated_at: '2026-09-27T07:20:00Z'
+        activated_at: '2026-09-27T07:25:00Z'
+        retired_at: '2026-09-28T07:25:00Z'
+        created_at: '2026-09-27T06:00:00Z'
+    IncompatibleValidation:
+      summary: Reachable replacement node lacks requirements of the locked Workflow
+      value:
+        status: failed
+        checked_at: '2026-09-28T08:00:00Z'
+        checks:
+          - key: structure
+            status: passed
+          - key: required_nodes
+            status: failed
+            detail: 当前节点缺少工作流所需节点。
+          - key: minimal_execution
+            status: skipped
+            detail: 兼容性检查未通过，未执行试运行。
+        compatibility:
+          status: incompatible
+          checked_at: '2026-09-28T08:00:00Z'
+          observed_server_version: 0.3.60
+          checks:
+            - key: required_nodes
+              status: failed
+              detail: 当前节点缺少工作流所需节点。
+    OfflineValidation:
+      summary: Physical node is offline; draft remains unchanged and waiting jobs remain waiting
+      value:
+        status: failed
+        checked_at: '2026-09-28T08:05:00Z'
+        checks:
+          - key: structure
+            status: passed
+          - key: node_connection
+            status: failed
+            detail: ComfyUI 节点暂时离线。
+          - key: minimal_execution
+            status: skipped
+            detail: 节点离线，未执行试运行。
+        compatibility:
+          status: offline
+          checked_at: '2026-09-28T08:05:00Z'
+          checks:
+            - key: node_connection
+              status: failed
+              detail: ComfyUI 节点暂时离线。
+    FailedValidation:
+      summary: Structural validation fails without sending inputs to the physical node
+      value:
+        status: failed
+        checked_at: '2026-09-28T08:10:00Z'
+        checks:
+          - key: structure
+            status: failed
+            detail: person_image 绑定的节点不存在。
+          - key: node_connection
+            status: skipped
+          - key: minimal_execution
+            status: skipped
+        compatibility:
+          status: unchecked
+          checked_at: '2026-09-28T08:10:00Z'
+          checks:
+            - key: structure
+              status: failed
+              detail: 结构校验未通过，未检查节点兼容性。
+    HealthyNode:
+      summary: Healthy physical node associated with a stable logical Provider
+      value:
+        endpoint: https://comfy-node.internal
+        logical_provider_id: 01992b5a-0000-7000-8000-000000000201
+        timeout_seconds: 300
+        enabled: true
+        credential_configured: true
+        credential_updated_at: '2026-09-28T06:30:00Z'
+        health: healthy
+        health_detail: ComfyUI 节点连接正常。
+        observed_server_version: 0.3.60
+        active_workflow_compatibility:
+          status: compatible
+          checked_at: '2026-09-28T07:24:00Z'
+          observed_server_version: 0.3.60
+          checks:
+            - key: required_nodes
+              status: passed
+            - key: bound_inputs
+              status: passed
+        last_checked_at: '2026-09-28T08:00:00Z'
+        updated_at: '2026-09-28T08:00:00Z'
+    OfflineNode:
+      summary: Physical node is offline while its logical Provider and locked jobs remain stable
+      value:
+        endpoint: https://comfy-node.internal
+        logical_provider_id: 01992b5a-0000-7000-8000-000000000201
+        timeout_seconds: 300
+        enabled: true
+        credential_configured: true
+        credential_updated_at: '2026-09-28T06:30:00Z'
+        health: offline
+        health_detail: ComfyUI 节点暂时离线。
+        observed_server_version: null
+        active_workflow_compatibility:
+          status: offline
+          checked_at: '2026-09-28T08:05:00Z'
+          checks:
+            - key: node_connection
+              status: failed
+              detail: ComfyUI 节点暂时离线。
+        last_checked_at: '2026-09-28T08:05:00Z'
+        updated_at: '2026-09-28T08:05:00Z'
+    IncompatibleNode:
+      summary: Reachable replacement node is incompatible with the active Workflow
+      value:
+        endpoint: https://replacement-comfy-node.internal
+        logical_provider_id: 01992b5a-0000-7000-8000-000000000201
+        timeout_seconds: 300
+        enabled: true
+        credential_configured: true
+        credential_updated_at: '2026-09-28T08:20:00Z'
+        health: incompatible
+        health_detail: 节点可连接，但与活动工作流不兼容。
+        observed_server_version: 0.3.60
+        active_workflow_compatibility:
+          status: incompatible
+          checked_at: '2026-09-28T08:21:00Z'
+          observed_server_version: 0.3.60
+          checks:
+            - key: required_nodes
+              status: failed
+              detail: 当前节点缺少工作流所需节点。
+        last_checked_at: '2026-09-28T08:21:00Z'
+        updated_at: '2026-09-28T08:21:00Z'
     Blocked:
       summary: Storage blocks new uploads and jobs
       value:

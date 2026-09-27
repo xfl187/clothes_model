@@ -31,6 +31,14 @@ export interface WorkflowVersionRef {
      * 
      */
     version: number;
+    /**
+     * Digest of the immutable canonical API-format Workflow locked by the job.
+     */
+    workflowSha256?: string;
+    /**
+     * Digest of the immutable canonical manifest locked by the job.
+     */
+    manifestSha256?: string;
 }
 
 /**
@@ -56,6 +64,8 @@ export function WorkflowVersionRefFromJSONTyped(json: any, ignoreDiscriminator: 
         'workflowId': json['workflow_id'],
         'workflowVersionId': json['workflow_version_id'],
         'version': json['version'],
+        'workflowSha256': json['workflow_sha256'] == null ? undefined : json['workflow_sha256'],
+        'manifestSha256': json['manifest_sha256'] == null ? undefined : json['manifest_sha256'],
     };
 }
 
@@ -73,6 +83,8 @@ export function WorkflowVersionRefToJSONTyped(value?: WorkflowVersionRef | null,
         'workflow_id': value['workflowId'],
         'workflow_version_id': value['workflowVersionId'],
         'version': value['version'],
+        'workflow_sha256': value['workflowSha256'],
+        'manifest_sha256': value['manifestSha256'],
     };
 }
 

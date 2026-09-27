@@ -139,6 +139,9 @@ ProviderCapabilities:
 ProviderSummary:
   type: object
   additionalProperties: false
+  description: >-
+    Selectable logical Provider summary. For ComfyUI, id does not identify or lock the
+    replaceable physical node endpoint.
   required: [id, display_name, type, availability, capabilities, config_ref]
   properties:
     id:
@@ -235,6 +238,9 @@ ProviderConfig:
     endpoint:
       type: string
       format: uri
+      description: >-
+        Logical adapter endpoint for ordinary Providers. The ComfyUI physical node endpoint
+        is owned by ComfyNodeConfiguration and is not locked into historical jobs.
     model:
       type: string
     timeout_seconds:

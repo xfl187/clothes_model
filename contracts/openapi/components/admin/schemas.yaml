@@ -55,6 +55,12 @@ ComfyNodeConfiguration:
     endpoint:
       type: string
       format: uri
+    logical_provider_id:
+      allOf:
+        - $ref: ../common/schemas.yaml#/Identifier
+      description: >-
+        Stable selectable Comfy Provider identity. It is distinct from this replaceable
+        physical node and remains unchanged when the node endpoint is replaced.
     timeout_seconds:
       type: integer
     enabled:
@@ -67,6 +73,15 @@ ComfyNodeConfiguration:
     health:
       type: string
       enum: [healthy, offline, unchecked, incompatible, unknown]
+    health_detail:
+      type: string
+      nullable: true
+      description: Safe redacted health conclusion without endpoint credentials or upstream bodies.
+    observed_server_version:
+      type: string
+      nullable: true
+    active_workflow_compatibility:
+      $ref: ../workflows/schemas.yaml#/WorkflowCompatibilityResult
     last_checked_at:
       type: string
       format: date-time

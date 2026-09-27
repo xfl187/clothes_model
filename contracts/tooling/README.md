@@ -20,6 +20,8 @@ pwsh -File contracts/tooling/generate-contracts.ps1
 pwsh -File contracts/tooling/check-generated.ps1
 pwsh -File contracts/tooling/verify-additive-contract.ps1
 pwsh -File contracts/tooling/verify-phase2-boundaries.ps1
+pwsh -File contracts/tooling/verify-phase3-boundaries.ps1
+pwsh -File contracts/tooling/verify-phase5-boundaries.ps1
 pwsh -File contracts/tooling/verify-contract.ps1
 pwsh -File contracts/tooling/compile-generated-kotlin.ps1
 pwsh -File contracts/tooling/verify-generated.ps1
@@ -44,6 +46,11 @@ existing operations. New Phase 2 paths and schemas remain allowed.
 `verify-phase2-boundaries.ps1` asserts the authentication combinations,
 declared problem statuses, and shared schemas for every Phase 2 auth, upload,
 and asset operation.
+
+`verify-phase5-boundaries.ps1` asserts the logical Comfy Provider versus
+physical-node separation, immutable Workflow identity and lifecycle, redacted
+node configuration, locked job snapshots, recovery states, examples, and Admin
+security/idempotency boundaries.
 
 `verify-contract.ps1`:
 

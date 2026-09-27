@@ -43,7 +43,7 @@ import {
 } from './ProviderType';
 
 /**
- * 
+ * Selectable logical Provider summary. For ComfyUI, id does not identify or lock the replaceable physical node endpoint.
  * @export
  * @interface ProviderSummary
  */

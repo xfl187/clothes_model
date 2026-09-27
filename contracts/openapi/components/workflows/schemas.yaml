@@ -2,6 +2,86 @@ WorkflowState:
   type: string
   enum: [draft, validated, active, retired, unknown]
 
+WorkflowCheckStatus:
+  type: string
+  enum: [passed, failed, skipped, unknown]
+
+WorkflowCompatibilityState:
+  type: string
+  enum: [compatible, incompatible, offline, unchecked, unknown]
+
+WorkflowValidationCheck:
+  type: object
+  additionalProperties: false
+  required: [key, status]
+  properties:
+    key:
+      type: string
+      description: Stable machine-readable check key.
+    status:
+      $ref: '#/WorkflowCheckStatus'
+    detail:
+      type: string
+      nullable: true
+      description: Safe redacted explanation without Workflow bodies, paths, prompts, or secrets.
+
+WorkflowCompatibilityResult:
+  type: object
+  additionalProperties: false
+  required: [status, checked_at, checks]
+  properties:
+    status:
+      $ref: '#/WorkflowCompatibilityState'
+    checked_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    observed_server_version:
+      type: string
+      nullable: true
+      description: Safe server version label observed during the compatibility check.
+    checks:
+      type: array
+      items:
+        $ref: '#/WorkflowValidationCheck'
+
+WorkflowArtifactMetadata:
+  type: object
+  additionalProperties: false
+  required: [workflow_sha256, manifest_sha256]
+  properties:
+    workflow_sha256:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+    manifest_sha256:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+    workflow_size_bytes:
+      type: integer
+      format: int64
+      minimum: 1
+    manifest_size_bytes:
+      type: integer
+      format: int64
+      minimum: 1
+
+WorkflowManifestSummary:
+  type: object
+  additionalProperties: false
+  required: [schema_version, binding_keys, output_count]
+  properties:
+    schema_version:
+      type: integer
+      minimum: 1
+    binding_keys:
+      type: array
+      uniqueItems: true
+      items:
+        type: string
+    output_count:
+      type: integer
+      minimum: 1
+    capabilities:
+      $ref: ../providers/schemas.yaml#/ProviderCapabilities
+
 WorkflowCreateRequest:
   type: object
   additionalProperties: false
@@ -52,6 +132,16 @@ WorkflowVersion:
       $ref: '#/WorkflowState'
     capabilities:
       $ref: ../providers/schemas.yaml#/ProviderCapabilities
+    logical_provider_ref:
+      allOf:
+        - $ref: ../common/schemas.yaml#/ProviderConfigRef
+      description: >-
+        Stable logical Comfy Provider revision used for selection and job locking.
+        The replaceable physical node endpoint and credential are never part of this reference.
+    artifacts:
+      $ref: '#/WorkflowArtifactMetadata'
+    manifest_summary:
+      $ref: '#/WorkflowManifestSummary'
     validation_status:
       type: string
       enum: [not_run, passed, failed]
@@ -61,9 +151,20 @@ WorkflowVersion:
         type: string
     created_at:
       $ref: ../common/schemas.yaml#/Timestamp
+    validated_at:
+      type: string
+      format: date-time
+      nullable: true
     activated_at:
       type: string
       format: date-time
+      nullable: true
+    retired_at:
+      type: string
+      format: date-time
+      nullable: true
+    compatibility:
+      $ref: '#/WorkflowCompatibilityResult'
 
 WorkflowPage:
   type: object
@@ -93,18 +194,9 @@ WorkflowValidationResult:
     checks:
       type: array
       items:
-        type: object
-        additionalProperties: false
-        required: [key, status]
-        properties:
-          key:
-            type: string
-          status:
-            type: string
-            enum: [passed, failed, skipped]
-          detail:
-            type: string
-            nullable: true
+        $ref: '#/WorkflowValidationCheck'
+    compatibility:
+      $ref: '#/WorkflowCompatibilityResult'
 
 WorkflowActivateRequest:
   type: object
@@ -115,3 +207,28 @@ WorkflowActivateRequest:
       type: boolean
       enum: [true]
       description: Confirms that activation affects new jobs only.
+    expected_current_active_workflow_version_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Optional optimistic guard against activating over an unexpected current version.
+    reason:
+      type: string
+      maxLength: 500
+      nullable: true
+      description: Safe operator reason retained as audit metadata.
+
+WorkflowRetireRequest:
+  type: object
+  additionalProperties: false
+  required: [confirm_new_jobs_only]
+  properties:
+    confirm_new_jobs_only:
+      type: boolean
+      enum: [true]
+      description: Confirms that retiring the active version affects new jobs only.
+    reason:
+      type: string
+      maxLength: 500
+      nullable: true
+      description: Safe operator reason retained as audit metadata.

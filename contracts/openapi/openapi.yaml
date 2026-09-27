@@ -93,6 +93,8 @@ paths:
     $ref: ./paths/workflows.yaml#/Validate
   /api/v1/admin/workflows/{workflow_version_id}/activate:
     $ref: ./paths/workflows.yaml#/Activate
+  /api/v1/admin/workflows/{workflow_version_id}/retire:
+    $ref: ./paths/workflows.yaml#/Retire
   /api/v1/admin/configuration/default-provider:
     $ref: ./paths/admin.yaml#/DefaultProvider
   /api/v1/admin/configuration/comfy-node:

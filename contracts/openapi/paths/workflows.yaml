@@ -39,10 +39,17 @@ Collection:
           application/json:
             schema:
               $ref: ../components/workflows/schemas.yaml#/WorkflowVersion
+            examples:
+              draft:
+                $ref: ../examples/workflows.yaml#/DraftWorkflow
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '409':
         $ref: ../openapi.yaml#/components/responses/Problem
+      '422':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '507':
+        $ref: ../openapi.yaml#/components/responses/StorageBlocked
 Item:
   parameters:
     - name: workflow_version_id
@@ -63,6 +70,11 @@ Item:
           application/json:
             schema:
               $ref: ../components/workflows/schemas.yaml#/WorkflowVersion
+            examples:
+              active:
+                $ref: ../examples/workflows.yaml#/ActiveWorkflow
+              retired:
+                $ref: ../examples/workflows.yaml#/RetiredWorkflow
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '404':
@@ -90,10 +102,23 @@ Validate:
           application/json:
             schema:
               $ref: ../components/workflows/schemas.yaml#/WorkflowValidationResult
+            examples:
+              incompatibleNode:
+                $ref: ../examples/workflows.yaml#/IncompatibleValidation
+              offlineNode:
+                $ref: ../examples/workflows.yaml#/OfflineValidation
+              failedValidation:
+                $ref: ../examples/workflows.yaml#/FailedValidation
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '422':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '507':
+        $ref: ../openapi.yaml#/components/responses/StorageBlocked
 Activate:
   parameters:
     - name: workflow_version_id
@@ -104,7 +129,11 @@ Activate:
   post:
     tags: [Workflows]
     operationId: activateWorkflowVersion
-    summary: Activate a validated version for new jobs and retire the previous active version
+    summary: Activate or roll back to a compatible validated version for new jobs
+    description: >-
+      Activating a validated draft, validated version, or previously retired immutable version
+      atomically retires the prior active version for the same mode. This is the rollback
+      operation. Existing jobs retain their locked Provider and Workflow versions.
     security:
       - AdminSession: []
         AdminCsrf: []
@@ -123,6 +152,52 @@ Activate:
           application/json:
             schema:
               $ref: ../components/workflows/schemas.yaml#/WorkflowVersion
+            examples:
+              active:
+                $ref: ../examples/workflows.yaml#/ActiveWorkflow
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+
+Retire:
+  parameters:
+    - name: workflow_version_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Workflows]
+    operationId: retireWorkflowVersion
+    summary: Retire an active or validated Workflow for future jobs without changing history
+    description: >-
+      Retirement prevents the version from being selected for new jobs. Existing jobs keep
+      their locked Workflow and may continue on a compatible replacement physical node.
+      A retired immutable version may later be activated again as an explicit rollback.
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/workflows/schemas.yaml#/WorkflowRetireRequest
+    responses:
+      '200':
+        description: Workflow retired for future jobs only.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/workflows/schemas.yaml#/WorkflowVersion
+            examples:
+              retired:
+                $ref: ../examples/workflows.yaml#/RetiredWorkflow
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '404':
