@@ -2,7 +2,7 @@
 
 Private Android AI virtual try-on system with a fixed-server backend and a Web Admin control plane.
 
-The repository has completed **Phase 3 — Durable Jobs and Provider Core**. **Phase 4 — Minimum V1 End-to-End Vertical Slice** is planned and ready for implementation with Volcengine Ark `doubao-seedream-4-5-251128`. The confirmed sequence is defined by the [Project Implementation Roadmap](docs/roadmap/implementation-roadmap.md), the completed Phase 3 scope is recorded in the [Phase 3 Implementation Plan](docs/plans/phase-3-durable-jobs-provider-core.md), and executable Phase 4 work is defined by the [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md).
+The repository has completed **Phase 4 — Minimum V1 End-to-End Vertical Slice** for Volcengine Ark `doubao-seedream-4-5-251128`. A credentialed operator run on 2026-09-27 verified the real loop: Web Admin configured, validated, enabled, and defaulted the Provider; Android uploaded one person and one garment image and created one candidate; Ark executed it; and the private output was persisted, survived a Backend restart, and displayed in Android. Details and evidence are in the [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md). The next stage is Phase 5 (ComfyUI, workflow versioning, recovery).
 
 ## Current scope
 
@@ -14,14 +14,14 @@ The completed foundation includes:
 - minimal Android connection/import recovery and Web Admin session foundations;
 - the enforced V1 single-instance runtime constraint.
 
-Phase 3 delivered durable jobs, Provider configuration/ports, the task state machine, a single-instance scheduler with leases and restart reconciliation, cancellation/retry/requery, and private generated outputs. It uses a contract-level deterministic fake Provider; the first real LLM end-to-end slice remains Phase 4.
+Phase 4 added the production Seedream adapter, synchronous paid-call safety, explicit paid validation, the minimum Admin Provider workflow, and the Android select/upload/create/poll/recover/result flow. Ordinary verification uses injected transports and never spends Provider credits. Result zoom/save/share, the materials library and history, and the results grid remain Phase 6.
 
 ## Sources of truth
 
 - Product behavior: [Product Spec](docs/superpowers/specs/2026-09-23-android-virtual-try-on-design.md)
 - Confirmed behavior flows: [Product Flow](docs/product-flow.md)
 - Phase boundaries: [Implementation Roadmap](docs/roadmap/implementation-roadmap.md)
-- Current implementation scope: [Phase 3 Implementation Plan](docs/plans/phase-3-durable-jobs-provider-core.md)
+- Current implementation scope: [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md)
 - UI behavior: the Android and Web Admin UI Specs under `docs/superpowers/specs/`
 - Visual language: [DESIGN.md](DESIGN.md)
 - Long-lived technical decisions: [Architecture Decision Records](docs/adr/README.md)
@@ -41,7 +41,7 @@ When these artifacts differ, use the authority order recorded in the Phase Plan;
 | `.github/workflows/` | CI quality gates | Task 9 |
 | `docs/`, `prototypes/`, `DESIGN.md` | Confirmed product, design, planning, and prototype inputs | Preserved project memory |
 
-Phase 1–3 foundations are implemented and verified. Jobs and Providers are real Backend behavior; Workflows, Cleanup, ComfyNode, Retention, and storage-scan routes remain contract-shaped stubs. Full Android and Web Admin product surfaces remain in later roadmap phases.
+Phase 1–3 are complete and the Phase 4 deterministic implementation is verified. Jobs, the Seedream Provider, the minimum Android try-on flow, and the minimum Web Admin Provider flow are real behavior; Workflows, Cleanup, ComfyNode, Retention, and storage-scan routes remain contract-shaped stubs. Full Android and Web Admin product surfaces remain in later roadmap phases.
 
 ## Repository policies
 

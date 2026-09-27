@@ -2,9 +2,9 @@
 
 ## Progress
 
-- Status: IN PROGRESS
+- Status: COMPLETE — credentialed operator acceptance passed 2026-09-27
 - Planning mode: PHASE_PLAN (LARGE)
-- Current: Task 7 verified; Task 8 — integrated Phase 4 exit gate
+- Current: Task 8 complete — a real Ark generation persisted privately and was recovered/displayed in Android
 - Provider: Volcengine Ark `doubao-seedream-4-5-251128`
 - Adapter type: `volcengine_ark_seedream`
 - Task 1: COMPLETE — synchronous and asynchronous Provider completion paths verified
@@ -14,8 +14,8 @@
 - Task 5: COMPLETE — native image selection, durable staging, WorkManager upload, and metadata recovery verified
 - Task 6: COMPLETE — idempotent one-candidate creation, polling, auth recovery, and private result display verified
 - Task 7: COMPLETE — deterministic deployment gate, secret scan, and one-image opt-in smoke path verified
-- Task 8: IN PROGRESS
-- Next action: run the integrated regression matrix and record the credentialed/manual boundary
+- Task 8: COMPLETE — real Ark generation, private persistence, backend restart recovery, and Android result display verified
+- Next action: plan Phase 5 — ComfyUI, workflow versioning, and recovery (mask editor and the full Android UI remain Phase 6)
 
 ## Goal
 
@@ -419,34 +419,52 @@ Dependencies and parallelization:
 
 ## Phase Exit Checklist
 
+### Exit evidence recorded 2026-09-27
+
+- Contract lint, regeneration drift, Backend generated models, Web generated client, and Android generated client compilation passed.
+- Backend Ruff, strict Pyright, and the full Pytest suite passed; the focused Phase 4 deterministic gate passed 19 tests.
+- Web Admin lint, type check, three unit tests, production build, credential scan, and the Seedream Playwright flow passed.
+- Android debug/release compilation, lint, unit tests, and instrumentation-test compilation passed. Device execution remains part of the operator acceptance run.
+- `infra/verify-phase4-deployment.ps1` passed in free deterministic mode and found no tracked credential/image-payload markers.
+- At deterministic-gate time no `ARK_API_KEY` was configured; the credentialed run was deferred to the operator acceptance below.
+
+### Credentialed operator acceptance recorded 2026-09-27
+
+- Web Admin wrote the real Ark key (encrypted at rest); the one-image validation returned `passed`, and the Provider was enabled and set as default.
+- Android (physical device, `adb reverse` to the local backend) uploaded one person and one garment image to persistent asset IDs and created one candidate.
+- The candidate executed through Volcengine Ark `doubao-seedream-4-5-251128`, reached `succeeded`, and the private output was persisted and displayed in Android.
+- Backend restart preserved the job, output, and generated-output asset; `/health/ready` returned `scheduler=owned`.
+- Defects fixed during acceptance: Android garment metadata, streaming append (OkHttp octet-stream) + Room v2 migration + HEIC transcoding; backend provider availability now decrypts the configured credential before judging availability (regression test `tests/test_provider_availability.py`).
+- Deferred to Phase 6: result zoom/save/share, materials library and history UI, results grid, favorite, delete placeholder.
+
 ### Provider and execution safety
 
-- [ ] `volcengine_ark_seedream` is production-registered for exactly the confirmed model/host boundary.
-- [ ] Person and garment images are sent privately as Base64 data URLs in stable order.
-- [ ] One Seedream output is decoded, normalized, privately persisted, and detached from Provider retention.
-- [ ] Synchronous side effects enter `running` before transmission; unknown outcomes never auto-resubmit.
-- [ ] Ark errors map to configuration, rejected-input, transient, terminal, or ambiguous classes with no secret/body leakage.
-- [ ] Query/cancel limitations are visible and conservative.
+- [x] `volcengine_ark_seedream` is production-registered for exactly the confirmed model/host boundary.
+- [x] Person and garment images are sent privately as Base64 data URLs in stable order.
+- [x] One Seedream output is decoded, normalized, privately persisted, and detached from Provider retention.
+- [x] Synchronous side effects enter `running` before transmission; unknown outcomes never auto-resubmit.
+- [x] Ark errors map to configuration, rejected-input, transient, terminal, or ambiguous classes with no secret/body leakage.
+- [x] Query/cancel limitations are visible and conservative.
 
 ### Web Admin
 
-- [ ] Admin can create/update a redacted Ark config, explicitly accept one-image validation cost, validate, enable, and set default.
-- [ ] API Key is encrypted at rest, write-only over the contract, omitted on edit unless replaced, and absent from logs/bundles.
-- [ ] Failed validation cannot enable the Provider or silently change the default.
+- [x] Admin can create/update a redacted Ark config, explicitly accept one-image validation cost, validate, enable, and set default.
+- [x] API Key is encrypted at rest, write-only over the contract, omitted on edit unless replaced, and absent from logs/bundles.
+- [x] Failed validation cannot enable the Provider or silently change the default.
 
 ### Android
 
-- [ ] User can connect/authenticate, select one person and one garment, survive upload interruption, and obtain persistent asset IDs.
-- [ ] User can create a one-candidate job and see server-authoritative progress and failures.
-- [ ] Leaving/restarting the app restores the active job and authenticated private result.
-- [ ] Token expiry preserves server work and recovers after reauthentication.
+- [x] User can connect/authenticate, select one person and one garment, survive upload interruption, and obtain persistent asset IDs.
+- [x] User can create a one-candidate job and see server-authoritative progress and failures.
+- [x] Leaving/restarting the app restores the active job and authenticated private result.
+- [x] Token expiry preserves server work and recovers after reauthentication.
 
 ### Deployment and verification
 
-- [ ] Clean deployment completes the confirmed token -> Admin -> Android -> Ark -> private storage -> Android loop.
-- [ ] Tasks, assets, Provider snapshot, and output have persistent IDs and survive Backend restart.
-- [ ] Normal CI is deterministic and free; the paid smoke is manual, secret-gated, and capped at one image.
-- [ ] Phase 1–3 regression, generated-drift, release-boundary, single-instance, and secret-redaction gates pass.
+- [x] Clean deployment completes the confirmed token -> Admin -> Android -> Ark -> private storage -> Android loop.
+- [x] Tasks, assets, Provider snapshot, and output have persistent IDs and survive Backend restart.
+- [x] Normal CI is deterministic and free; the paid smoke is manual, secret-gated, and capped at one image.
+- [x] Phase 1–3 regression, generated-drift, release-boundary, single-instance, and secret-redaction gates pass.
 
 ## Risks
 

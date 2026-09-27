@@ -5,11 +5,12 @@
 - Phase 1 — COMPLETE
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 3 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
-- Phase 4 — PLANNED; ready to implement Task 1 (Volcengine Ark Seedream vertical slice)
+- Phase 4 — COMPLETE (real Volcengine Ark vertical slice verified 2026-09-27)
+- Next — plan Phase 5: ComfyUI, workflow versioning, and recovery
 
 ## Current Repository State
 
-当前状态是“Phase 1–3 已完成，Phase 4 已完成实施规划并可从 Task 1 开始”：
+当前状态是“Phase 1–4 已完成；Phase 5 待规划”：
 
 | 区域 | 当前状态 | 可复用程度 |
 |---|---|---|
@@ -575,6 +576,6 @@ Phase 4 之后可以并行：
 
 ## Recommended Current Phase
 
-Phase 3（持久任务与 Provider 执行平面）已完成并通过退出验收；实现依据见 [Phase 3 Plan](../plans/phase-3-durable-jobs-provider-core.md) 与 [ADR-0008](../../docs/adr/0008-durable-job-execution.md)。
+Phase 4 已完成并通过带凭据的人工验收（2026-09-27）：Web Admin 写入并验证真实 Ark Key、启用并设为默认，Android 上传两类素材并完成一条单候选任务，输出经固定后端私有持久化并在 Android 显示，后端重启后仍可恢复。实现依据见 [Phase 4 Plan](../plans/phase-4-minimum-v1-e2e.md)、[ADR-0008](../../docs/adr/0008-durable-job-execution.md) 与 [ADR-0009](../../docs/adr/0009-synchronous-provider-completion.md)。
 
-下一步为 Phase 4 Task 1：先补齐同步付费 Provider 的执行边界，再接入火山引擎方舟 `doubao-seedream-4-5-251128`，随后连接 Android/Web 最小流程与部署。实施依据见 [Phase 4 Plan](../plans/phase-4-minimum-v1-e2e.md)。真实 API Key 仅在最终可选付费 smoke gate 中通过安全 secret 注入，不进入聊天或仓库。
+下一步为 Phase 5：ComfyUI 节点、不可变 Workflow 版本与完整恢复语义（进入前应由 `planning` 制定 Phase 5 计划）。Mask Editor、结果放大/保存/分享、素材库与历史、结果网格等完整 Android 体验属于 Phase 6。
