@@ -27,7 +27,7 @@ External generation has failure modes that a naive worker loop corrupts: a provi
 
 ### Provider port and normalized error classes
 
-The Provider application port exposes availability/capabilities, submit, query, cancel, and output retrieval, with transport specifics kept adapter-local. Adapters classify outcomes into:
+The Provider application port exposes availability/capabilities, submit, query, cancel, and output retrieval, with transport specifics kept adapter-local. A submission can either be asynchronously accepted with a durable external identifier or synchronously completed with inline output bytes; see ADR-0009. Adapters classify outcomes into:
 
 - temporarily offline;
 - retryable transient;
@@ -66,7 +66,7 @@ Requery reads external state through the Provider port and never submits new wor
 
 ## Consequences
 
-- Restart can recover `queued`, `waiting_provider`, and safe pre-submission `preparing` work, while previously `running` work is never blindly resubmitted.
+- Restart can recover `queued`, `waiting_provider`, and safe local-only `preparing` work, while previously `running` work is never blindly resubmitted. The item enters `running` before the first external side effect.
 - Ambiguity trades automatic progress for cost safety: uncertain work stops in `needs_attention` for an explicit requery, retry, or finish-failed decision.
 - The Provider contract suite is adapter-independent and must be passed by the Phase 3 fake adapter and every future LLM or ComfyUI adapter.
 - V1 remains single-instance. Horizontal scaling still requires a later ADR that replaces the persistence and claim model; adding replicas or workers alone is unsupported.

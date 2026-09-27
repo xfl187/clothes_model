@@ -97,7 +97,7 @@ class FakeImageEditAdapter:
             # A retry resubmits but keeps accumulated polling history so transient
             # failures eventually resolve without external state.
             execution.request = request
-        return ProviderSubmission(external_execution_id=external_id)
+        return ProviderSubmission(state="accepted", external_execution_id=external_id)
 
     async def query(
         self, invocation: ProviderInvocation, external_execution_id: str

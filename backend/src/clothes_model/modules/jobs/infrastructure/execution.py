@@ -1,7 +1,7 @@
 """Durable job execution through the provider port with private output persistence."""
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import BinaryIO, Protocol
 from uuid import uuid4
@@ -96,19 +96,48 @@ class JobExecutionService:
             person_bytes=person_bytes,
             garment_bytes=garment_bytes,
         )
+        # Persist the uncertain boundary before the first potentially billable network
+        # side effect.  A crash after this point must reconcile to needs_attention rather
+        # than replaying a synchronous request from preparing.
+        if not await self._compare_and_set(item_id, ("preparing",), "running"):
+            return
+        await self._record_event(job.id, item_id, "running", "preparing", "running")
+
         try:
             submission = await adapter.submit(invocation, request)
         except ProviderError as error:
             await self._handle_error(item, job, error)
             return
 
-        await self._compare_and_set(
-            item_id,
-            ("preparing",),
-            "running",
-            external_execution_id=submission.external_execution_id,
-        )
-        await self._record_event(job.id, item_id, "running", "preparing", "running")
+        if submission.external_execution_id is not None:
+            await self._compare_and_set(
+                item_id,
+                ("running",),
+                "running",
+                external_execution_id=submission.external_execution_id,
+            )
+
+        if submission.state == "completed":
+            if not submission.outputs:
+                await self._fail_item(
+                    item_id,
+                    "provider_output_missing",
+                    "Provider 已完成但未返回生成结果。",
+                )
+                return
+            await self.persist_success(
+                item,
+                job,
+                invocation,
+                submission.external_execution_id,
+                outputs=submission.outputs,
+            )
+            return
+
+        if submission.external_execution_id is None:
+            await self._attention(item_id, "external_state_unknown")
+            await self._recompute(job.id)
+            return
 
         for _ in range(MAX_POLL_QUERIES):
             try:
@@ -168,11 +197,19 @@ class JobExecutionService:
         item: JobItem,
         job: Job,
         invocation: ProviderInvocation,
-        external_id: str,
+        external_id: str | None,
         expected: tuple[str, ...] = ("running",),
+        outputs: Sequence[ProviderOutput] | None = None,
     ) -> None:
-        adapter = self._registry.resolve(invocation.adapter_type)
-        outputs = await adapter.fetch_outputs(invocation, external_id)
+        if outputs is None:
+            if external_id is None:
+                raise ProviderError(
+                    "externally_ambiguous",
+                    "provider_execution_unknown",
+                    "Provider 执行标识缺失，无法获取输出。",
+                )
+            adapter = self._registry.resolve(invocation.adapter_type)
+            outputs = await adapter.fetch_outputs(invocation, external_id)
         now = self._clock()
         async with self._uow_factory() as uow:
             for output in outputs:

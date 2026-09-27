@@ -32,11 +32,6 @@ class ProviderRequest:
 
 
 @dataclass(frozen=True, slots=True)
-class ProviderSubmission:
-    external_execution_id: str
-
-
-@dataclass(frozen=True, slots=True)
 class ProviderStatusResult:
     state: ProviderExecutionState
     error: ProviderError | None = None
@@ -48,3 +43,18 @@ class ProviderOutput:
     content_type: str
     seed: int | None = None
     actual_parameters: dict[str, object] = field(default_factory=lambda: {})
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderSubmission:
+    """Result of the first externally visible Provider side effect.
+
+    Asynchronous providers return ``accepted`` plus a durable external identifier.
+    Synchronous providers return ``completed`` plus the output bytes obtained in the
+    same response.  Keeping both shapes explicit prevents a synchronous paid call from
+    being hidden behind an in-memory fake execution identifier.
+    """
+
+    state: Literal["accepted", "completed"] = "accepted"
+    external_execution_id: str | None = None
+    outputs: tuple[ProviderOutput, ...] = ()

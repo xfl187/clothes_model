@@ -2,13 +2,15 @@
 
 ## Progress
 
-- Status: READY FOR IMPLEMENTATION
+- Status: IN PROGRESS
 - Planning mode: PHASE_PLAN (LARGE)
-- Current: Provider protocol confirmed and Phase 4 tasks dependency-ordered
+- Current: Task 1 verified; Task 2 — Volcengine Ark Seedream adapter
 - Provider: Volcengine Ark `doubao-seedream-4-5-251128`
 - Adapter type: `volcengine_ark_seedream`
-- Start with: Task 1 — Close the synchronous Provider execution boundary
-- Next action: implementation executes Task 1 only, runs its Verify section, and records material deviations before Task 2
+- Task 1: COMPLETE — synchronous and asynchronous Provider completion paths verified
+- Task 2: IN PROGRESS
+- Tasks 3–8: PENDING
+- Next action: implement the canonical-host Seedream adapter and deterministic transport/error tests
 
 ## Goal
 

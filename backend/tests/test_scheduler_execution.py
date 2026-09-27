@@ -21,6 +21,10 @@ from clothes_model.modules.providers.domain import (
     ProviderCapabilities,
     ProviderConfig,
     ProviderConfigRevision,
+    ProviderInvocation,
+    ProviderOutput,
+    ProviderRequest,
+    ProviderSubmission,
 )
 from clothes_model.modules.providers.infrastructure import FakeImageEditAdapter, ProviderRegistry
 
@@ -36,10 +40,40 @@ def _png() -> bytes:
     return buffer.getvalue()
 
 
-def _services(database_url: str, root: Path, clock=None):
+class ImmediateImageEditAdapter(FakeImageEditAdapter):
+    adapter_type = "immediate_image_edit"
+
+    async def submit(
+        self, invocation: ProviderInvocation, request: ProviderRequest
+    ) -> ProviderSubmission:
+        del invocation
+        return ProviderSubmission(
+            state="completed",
+            outputs=(
+                ProviderOutput(
+                    content=_png(),
+                    content_type="image/png",
+                    seed=request.seed,
+                    actual_parameters={"mode": "immediate"},
+                ),
+            ),
+        )
+
+    async def query(
+        self, invocation: ProviderInvocation, external_execution_id: str
+    ):  # pragma: no cover - a completed submission must never query
+        raise AssertionError((invocation, external_execution_id))
+
+    async def fetch_outputs(
+        self, invocation: ProviderInvocation, external_execution_id: str
+    ):  # pragma: no cover - inline output must never fetch
+        raise AssertionError((invocation, external_execution_id))
+
+
+def _services(database_url: str, root: Path, clock=None, adapter=None):
     runtime = create_database_runtime(database_url, 5000)
     storage = LocalFileStorage(root)
-    registry = ProviderRegistry([FakeImageEditAdapter()], environment="test")
+    registry = ProviderRegistry([adapter or FakeImageEditAdapter()], environment="test")
     provider_service = ProviderConfigService(
         lambda: SqlAlchemyUnitOfWork(runtime.sessions), registry, None
     )
@@ -53,7 +87,14 @@ def _services(database_url: str, root: Path, clock=None):
     return runtime, storage, registry, provider_service, execution
 
 
-async def _seed_job(runtime, storage, scenario: str, *, state: str = "queued") -> dict[str, str]:
+async def _seed_job(
+    runtime,
+    storage,
+    scenario: str,
+    *,
+    state: str = "queued",
+    adapter_type: str = "fake_image_edit",
+) -> dict[str, str]:
     person = storage.normalize_and_store(_png())
     garment = storage.normalize_and_store(_png())
     provider_id, revision_id = str(uuid4()), str(uuid4())
@@ -128,7 +169,7 @@ async def _seed_job(runtime, storage, scenario: str, *, state: str = "queued") -
                 id=revision_id,
                 provider_id=provider_id,
                 revision=1,
-                adapter_type="fake_image_edit",
+                adapter_type=adapter_type,
                 endpoint="https://fake.local",
                 model="fake-model",
                 timeout_seconds=30,
@@ -215,6 +256,37 @@ def test_scheduler_executes_item_and_persists_private_output(tmp_path: Path) -> 
                     )
                 )
                 assert relative is not None and (storage.root / relative).is_file()
+        finally:
+            await runtime.close()
+
+    asyncio.run(run())
+
+
+def test_scheduler_persists_immediate_completion_without_query(tmp_path: Path) -> None:
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'immediate.db').as_posix()}"
+    upgrade_database(database_url, tmp_path / "migration.lock")
+    adapter = ImmediateImageEditAdapter()
+    runtime, storage, _, _, execution = _services(
+        database_url, tmp_path / "storage", adapter=adapter
+    )
+
+    async def run() -> None:
+        try:
+            ids = await _seed_job(
+                runtime,
+                storage,
+                "success",
+                adapter_type="immediate_image_edit",
+            )
+            scheduler = JobScheduler(runtime.sessions, execution)
+            assert await scheduler.tick() == 1
+
+            async with SqlAlchemyUnitOfWork(runtime.sessions) as uow:
+                item = await uow.jobs.get_item(ids["item"])
+                outputs = await uow.job_outputs.list_outputs(ids["item"])
+                assert item is not None and item.state == "succeeded"
+                assert item.external_execution_id is None
+                assert len(outputs) == 1
         finally:
             await runtime.close()
 
@@ -312,6 +384,25 @@ def test_ambiguous_enters_needs_attention_and_reconcile(tmp_path: Path) -> None:
                 item = await uow.jobs.get_item(ids["item"])
                 assert item is not None and item.state == "needs_attention"
                 assert item.block_reason == "external_state_unknown"
+
+            # Local-only preparation remains safe to replay after a lease expires.
+            async with SqlAlchemyUnitOfWork(runtime.sessions) as uow:
+                now = datetime(2026, 9, 27, 12, 0, tzinfo=UTC)
+                await uow.session.execute(
+                    update(db.job_items)
+                    .where(db.job_items.c.id == ids["item"])
+                    .values(
+                        state="preparing",
+                        claimant_token="crashed-before-send",
+                        claimed_at=now - timedelta(minutes=10),
+                        lease_expires_at=now - timedelta(minutes=5),
+                    )
+                )
+                await uow.commit()
+            await reconcile_claims(runtime.sessions, datetime(2026, 9, 27, 12, 0, tzinfo=UTC))
+            async with SqlAlchemyUnitOfWork(runtime.sessions) as uow:
+                item = await uow.jobs.get_item(ids["item"])
+                assert item is not None and item.state == "queued"
         finally:
             await runtime.close()
 
