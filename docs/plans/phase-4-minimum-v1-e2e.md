@@ -4,7 +4,7 @@
 
 - Status: IN PROGRESS
 - Planning mode: PHASE_PLAN (LARGE)
-- Current: Tasks 5–6 verified; Task 7 — deployment and bounded-cost smoke
+- Current: Task 7 verified; Task 8 — integrated Phase 4 exit gate
 - Provider: Volcengine Ark `doubao-seedream-4-5-251128`
 - Adapter type: `volcengine_ark_seedream`
 - Task 1: COMPLETE — synchronous and asynchronous Provider completion paths verified
@@ -13,9 +13,9 @@
 - Task 4: COMPLETE — Admin create/edit, cost confirmation, validation, enable, and default flow verified
 - Task 5: COMPLETE — native image selection, durable staging, WorkManager upload, and metadata recovery verified
 - Task 6: COMPLETE — idempotent one-candidate creation, polling, auth recovery, and private result display verified
-- Task 7: IN PROGRESS
-- Task 8: PENDING
-- Next action: add deterministic deployment verification, secret scans, and opt-in credentialed smoke
+- Task 7: COMPLETE — deterministic deployment gate, secret scan, and one-image opt-in smoke path verified
+- Task 8: IN PROGRESS
+- Next action: run the integrated regression matrix and record the credentialed/manual boundary
 
 ## Goal
 

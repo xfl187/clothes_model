@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      run_seedream_smoke:
+        description: Run one billable credentialed Seedream generation
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -167,6 +173,16 @@ jobs:
             tests/test_scheduler_execution.py \
             tests/test_job_commands.py \
             -q 2>&1 | tee artifacts/backend-phase3.log
+
+      - name: Phase 4 deterministic Provider verification
+        working-directory: backend
+        run: |
+          uv run pytest \
+            tests/test_provider_contract.py \
+            tests/test_volcengine_ark_adapter.py \
+            tests/test_provider_config_http.py \
+            tests/test_scheduler_execution.py \
+            -q 2>&1 | tee artifacts/backend-phase4.log
 
       - name: Build wheel and source distribution
         working-directory: backend
@@ -443,7 +459,7 @@ jobs:
         run: docker compose -f infra/compose.yaml --profile contract --profile production down --volumes --remove-orphans
 
   phase2-exit:
-    name: Phase 2 exit matrix
+    name: Phase 4 deterministic exit matrix
     if: always()
     needs: [contract, backend, web, android, android-instrumentation, deployment]
     runs-on: ubuntu-latest
@@ -454,3 +470,28 @@ jobs:
         run: |
           echo "$NEEDS_JSON"
           test "$(echo "$NEEDS_JSON" | jq -r '[.[].result] | all(. == "success")')" = "true"
+
+  seedream-credentialed-smoke:
+    name: Seedream one-image credentialed smoke
+    if: github.event_name == 'workflow_dispatch' && inputs.run_seedream_smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: phase4-credentialed-smoke
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.14.7
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          version: 0.12.18
+      - name: Install locked Backend dependencies
+        run: uv sync --project backend --locked
+      - name: Run exactly one billable generation
+        working-directory: backend
+        env:
+          CLOTHES_MODEL_PHASE4_ARK_API_KEY: ${{ secrets.VOLCENGINE_ARK_API_KEY }}
+        run: uv run python scripts/credentialed_seedream_smoke.py

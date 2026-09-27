@@ -58,3 +58,31 @@ docker compose -f infra/compose.yaml --profile production restart app
 ```
 
 Expected production services are exactly `app` and `caddy`. After restart, the SQLite file remains on `sqlite_data`. Starting another `app` container while the first is healthy must terminate with the scheduler ownership error. Generate the verification file outside the repository; never place its contents in `.env` or command history.
+
+## Phase 4 Seedream boundary
+
+The production adapter is fixed to `https://ark.cn-beijing.volces.com/api/v3`
+and model `doubao-seedream-4-5-251128`. Activate the model in Volcengine Ark,
+then enter the API Key only in Web Admin. The key is encrypted with the existing
+master key; it is deliberately absent from Compose and `.env`.
+
+Admin validation performs one billable synthetic generation and discards its
+output. Enabling and selecting the Provider as default remain separate actions.
+The regular Phase 4 check is deterministic and free:
+
+```powershell
+./infra/verify-phase4-deployment.ps1
+```
+
+The credentialed adapter smoke is opt-in and creates exactly one image. Inject
+the key through a temporary environment secret, never a command argument:
+
+```powershell
+$env:CLOTHES_MODEL_PHASE4_ARK_API_KEY='<securely supplied>'
+./infra/verify-phase4-deployment.ps1 -Credentialed
+Remove-Item Env:CLOTHES_MODEL_PHASE4_ARK_API_KEY
+```
+
+This smoke verifies credentials, model access, request construction, and output
+decoding. The clean-deployment product loop is then checked through Web Admin
+and Android so its result is persisted through the authenticated app path.
