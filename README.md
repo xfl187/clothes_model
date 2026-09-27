@@ -2,7 +2,7 @@
 
 Private Android AI virtual try-on system with a fixed-server backend and a Web Admin control plane.
 
-The repository has completed **Phase 3 — Durable Jobs and Provider Core** and is ready to plan **Phase 4 — Minimum V1 End-to-End Vertical Slice**. The confirmed sequence is defined by the [Project Implementation Roadmap](docs/roadmap/implementation-roadmap.md), and the completed Phase 3 scope is recorded in the [Phase 3 Implementation Plan](docs/plans/phase-3-durable-jobs-provider-core.md).
+The repository has completed **Phase 3 — Durable Jobs and Provider Core**. **Phase 4 — Minimum V1 End-to-End Vertical Slice** is planned and ready for implementation with Volcengine Ark `doubao-seedream-4-5-251128`. The confirmed sequence is defined by the [Project Implementation Roadmap](docs/roadmap/implementation-roadmap.md), the completed Phase 3 scope is recorded in the [Phase 3 Implementation Plan](docs/plans/phase-3-durable-jobs-provider-core.md), and executable Phase 4 work is defined by the [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md).
 
 ## Current scope
 

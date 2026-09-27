@@ -5,11 +5,11 @@
 - Phase 1 — COMPLETE
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 3 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
-- Next — plan Phase 4: Minimum V1 end-to-end vertical slice
+- Phase 4 — PLANNED; ready to implement Task 1 (Volcengine Ark Seedream vertical slice)
 
 ## Current Repository State
 
-当前状态是“Phase 2 已完成，Phase 3 已具备实施计划”：
+当前状态是“Phase 1–3 已完成，Phase 4 已完成实施规划并可从 Task 1 开始”：
 
 | 区域 | 当前状态 | 可复用程度 |
 |---|---|---|
@@ -577,4 +577,4 @@ Phase 4 之后可以并行：
 
 Phase 3（持久任务与 Provider 执行平面）已完成并通过退出验收；实现依据见 [Phase 3 Plan](../plans/phase-3-durable-jobs-provider-core.md) 与 [ADR-0008](../../docs/adr/0008-durable-job-execution.md)。
 
-下一步为 Phase 4：打通 V1 最小端到端闭环（选择一个真实 LLM Provider，连接 Android/Web 最小流程与部署）。进入 Phase 4 前应先由 `planning` 制定 Phase 4 计划；真实厂商协议、测试凭据与费用方式是该阶段的必要外部输入。
+下一步为 Phase 4 Task 1：先补齐同步付费 Provider 的执行边界，再接入火山引擎方舟 `doubao-seedream-4-5-251128`，随后连接 Android/Web 最小流程与部署。实施依据见 [Phase 4 Plan](../plans/phase-4-minimum-v1-e2e.md)。真实 API Key 仅在最终可选付费 smoke gate 中通过安全 secret 注入，不进入聊天或仓库。
