@@ -12,8 +12,14 @@ export function AppShell() {
           <span className={styles.mark} aria-hidden="true">CM</span>
           <span>Clothes Model</span>
         </div>
-        <p className={styles.groupLabel}>Phase 2</p>
+        <p className={styles.groupLabel}>管理</p>
         <nav>
+          <NavLink
+            className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
+            to="/providers"
+          >
+            Provider
+          </NavLink>
           <NavLink
             className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
             to="/contract-status"
@@ -21,11 +27,11 @@ export function AppShell() {
             契约状态
           </NavLink>
         </nav>
-        <p className={styles.scope}>Engineering skeleton<br />非正式管理页面</p>
+        <p className={styles.scope}>Phase 4<br />最小端到端管理面</p>
       </aside>
       <div className={styles.workspace}>
         <header className={styles.topbar}>
-          <span>工程基线 / 契约状态</span>
+          <span>Clothes Model / 管理控制台</span>
           <button type="button" onClick={() => void session.logout()}>退出登录</button>
         </header>
         <Outlet />

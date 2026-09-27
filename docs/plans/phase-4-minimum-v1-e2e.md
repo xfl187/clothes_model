@@ -4,15 +4,16 @@
 
 - Status: IN PROGRESS
 - Planning mode: PHASE_PLAN (LARGE)
-- Current: Task 3 verified; Task 4 — minimum Web Admin Provider flow
+- Current: Task 4 verified; Task 5 — Android durable asset upload
 - Provider: Volcengine Ark `doubao-seedream-4-5-251128`
 - Adapter type: `volcengine_ark_seedream`
 - Task 1: COMPLETE — synchronous and asynchronous Provider completion paths verified
 - Task 2: COMPLETE — canonical Seedream adapter and deterministic error mapping verified
 - Task 3: COMPLETE — explicit one-image synthetic validation and step reporting verified
-- Task 4: IN PROGRESS
-- Tasks 5–8: PENDING
-- Next action: implement Admin create/edit, cost confirmation, validate, enable, and default flow
+- Task 4: COMPLETE — Admin create/edit, cost confirmation, validation, enable, and default flow verified
+- Task 5: IN PROGRESS
+- Tasks 6–8: PENDING
+- Next action: extend the Android import foundation into person/garment selection and durable upload
 
 ## Goal
 

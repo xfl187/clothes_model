@@ -3,7 +3,7 @@ import { AuthenticationApi } from './generated/apis/AuthenticationApi';
 import { Configuration, FetchError, ResponseError } from './generated/runtime';
 
 export type AuthFailure = 'invalid' | 'throttled' | 'offline' | 'expired' | 'unknown';
-export interface AdminSessionSnapshot { authenticated: true; expiresAt: Date; }
+export interface AdminSessionSnapshot { authenticated: true; expiresAt: Date; csrfToken: string; }
 
 export class AdminAuthError extends Error {
   constructor(readonly kind: AuthFailure) { super(kind); }
@@ -21,7 +21,7 @@ export class AdminAuthGateway {
     try {
       const session = await this.api.createAdminSession({ adminSessionCreateRequest: { adminToken } });
       this.csrf = session.csrfToken;
-      return { authenticated: true, expiresAt: session.expiresAt };
+      return { authenticated: true, expiresAt: session.expiresAt, csrfToken: session.csrfToken };
     } catch (error) { throw await this.classify(error, false); }
   }
 
@@ -29,7 +29,7 @@ export class AdminAuthGateway {
     try {
       const session = await this.api.getAdminSession();
       this.csrf = session.csrfToken;
-      return { authenticated: true, expiresAt: session.expiresAt };
+      return { authenticated: true, expiresAt: session.expiresAt, csrfToken: session.csrfToken };
     } catch (error) { throw await this.classify(error, true); }
   }
 

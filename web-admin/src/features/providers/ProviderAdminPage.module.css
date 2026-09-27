@@ -1,0 +1,21 @@
+.page { max-width: 1200px; }
+.heading { display: flex; justify-content: space-between; align-items: end; margin-bottom: 24px; }
+.heading h1 { margin-bottom: 6px; }
+.heading p, .muted { color: var(--muted); }
+.grid { display: grid; grid-template-columns: minmax(240px, .7fr) minmax(360px, 1.3fr); gap: 20px; }
+.panel { padding: 24px; border: 1px solid var(--rule); border-radius: 12px; background: #fffdf9; }
+.panel h2 { margin-top: 0; }
+.panel form, .panel label { display: grid; gap: 8px; }
+.panel form { gap: 16px; }
+.panel input { width: 100%; padding: 10px 12px; border: 1px solid var(--rule-strong); border-radius: 7px; background: white; }
+.panel button, .dialog button { padding: 9px 13px; border: 1px solid var(--rule-strong); border-radius: 7px; cursor: pointer; }
+.panel button:disabled { cursor: not-allowed; opacity: .55; }
+.provider { width: 100%; display: grid; gap: 5px; margin-bottom: 10px; text-align: left; background: white; }
+.provider span { color: var(--muted); font-size: 12px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.validation { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.validation li { margin: 6px 0; }
+.error { padding: 12px; color: var(--danger); border: 1px solid var(--danger); }
+.dialogBackdrop { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; background: rgb(20 14 18 / 55%); }
+.dialog { max-width: 520px; padding: 28px; border-radius: 12px; background: var(--paper); box-shadow: 0 24px 80px rgb(0 0 0 / 30%); }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
