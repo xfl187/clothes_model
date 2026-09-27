@@ -5,6 +5,8 @@ from typing import Protocol
 from clothes_model.core.persistence import UnitOfWork
 from clothes_model.modules.assets.application.ports import IdempotencyRepository
 from clothes_model.modules.auth.application.ports import SecurityAuditRepository
+from clothes_model.modules.comfy.application.ports import ComfyNodeRepository
+from clothes_model.modules.providers.application.ports import ProviderConfigRepository
 from clothes_model.modules.workflows.domain import WorkflowValidationRun, WorkflowVersion
 
 
@@ -35,3 +37,9 @@ class WorkflowUnitOfWork(UnitOfWork, Protocol):
 
     @property
     def security_audit(self) -> SecurityAuditRepository: ...
+
+    @property
+    def comfy_node(self) -> ComfyNodeRepository: ...
+
+    @property
+    def provider_configs(self) -> ProviderConfigRepository: ...

@@ -5,39 +5,29 @@ from fastapi import APIRouter, Depends, Header, Query, Request
 from pydantic import ValidationError
 
 from clothes_model.core.problems import AppProblem
-from clothes_model.generated.models import WorkflowCreateRequest
+from clothes_model.generated.models import (
+    WorkflowActivateRequest,
+    WorkflowCreateRequest,
+    WorkflowRetireRequest,
+)
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
-from clothes_model.modules._stub import StubRoute, add_stub_routes
 from clothes_model.modules.auth.http import AdminIdentity, require_admin
+from clothes_model.modules.comfy.application import ComfyWorkflowValidator
 from clothes_model.modules.workflows.application import WorkflowService, WorkflowServiceError
 
 router = APIRouter(tags=["Workflows"])
-add_stub_routes(
-    router,
-    (
-        StubRoute(
-            "/api/v1/admin/workflows/{workflow_version_id}/validate",
-            "POST",
-            "validateWorkflowVersion",
-        ),
-        StubRoute(
-            "/api/v1/admin/workflows/{workflow_version_id}/activate",
-            "POST",
-            "activateWorkflowVersion",
-        ),
-        StubRoute(
-            "/api/v1/admin/workflows/{workflow_version_id}/retire",
-            "POST",
-            "retireWorkflowVersion",
-        ),
-    ),
-)
 
 
 def _service(request: Request) -> WorkflowService:
+    uow_factory = lambda: SqlAlchemyUnitOfWork(request.app.state.database.sessions)  # noqa: E731
     return WorkflowService(
-        lambda: SqlAlchemyUnitOfWork(request.app.state.database.sessions),
+        uow_factory,
         request.app.state.workflow_artifacts,
+        ComfyWorkflowValidator(
+            uow_factory,
+            request.app.state.secret_cipher,
+            request.app.state.comfy_http_client,
+        ),
     )
 
 
@@ -140,5 +130,76 @@ async def get_workflow(
         raise AppProblem(404, "not_found", "Workflow 不存在", "Workflow 版本不存在。")
     try:
         return service.payload(entity)
+    except WorkflowServiceError as error:
+        raise _problem(error) from error
+
+
+@router.post(
+    "/api/v1/admin/workflows/{workflow_version_id}/validate",
+    operation_id="validateWorkflowVersion",
+)
+async def validate_workflow(
+    request: Request,
+    workflow_version_id: str,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
+) -> dict[str, object]:
+    try:
+        return await _service(request).validate(
+            version_id=workflow_version_id,
+            actor_id=identity.token_id,
+            idempotency_key=idempotency_key,
+        )
+    except WorkflowServiceError as error:
+        raise _problem(error) from error
+
+
+@router.post(
+    "/api/v1/admin/workflows/{workflow_version_id}/activate",
+    operation_id="activateWorkflowVersion",
+)
+async def activate_workflow(
+    request: Request,
+    workflow_version_id: str,
+    body: WorkflowActivateRequest,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
+) -> dict[str, object]:
+    try:
+        entity = await _service(request).activate(
+            version_id=workflow_version_id,
+            expected_current_id=(
+                str(body.expected_current_active_workflow_version_id)
+                if body.expected_current_active_workflow_version_id
+                else None
+            ),
+            reason=body.reason,
+            actor_id=identity.token_id,
+            idempotency_key=idempotency_key,
+        )
+        return _service(request).payload(entity)
+    except WorkflowServiceError as error:
+        raise _problem(error) from error
+
+
+@router.post(
+    "/api/v1/admin/workflows/{workflow_version_id}/retire",
+    operation_id="retireWorkflowVersion",
+)
+async def retire_workflow(
+    request: Request,
+    workflow_version_id: str,
+    body: WorkflowRetireRequest,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
+) -> dict[str, object]:
+    try:
+        entity = await _service(request).retire(
+            version_id=workflow_version_id,
+            reason=body.reason,
+            actor_id=identity.token_id,
+            idempotency_key=idempotency_key,
+        )
+        return _service(request).payload(entity)
     except WorkflowServiceError as error:
         raise _problem(error) from error
