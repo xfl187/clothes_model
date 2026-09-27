@@ -75,6 +75,15 @@ class FakeImageEditAdapter:
             verification="verified" if scenario != "invalid_config" else "unavailable",
         )
 
+    async def validate(self, invocation: ProviderInvocation) -> None:
+        availability = await self.availability(invocation)
+        if availability != "available":
+            raise ProviderError(
+                "invalid_configuration",
+                "provider_validation_failed",
+                "Provider 配置验证失败。",
+            )
+
     async def submit(
         self, invocation: ProviderInvocation, request: ProviderRequest
     ) -> ProviderSubmission:

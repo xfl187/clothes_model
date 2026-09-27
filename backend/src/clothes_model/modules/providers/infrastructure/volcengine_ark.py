@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import base64
 import binascii
+import io
 from typing import Any, cast
 from urllib.parse import urlsplit
 
 import httpx2
+from PIL import Image, ImageDraw
 
 from clothes_model.modules.providers.domain import (
     ProviderCapabilities,
@@ -132,6 +134,43 @@ class VolcengineArkSeedreamAdapter:
             source="adapter",
             verification="declared",
         )
+
+    async def validate(self, invocation: ProviderInvocation) -> None:
+        """Perform the explicit, billable one-image synthetic validation probe."""
+        person = Image.new("RGB", (256, 384), "#e9eef5")
+        drawing = ImageDraw.Draw(person)
+        drawing.ellipse((88, 30, 168, 110), fill="#d5a078")
+        drawing.rectangle((78, 110, 178, 300), fill="#58667a")
+        drawing.rectangle((88, 300, 122, 378), fill="#263447")
+        drawing.rectangle((134, 300, 168, 378), fill="#263447")
+        garment = Image.new("RGB", (256, 256), "white")
+        garment_drawing = ImageDraw.Draw(garment)
+        garment_drawing.polygon(
+            ((72, 55), (104, 35), (152, 35), (184, 55), (222, 112), (184, 138),
+             (176, 222), (80, 222), (72, 138), (34, 112)),
+            fill="#b21f35",
+        )
+
+        def encode(image: Image.Image) -> bytes:
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            return buffer.getvalue()
+
+        submission = await self.submit(
+            invocation,
+            ProviderRequest(
+                job_item_id="provider-validation-probe",
+                candidate_index=0,
+                candidate_count=1,
+                seed=None,
+                person_bytes=encode(person),
+                garment_bytes=encode(garment),
+            ),
+        )
+        if submission.state != "completed" or len(submission.outputs) != 1:
+            raise ProviderError(
+                "terminal_failure", "ark_validation_output_invalid", "验证生成未返回单张图片。"
+            )
 
     async def submit(
         self, invocation: ProviderInvocation, request: ProviderRequest

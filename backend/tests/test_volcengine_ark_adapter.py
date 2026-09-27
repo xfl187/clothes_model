@@ -161,3 +161,28 @@ def test_seedream_transport_failure_is_ambiguous_and_operations_are_conservative
         await client.aclose()
 
     asyncio.run(run())
+
+
+def test_seedream_validation_uses_one_synthetic_generation() -> None:
+    calls = 0
+
+    async def handler(http_request: httpx2.Request) -> httpx2.Response:
+        nonlocal calls
+        calls += 1
+        payload = cast(dict[str, Any], __import__("json").loads(http_request.content))
+        images = cast(list[str], payload["image"])
+        assert len(images) == 2
+        assert all(image.startswith("data:image/png;base64,") for image in images)
+        return httpx2.Response(
+            200,
+            json={"data": [{"b64_json": base64.b64encode(PNG).decode("ascii")}]},
+        )
+
+    async def run() -> None:
+        client = httpx2.AsyncClient(transport=httpx2.MockTransport(handler))
+        adapter = VolcengineArkSeedreamAdapter(client)
+        assert await adapter.validate(invocation()) is None
+        await client.aclose()
+
+    asyncio.run(run())
+    assert calls == 1

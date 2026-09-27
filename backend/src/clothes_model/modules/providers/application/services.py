@@ -277,6 +277,10 @@ class ProviderConfigService:
         availability = str(await adapter.availability(invocation))
         capabilities = await adapter.capabilities(invocation)
         steps: list[ValidationStep] = [
+            ValidationStep(
+                "credentials", "passed" if invocation.credential else "failed",
+                None if invocation.credential else "Provider 凭据未配置。",
+            ),
             ValidationStep("connection", "passed" if availability == "available" else "failed"),
             ValidationStep(
                 "capabilities",
@@ -284,6 +288,19 @@ class ProviderConfigService:
             ),
         ]
         passed = availability == "available" and all(step.status == "passed" for step in steps)
+        if passed:
+            try:
+                await adapter.validate(invocation)
+            except ProviderError as error:
+                steps.append(ValidationStep("generation", "failed", error.detail))
+                passed = False
+            else:
+                steps.extend(
+                    (
+                        ValidationStep("generation", "passed"),
+                        ValidationStep("output_decode", "passed"),
+                    )
+                )
         if passed:
             updated = ProviderConfig(
                 id=config.id,

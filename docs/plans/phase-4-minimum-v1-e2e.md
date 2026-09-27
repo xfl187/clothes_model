@@ -4,14 +4,15 @@
 
 - Status: IN PROGRESS
 - Planning mode: PHASE_PLAN (LARGE)
-- Current: Task 2 verified; Task 3 — paid Provider validation behavior
+- Current: Task 3 verified; Task 4 — minimum Web Admin Provider flow
 - Provider: Volcengine Ark `doubao-seedream-4-5-251128`
 - Adapter type: `volcengine_ark_seedream`
 - Task 1: COMPLETE — synchronous and asynchronous Provider completion paths verified
 - Task 2: COMPLETE — canonical Seedream adapter and deterministic error mapping verified
-- Task 3: IN PROGRESS
-- Tasks 4–8: PENDING
-- Next action: make explicit validation execute a synthetic one-image generation and discard it
+- Task 3: COMPLETE — explicit one-image synthetic validation and step reporting verified
+- Task 4: IN PROGRESS
+- Tasks 5–8: PENDING
+- Next action: implement Admin create/edit, cost confirmation, validate, enable, and default flow
 
 ## Goal
 

@@ -105,6 +105,13 @@ def test_provider_config_lifecycle_and_app_availability(tmp_path: Path) -> None:
         )
         assert validated.status_code == 200
         assert validated.json()["status"] == "passed"
+        assert [step["key"] for step in validated.json()["steps"]] == [
+            "credentials",
+            "connection",
+            "capabilities",
+            "generation",
+            "output_decode",
+        ]
 
         enabled = client.post(
             f"/api/v1/admin/provider-configs/{provider_id}/enable",
