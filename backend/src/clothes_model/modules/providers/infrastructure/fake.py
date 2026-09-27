@@ -90,7 +90,13 @@ class FakeImageEditAdapter:
                 "rejected_input", "provider_input_rejected", "Provider 拒绝了输入。"
             )
         external_id = f"fake-{request.job_item_id}"
-        self._executions[external_id] = _Execution(scenario=scenario, request=request)
+        execution = self._executions.get(external_id)
+        if execution is None:
+            self._executions[external_id] = _Execution(scenario=scenario, request=request)
+        else:
+            # A retry resubmits but keeps accumulated polling history so transient
+            # failures eventually resolve without external state.
+            execution.request = request
         return ProviderSubmission(external_execution_id=external_id)
 
     async def query(

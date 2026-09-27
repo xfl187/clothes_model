@@ -14,18 +14,16 @@ from clothes_model.api.static_web import SpaStaticFiles
 from clothes_model.core.config import Settings, get_settings
 from clothes_model.core.logging import configure_logging, get_logger
 from clothes_model.core.problems import register_problem_handlers
-from clothes_model.infrastructure.database import create_database_runtime
-from clothes_model.infrastructure.scheduler import (
-    NoOpJobSource,
-    NoOpScheduler,
-    SchedulerCoordinator,
-)
+from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork, create_database_runtime
+from clothes_model.infrastructure.scheduler import JobScheduler, SchedulerCoordinator
 from clothes_model.infrastructure.security import (
     AesGcmSecretCipher,
     SecretCryptoError,
     load_master_key,
 )
 from clothes_model.infrastructure.storage import LocalFileStorage, reconcile_upload_sessions
+from clothes_model.modules.jobs.infrastructure.execution import JobExecutionService
+from clothes_model.modules.providers.application.services import ProviderConfigService
 from clothes_model.modules.providers.infrastructure import FakeImageEditAdapter, ProviderRegistry
 
 
@@ -47,15 +45,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         resolved_settings.database_url,
         resolved_settings.sqlite_busy_timeout_ms,
     )
-    scheduler = SchedulerCoordinator(
-        enabled=resolved_settings.scheduler_enabled,
-        lock_path=resolved_settings.instance_lock_path,
-        scheduler=NoOpScheduler(NoOpJobSource()),
-    )
     storage = LocalFileStorage(resolved_settings.storage_root)
     secret_cipher = _load_secret_cipher(resolved_settings)
     provider_registry = ProviderRegistry(
         [FakeImageEditAdapter()], environment=resolved_settings.environment
+    )
+
+    def uow_factory() -> SqlAlchemyUnitOfWork:
+        return SqlAlchemyUnitOfWork(database.sessions)
+
+    provider_service = ProviderConfigService(uow_factory, provider_registry, secret_cipher)
+    job_execution = JobExecutionService(
+        uow_factory,
+        provider_service,
+        provider_registry,
+        storage,
+    )
+    scheduler = SchedulerCoordinator(
+        enabled=resolved_settings.scheduler_enabled,
+        lock_path=resolved_settings.instance_lock_path,
+        scheduler=JobScheduler(
+            database.sessions,
+            job_execution,
+            poll_interval_seconds=resolved_settings.scheduler_poll_interval_seconds,
+            batch_size=resolved_settings.scheduler_batch_size,
+            lease_minutes=resolved_settings.scheduler_lease_minutes,
+        ),
     )
 
     async def maintain_uploads() -> None:
@@ -110,6 +125,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.storage = storage
     app.state.secret_cipher = secret_cipher
     app.state.provider_registry = provider_registry
+    app.state.provider_service = provider_service
+    app.state.job_execution = job_execution
     app.add_middleware(RequestContextMiddleware)
     if resolved_settings.cors_allowlist:
         app.add_middleware(

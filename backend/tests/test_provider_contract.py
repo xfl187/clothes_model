@@ -24,9 +24,9 @@ def invocation(scenario: str, **parameters: object) -> ProviderInvocation:
     )
 
 
-def request() -> ProviderRequest:
+def request(item_id: str = "item-1") -> ProviderRequest:
     return ProviderRequest(
-        job_item_id="item-1",
+        job_item_id=item_id,
         candidate_index=0,
         candidate_count=1,
         seed=7,
@@ -43,8 +43,8 @@ def exercise() -> None:
         assert await adapter.availability(success) == "available"
         capabilities = await adapter.capabilities(success)
         assert capabilities.multiple_candidates is True
-        submission = await adapter.submit(success, request())
-        assert submission.external_execution_id == "fake-item-1"
+        submission = await adapter.submit(success, request("success-item"))
+        assert submission.external_execution_id == "fake-success-item"
         assert (await adapter.query(success, submission.external_execution_id)).state == "succeeded"
         outputs = await adapter.fetch_outputs(success, submission.external_execution_id)
         assert outputs and outputs[0].content.startswith(b"\x89PNG")
@@ -53,11 +53,11 @@ def exercise() -> None:
         offline = invocation("offline")
         assert await adapter.availability(offline) == "temporarily_offline"
         with pytest.raises(ProviderError) as offline_error:
-            await adapter.submit(offline, request())
+            await adapter.submit(offline, request("offline-item"))
         assert offline_error.value.error_class == "temporarily_offline"
 
         transient = invocation("transient", transient_failures=1)
-        transient_submission = await adapter.submit(transient, request())
+        transient_submission = await adapter.submit(transient, request("transient-item"))
         first = await adapter.query(transient, transient_submission.external_execution_id)
         assert first.state == "failed"
         assert first.error is not None and first.error.error_class == "retryable_transient"
@@ -65,21 +65,23 @@ def exercise() -> None:
         assert second.state == "succeeded"
 
         ambiguous = invocation("ambiguous")
-        ambiguous_submission = await adapter.submit(ambiguous, request())
+        ambiguous_submission = await adapter.submit(ambiguous, request("ambiguous-item"))
         with pytest.raises(ProviderError) as ambiguous_error:
             await adapter.query(ambiguous, ambiguous_submission.external_execution_id)
         assert ambiguous_error.value.error_class == "externally_ambiguous"
 
         reject = invocation("reject")
         with pytest.raises(ProviderError) as reject_error:
-            await adapter.submit(reject, request())
+            await adapter.submit(reject, request("reject-item"))
         assert reject_error.value.error_class == "rejected_input"
 
         invalid = invocation("invalid_config")
         assert await adapter.availability(invalid) == "unavailable_configuration"
 
         uncancellable = invocation("uncancellable")
-        uncancellable_submission = await adapter.submit(uncancellable, request())
+        uncancellable_submission = await adapter.submit(
+            uncancellable, request("uncancellable-item")
+        )
         cancelled = await adapter.cancel(
             uncancellable, uncancellable_submission.external_execution_id
         )

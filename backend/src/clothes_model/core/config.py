@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     cors_allowlist: list[str] = Field(default_factory=list)
     scheduler_enabled: bool = False
+    scheduler_poll_interval_seconds: float = Field(default=0.5, gt=0, le=60)
+    scheduler_batch_size: int = Field(default=1, ge=1, le=16)
+    scheduler_lease_minutes: int = Field(default=5, ge=1, le=60)
     instance_lock_path: Path = Path("./data/instance.lock")
     encryption_master_key_file: Path | None = None
     admin_session_cookie_secure: bool = True
