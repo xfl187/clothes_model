@@ -433,7 +433,7 @@ Dependencies and parallelization:
 - Web Admin wrote the real Ark key (encrypted at rest); the one-image validation returned `passed`, and the Provider was enabled and set as default.
 - Android (physical device, `adb reverse` to the local backend) uploaded one person and one garment image to persistent asset IDs and created one candidate.
 - The candidate executed through Volcengine Ark `doubao-seedream-4-5-251128`, reached `succeeded`, and the private output was persisted and displayed in Android.
-- Backend restart preserved the job, output, and generated-output asset; `/health/ready` returned `scheduler=owned`.
+- Backend restart preserved the job, output, and generated-output asset. The same output downloaded before and after `restart app` was byte-identical (451761 bytes, sha256 `818D93F4…329`), and `/health/ready` returned `scheduler=owned`.
 - Defects fixed during acceptance: Android garment metadata, streaming append (OkHttp octet-stream) + Room v2 migration + HEIC transcoding; backend provider availability now decrypts the configured credential before judging availability (regression test `tests/test_provider_availability.py`).
 - Deferred to Phase 6: result zoom/save/share, materials library and history UI, results grid, favorite, delete placeholder.
 
