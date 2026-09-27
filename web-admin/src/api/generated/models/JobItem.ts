@@ -81,6 +81,10 @@ export interface JobItem {
      */
     retryOfJobItemId?: string;
     /**
+     * Newer attempt for the same candidate that replaced this retained attempt; null or absent while this is the latest attempt in the candidate lineage.
+     */
+    supersededByJobItemId?: string | null;
+    /**
      * Safe provider execution identifier; provider credentials are never included.
      */
     externalExecutionId?: string | null;
@@ -142,6 +146,7 @@ export function JobItemFromJSONTyped(json: any, ignoreDiscriminator: boolean): J
         'blockReason': json['block_reason'] == null ? undefined : JobBlockReasonFromJSON(json['block_reason']),
         'attempt': json['attempt'],
         'retryOfJobItemId': json['retry_of_job_item_id'] == null ? undefined : json['retry_of_job_item_id'],
+        'supersededByJobItemId': json['superseded_by_job_item_id'] === undefined ? undefined : json['superseded_by_job_item_id'] === null ? null : json['superseded_by_job_item_id'],
         'externalExecutionId': json['external_execution_id'] === undefined ? undefined : json['external_execution_id'] === null ? null : json['external_execution_id'],
         'nextAttemptAt': json['next_attempt_at'] == null ? undefined : (parseDateTime(json['next_attempt_at'])),
         'error': json['error'] == null ? undefined : ProblemDetailsFromJSON(json['error']),
@@ -170,6 +175,7 @@ export function JobItemToJSONTyped(value?: JobItem | null, ignoreDiscriminator: 
         'block_reason': JobBlockReasonToJSON(value['blockReason']),
         'attempt': value['attempt'],
         'retry_of_job_item_id': value['retryOfJobItemId'],
+        'superseded_by_job_item_id': value['supersededByJobItemId'],
         'external_execution_id': value['externalExecutionId'],
         'next_attempt_at': value['nextAttemptAt'] == null ? value['nextAttemptAt'] : serializeDateTime(value['nextAttemptAt']),
         'error': ProblemDetailsToJSON(value['error']),

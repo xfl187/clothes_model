@@ -322,168 +322,6 @@ class ProviderConfigRef(BaseModel):
     revision: int = Field(..., ge=1)
 
 
-class VersionSnapshot(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    label: str = Field(
-        ...,
-        description='Read-only display label captured when the owning resource was created.',
-    )
-
-
-class WorkflowVersionRef(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    workflow_id: str = Field(..., max_length=100, min_length=1)
-    workflow_version_id: Identifier
-    version: int = Field(..., ge=1)
-
-
-class JobItemState(Enum):
-    queued = 'queued'
-    waiting_provider = 'waiting_provider'
-    preparing = 'preparing'
-    running = 'running'
-    needs_attention = 'needs_attention'
-    succeeded = 'succeeded'
-    failed = 'failed'
-    cancelled = 'cancelled'
-    unknown = 'unknown'
-
-
-class GeneratedOutput(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    id: Identifier
-    job_item_id: Identifier
-    asset_id: Identifier
-    favorite: bool
-    content_available: bool
-    seed: int | None = None
-    actual_parameters: dict[str, Any] | None = None
-    quality_warnings: list[str] | None = None
-    created_at: Timestamp
-
-
-class JobItem(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    id: Identifier
-    job_id: Identifier
-    person_asset_id: Identifier
-    candidate_index: int = Field(..., ge=0)
-    state: JobItemState
-    block_reason: JobBlockReason | None = None
-    attempt: int = Field(..., ge=1)
-    retry_of_job_item_id: UUID | None = None
-    external_execution_id: str | None = Field(
-        None,
-        description='Safe provider execution identifier; provider credentials are never included.',
-    )
-    next_attempt_at: AwareDatetime | None = None
-    error: ProblemDetails | None = None
-    outputs: list[GeneratedOutput]
-    created_at: Timestamp
-    updated_at: Timestamp
-
-
-class TryOnJob(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    id: Identifier
-    person_asset_ids: list[Identifier]
-    garment_asset_id: Identifier
-    mask_asset_id: UUID | None = None
-    related_job_id: UUID | None = None
-    mode: TryOnMode
-    generation_options: GenerationOptions
-    state: JobState
-    block_reason: JobBlockReason | None = None
-    blocked_detail: str | None = None
-    provider_config_ref: ProviderConfigRef
-    provider_snapshot: VersionSnapshot
-    workflow_version_ref: WorkflowVersionRef | None = None
-    workflow_snapshot: VersionSnapshot | None = None
-    items: list[JobItem]
-    created_at: Timestamp
-    updated_at: Timestamp
-
-
-class JobPage(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    items: list[TryOnJob]
-    next_cursor: str
-    has_more: bool
-
-
-class CreateJobRequest(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    person_asset_ids: list[Identifier] = Field(
-        ...,
-        description='V1 submits one person asset while preserving the future-safe list shape.',
-        max_length=1,
-        min_length=1,
-    )
-    garment_asset_id: Identifier
-    mask_asset_id: UUID | None = None
-    provider_id: Identifier
-    mode: TryOnMode
-    generation_options: GenerationOptions
-    related_job_id: UUID | None = Field(
-        None,
-        description='Links a mask-correction job to the original job without overwriting it.',
-    )
-
-
-class JobCommandResult(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    job: TryOnJob
-    created_job_item_id: UUID | None = None
-
-
-class RetryJobItemRequest(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    provider_id: UUID | None = Field(
-        None,
-        description='Explicit compatible provider selection when the locked provider cannot be reused.',
-    )
-    reason: str | None = None
-
-
-class FinishFailedRequest(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    reason: str = Field(..., max_length=500, min_length=1)
-
-
-class ProviderType(Enum):
-    llm_image_edit = 'llm_image_edit'
-    comfyui = 'comfyui'
-    unknown = 'unknown'
-
-
-class ProviderAvailability(Enum):
-    available = 'available'
-    temporarily_offline = 'temporarily_offline'
-    unavailable_configuration = 'unavailable_configuration'
-    disabled = 'disabled'
-    unknown = 'unknown'
-
-
 class CapabilitySource(Enum):
     adapter = 'adapter'
     workflow_declared = 'workflow_declared'
@@ -559,6 +397,205 @@ class ProviderCapabilities(BaseModel):
     region_mask: CapabilityFlag
     input_constraints: ImageConstraints
     output_constraints: OutputConstraints
+
+
+class CapabilitiesSchemaVersion(Enum):
+    integer_1 = 1
+
+
+class ProviderSnapshot(BaseModel):
+    """
+    Immutable copy of the generation-semantic Provider configuration captured when the job was created. Later default or configuration changes never alter it. Encrypted credentials are referenced through provider_config_ref and are never copied into this snapshot or any API response.
+    """
+
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    label: str = Field(..., description='Read-only display label captured at creation.')
+    adapter_type: str | None = Field(
+        None,
+        description="Adapter implementation selected for this job's locked semantics.",
+    )
+    model: str | None = Field(
+        None,
+        description='Locked model or workflow identity that shapes generation semantics.',
+    )
+    semantic_parameters: dict[str, Any] | None = Field(
+        None,
+        description='Locked non-secret vendor/model parameters that affect generation.',
+    )
+    capabilities_schema_version: CapabilitiesSchemaVersion | None = None
+    capabilities: ProviderCapabilities | None = None
+
+
+class WorkflowVersionRef(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    workflow_id: str = Field(..., max_length=100, min_length=1)
+    workflow_version_id: Identifier
+    version: int = Field(..., ge=1)
+
+
+class VersionSnapshot(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    label: str = Field(
+        ...,
+        description='Read-only display label captured when the owning resource was created.',
+    )
+
+
+class JobItemState(Enum):
+    queued = 'queued'
+    waiting_provider = 'waiting_provider'
+    preparing = 'preparing'
+    running = 'running'
+    needs_attention = 'needs_attention'
+    succeeded = 'succeeded'
+    failed = 'failed'
+    cancelled = 'cancelled'
+    unknown = 'unknown'
+
+
+class GeneratedOutput(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Identifier
+    job_item_id: Identifier
+    asset_id: Identifier
+    favorite: bool
+    content_available: bool
+    seed: int | None = None
+    actual_parameters: dict[str, Any] | None = None
+    quality_warnings: list[str] | None = None
+    created_at: Timestamp
+
+
+class JobItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Identifier
+    job_id: Identifier
+    person_asset_id: Identifier
+    candidate_index: int = Field(..., ge=0)
+    state: JobItemState
+    block_reason: JobBlockReason | None = None
+    attempt: int = Field(..., ge=1)
+    retry_of_job_item_id: UUID | None = None
+    superseded_by_job_item_id: UUID | None = Field(
+        None,
+        description='Newer attempt for the same candidate that replaced this retained attempt; null or absent while this is the latest attempt in the candidate lineage.',
+    )
+    external_execution_id: str | None = Field(
+        None,
+        description='Safe provider execution identifier; provider credentials are never included.',
+    )
+    next_attempt_at: AwareDatetime | None = None
+    error: ProblemDetails | None = None
+    outputs: list[GeneratedOutput]
+    created_at: Timestamp
+    updated_at: Timestamp
+
+
+class TryOnJob(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Identifier
+    person_asset_ids: list[Identifier]
+    garment_asset_id: Identifier
+    mask_asset_id: UUID | None = None
+    related_job_id: UUID | None = None
+    mode: TryOnMode
+    generation_options: GenerationOptions
+    state: JobState
+    block_reason: JobBlockReason | None = None
+    blocked_detail: str | None = None
+    next_attempt_at: AwareDatetime | None = Field(
+        None,
+        description='Earliest UTC time the scheduler may continue this job after transient backoff or storage-capacity recovery; null when nothing is waiting.',
+    )
+    provider_config_ref: ProviderConfigRef
+    provider_snapshot: ProviderSnapshot
+    workflow_version_ref: WorkflowVersionRef | None = None
+    workflow_snapshot: VersionSnapshot | None = None
+    items: list[JobItem]
+    created_at: Timestamp
+    updated_at: Timestamp
+
+
+class JobPage(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    items: list[TryOnJob]
+    next_cursor: str
+    has_more: bool
+
+
+class CreateJobRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    person_asset_ids: list[Identifier] = Field(
+        ...,
+        description='V1 submits one person asset while preserving the future-safe list shape.',
+        max_length=1,
+        min_length=1,
+    )
+    garment_asset_id: Identifier
+    mask_asset_id: UUID | None = None
+    provider_id: Identifier
+    mode: TryOnMode
+    generation_options: GenerationOptions
+    related_job_id: UUID | None = Field(
+        None,
+        description='Links a mask-correction job to the original job without overwriting it.',
+    )
+
+
+class JobCommandResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    job: TryOnJob
+    created_job_item_id: UUID | None = None
+
+
+class RetryJobItemRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    provider_id: UUID | None = Field(
+        None,
+        description='Explicit compatible provider selection when the locked provider cannot be reused.',
+    )
+    reason: str | None = None
+
+
+class FinishFailedRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    reason: str = Field(..., max_length=500, min_length=1)
+
+
+class ProviderType(Enum):
+    llm_image_edit = 'llm_image_edit'
+    comfyui = 'comfyui'
+    unknown = 'unknown'
+
+
+class ProviderAvailability(Enum):
+    available = 'available'
+    temporarily_offline = 'temporarily_offline'
+    unavailable_configuration = 'unavailable_configuration'
+    disabled = 'disabled'
+    unknown = 'unknown'
 
 
 class ProviderSummary(BaseModel):

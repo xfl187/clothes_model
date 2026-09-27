@@ -95,6 +95,10 @@ jobs:
         shell: pwsh
         run: ./contracts/tooling/verify-phase2-boundaries.ps1
 
+      - name: Verify Phase 3 contract boundaries
+        shell: pwsh
+        run: ./contracts/tooling/verify-phase3-boundaries.ps1
+
       - name: Upload contract reports
         if: always()
         uses: actions/upload-artifact@v7

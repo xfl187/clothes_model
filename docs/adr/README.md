@@ -11,3 +11,4 @@ Current records:
 - [ADR-0005: V1 single-instance runtime](0005-v1-single-instance-runtime.md)
 - [ADR-0006: Token, browser session, and secret protection](0006-token-session-and-secret-protection.md)
 - [ADR-0007: Private local content-addressed storage](0007-private-content-addressed-storage.md)
+- [ADR-0008: Durable job execution, leases, and provider ambiguity](0008-durable-job-execution.md)

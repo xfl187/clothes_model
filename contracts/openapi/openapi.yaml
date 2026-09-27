@@ -169,6 +169,24 @@ components:
         application/problem+json:
           schema:
             $ref: ./components/common/schemas.yaml#/ProblemDetails
+    JobStateConflict:
+      description: The command is not allowed from the current job or item state.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            jobStateConflict:
+              $ref: ./examples/errors.yaml#/JobStateConflict
+    ProviderNotUsable:
+      description: The selected provider is disabled, unavailable, or capability-incompatible.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ./components/common/schemas.yaml#/ProblemDetails
+          examples:
+            providerNotUsable:
+              $ref: ./examples/errors.yaml#/ProviderNotUsable
     Unauthorized:
       description: Authentication is missing or invalid.
       content:

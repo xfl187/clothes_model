@@ -51,6 +51,7 @@ import kotlinx.serialization.encoding.Encoder
  * @param updatedAt UTC RFC 3339 timestamp.
  * @param blockReason 
  * @param retryOfJobItemId 
+ * @param supersededByJobItemId Newer attempt for the same candidate that replaced this retained attempt; null or absent while this is the latest attempt in the candidate lineage.
  * @param externalExecutionId Safe provider execution identifier; provider credentials are never included.
  * @param nextAttemptAt 
  * @param error 
@@ -96,6 +97,10 @@ data class JobItem (
 
     @Contextual @SerialName(value = "retry_of_job_item_id")
     val retryOfJobItemId: java.util.UUID? = null,
+
+    /* Newer attempt for the same candidate that replaced this retained attempt; null or absent while this is the latest attempt in the candidate lineage. */
+    @Contextual @SerialName(value = "superseded_by_job_item_id")
+    val supersededByJobItemId: java.util.UUID? = null,
 
     /* Safe provider execution identifier; provider credentials are never included. */
     @SerialName(value = "external_execution_id")

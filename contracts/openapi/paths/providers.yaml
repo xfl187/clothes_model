@@ -18,6 +18,8 @@ AvailableProviders:
             examples:
               availableProviders:
                 $ref: ../examples/providers.yaml#/AvailableProviderPage
+              temporarilyOfflineProviders:
+                $ref: ../examples/providers.yaml#/TemporarilyOfflineProviderPage
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
 ConfigCollection:
@@ -85,6 +87,9 @@ ConfigItem:
           application/json:
             schema:
               $ref: ../components/providers/schemas.yaml#/ProviderConfig
+            examples:
+              redactedProviderConfig:
+                $ref: ../examples/providers.yaml#/RedactedProviderConfig
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '404':

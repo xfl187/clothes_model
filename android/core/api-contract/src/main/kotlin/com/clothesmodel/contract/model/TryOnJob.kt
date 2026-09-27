@@ -28,6 +28,7 @@ import com.clothesmodel.contract.model.JobBlockReason
 import com.clothesmodel.contract.model.JobItem
 import com.clothesmodel.contract.model.JobState
 import com.clothesmodel.contract.model.ProviderConfigRef
+import com.clothesmodel.contract.model.ProviderSnapshot
 import com.clothesmodel.contract.model.TryOnMode
 import com.clothesmodel.contract.model.VersionSnapshot
 import com.clothesmodel.contract.model.WorkflowVersionRef
@@ -59,6 +60,7 @@ import kotlinx.serialization.encoding.Encoder
  * @param relatedJobId 
  * @param blockReason 
  * @param blockedDetail 
+ * @param nextAttemptAt Earliest UTC time the scheduler may continue this job after transient backoff or storage-capacity recovery; null when nothing is waiting.
  * @param workflowVersionRef 
  * @param workflowSnapshot 
  */
@@ -90,7 +92,7 @@ data class TryOnJob (
     val providerConfigRef: ProviderConfigRef,
 
     @SerialName(value = "provider_snapshot")
-    val providerSnapshot: VersionSnapshot,
+    val providerSnapshot: ProviderSnapshot,
 
     @SerialName(value = "items")
     val items: kotlin.collections.List<JobItem>,
@@ -114,6 +116,10 @@ data class TryOnJob (
 
     @SerialName(value = "blocked_detail")
     val blockedDetail: kotlin.String? = null,
+
+    /* Earliest UTC time the scheduler may continue this job after transient backoff or storage-capacity recovery; null when nothing is waiting. */
+    @Contextual @SerialName(value = "next_attempt_at")
+    val nextAttemptAt: java.time.OffsetDateTime? = null,
 
     @SerialName(value = "workflow_version_ref")
     val workflowVersionRef: WorkflowVersionRef? = null,

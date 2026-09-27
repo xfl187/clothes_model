@@ -152,6 +152,13 @@ JobItem:
     retry_of_job_item_id:
       type: string
       format: uuid
+    superseded_by_job_item_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: >-
+        Newer attempt for the same candidate that replaced this retained attempt;
+        null or absent while this is the latest attempt in the candidate lineage.
     external_execution_id:
       type: string
       nullable: true
@@ -169,6 +176,35 @@ JobItem:
       $ref: ../common/schemas.yaml#/Timestamp
     updated_at:
       $ref: ../common/schemas.yaml#/Timestamp
+
+ProviderSnapshot:
+  type: object
+  additionalProperties: false
+  required: [label]
+  description: >-
+    Immutable copy of the generation-semantic Provider configuration captured when
+    the job was created. Later default or configuration changes never alter it.
+    Encrypted credentials are referenced through provider_config_ref and are never
+    copied into this snapshot or any API response.
+  properties:
+    label:
+      type: string
+      description: Read-only display label captured at creation.
+    adapter_type:
+      type: string
+      description: Adapter implementation selected for this job's locked semantics.
+    model:
+      type: string
+      description: Locked model or workflow identity that shapes generation semantics.
+    semantic_parameters:
+      type: object
+      additionalProperties: true
+      description: Locked non-secret vendor/model parameters that affect generation.
+    capabilities_schema_version:
+      type: integer
+      enum: [1]
+    capabilities:
+      $ref: ../providers/schemas.yaml#/ProviderCapabilities
 
 TryOnJob:
   type: object
@@ -211,10 +247,17 @@ TryOnJob:
     blocked_detail:
       type: string
       nullable: true
+    next_attempt_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: >-
+        Earliest UTC time the scheduler may continue this job after transient
+        backoff or storage-capacity recovery; null when nothing is waiting.
     provider_config_ref:
       $ref: ../common/schemas.yaml#/ProviderConfigRef
     provider_snapshot:
-      $ref: ../common/schemas.yaml#/VersionSnapshot
+      $ref: '#/ProviderSnapshot'
     workflow_version_ref:
       $ref: ../common/schemas.yaml#/WorkflowVersionRef
     workflow_snapshot:

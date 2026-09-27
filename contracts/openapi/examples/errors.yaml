@@ -106,6 +106,32 @@ AssetReferenced:
     context:
       reference_count: 1
 
+JobStateConflict:
+  summary: Job command rejected by the current item or aggregate state
+  value:
+    type: https://clothes-model.local/problems/job-state-conflict
+    title: 任务状态冲突
+    status: 409
+    code: job_state_conflict
+    detail: 当前任务或候选状态不允许执行该操作，请刷新后重试。
+    trace_id: tr_01K5JOBSTATE
+    retryable: false
+    field_errors: []
+    context: {}
+
+ProviderNotUsable:
+  summary: Job creation rejected because the provider is disabled or incompatible
+  value:
+    type: https://clothes-model.local/problems/provider-not-usable
+    title: 无法使用该 Provider
+    status: 409
+    code: provider_not_usable
+    detail: 所选 Provider 未启用或能力不兼容，请选择其他可用 Provider。
+    trace_id: tr_01K5PROVIDER
+    retryable: false
+    field_errors: []
+    context: {}
+
 InvalidImage:
   summary: Uploaded content is not an accepted private image
   value:

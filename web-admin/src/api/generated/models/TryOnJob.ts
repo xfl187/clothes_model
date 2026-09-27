@@ -27,6 +27,13 @@ import {
     JobBlockReasonToJSON,
     JobBlockReasonToJSONTyped,
 } from './JobBlockReason';
+import type { ProviderSnapshot } from './ProviderSnapshot';
+import {
+    ProviderSnapshotFromJSON,
+    ProviderSnapshotFromJSONTyped,
+    ProviderSnapshotToJSON,
+    ProviderSnapshotToJSONTyped,
+} from './ProviderSnapshot';
 import type { WorkflowVersionRef } from './WorkflowVersionRef';
 import {
     WorkflowVersionRefFromJSON,
@@ -117,13 +124,17 @@ export interface TryOnJob {
      */
     blockedDetail?: string | null;
     /**
+     * Earliest UTC time the scheduler may continue this job after transient backoff or storage-capacity recovery; null when nothing is waiting.
+     */
+    nextAttemptAt?: Date | null;
+    /**
      * 
      */
     providerConfigRef: ProviderConfigRef;
     /**
      * 
      */
-    providerSnapshot: VersionSnapshot;
+    providerSnapshot: ProviderSnapshot;
     /**
      * 
      */
@@ -186,8 +197,9 @@ export function TryOnJobFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         'state': JobStateFromJSON(json['state']),
         'blockReason': json['block_reason'] == null ? undefined : JobBlockReasonFromJSON(json['block_reason']),
         'blockedDetail': json['blocked_detail'] === undefined ? undefined : json['blocked_detail'] === null ? null : json['blocked_detail'],
+        'nextAttemptAt': json['next_attempt_at'] === undefined ? undefined : json['next_attempt_at'] === null ? null : (parseDateTime(json['next_attempt_at'])),
         'providerConfigRef': ProviderConfigRefFromJSON(json['provider_config_ref']),
-        'providerSnapshot': VersionSnapshotFromJSON(json['provider_snapshot']),
+        'providerSnapshot': ProviderSnapshotFromJSON(json['provider_snapshot']),
         'workflowVersionRef': json['workflow_version_ref'] == null ? undefined : WorkflowVersionRefFromJSON(json['workflow_version_ref']),
         'workflowSnapshot': json['workflow_snapshot'] == null ? undefined : VersionSnapshotFromJSON(json['workflow_snapshot']),
         'items': ((json['items'] as Array<any>).map(JobItemFromJSON)),
@@ -217,8 +229,9 @@ export function TryOnJobToJSONTyped(value?: TryOnJob | null, ignoreDiscriminator
         'state': JobStateToJSON(value['state']),
         'block_reason': JobBlockReasonToJSON(value['blockReason']),
         'blocked_detail': value['blockedDetail'],
+        'next_attempt_at': value['nextAttemptAt'] == null ? value['nextAttemptAt'] : serializeDateTime(value['nextAttemptAt']),
         'provider_config_ref': ProviderConfigRefToJSON(value['providerConfigRef']),
-        'provider_snapshot': VersionSnapshotToJSON(value['providerSnapshot']),
+        'provider_snapshot': ProviderSnapshotToJSON(value['providerSnapshot']),
         'workflow_version_ref': WorkflowVersionRefToJSON(value['workflowVersionRef']),
         'workflow_snapshot': VersionSnapshotToJSON(value['workflowSnapshot']),
         'items': ((value['items'] as Array<any>).map(JobItemToJSON)),

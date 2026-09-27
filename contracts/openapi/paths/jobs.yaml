@@ -49,7 +49,7 @@ Collection:
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '409':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/ProviderNotUsable
       '422':
         $ref: ../openapi.yaml#/components/responses/Problem
       '507':
@@ -75,12 +75,22 @@ Item:
             schema:
               $ref: ../components/jobs/schemas.yaml#/TryOnJob
             examples:
+              queuedStorageBlocked:
+                $ref: ../examples/jobs.yaml#/QueuedStorageBlocked
               waitingProvider:
                 $ref: ../examples/jobs.yaml#/WaitingProvider
+              running:
+                $ref: ../examples/jobs.yaml#/Running
+              succeeded:
+                $ref: ../examples/jobs.yaml#/Succeeded
               partiallySucceeded:
                 $ref: ../examples/jobs.yaml#/PartiallySucceeded
               needsAttention:
                 $ref: ../examples/jobs.yaml#/NeedsAttention
+              cancelled:
+                $ref: ../examples/jobs.yaml#/Cancelled
+              retryLineage:
+                $ref: ../examples/jobs.yaml#/RetryLineage
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '404':
@@ -112,7 +122,7 @@ CancelJob:
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
       '409':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict
 JobItem:
   parameters:
     - name: job_item_id
@@ -164,7 +174,7 @@ CancelJobItem:
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
       '409':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict
 RetryJobItem:
   parameters:
     - name: job_item_id
@@ -193,12 +203,15 @@ RetryJobItem:
           application/json:
             schema:
               $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+            examples:
+              retryCommandResult:
+                $ref: ../examples/jobs.yaml#/RetryCommandResult
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
       '409':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict
 RequeryJobItem:
   parameters:
     - name: job_item_id
@@ -226,7 +239,7 @@ RequeryJobItem:
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
       '409':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict
 FinishFailedJobItem:
   parameters:
     - name: job_item_id
@@ -260,4 +273,4 @@ FinishFailedJobItem:
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
       '409':
-        $ref: ../openapi.yaml#/components/responses/Problem
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict

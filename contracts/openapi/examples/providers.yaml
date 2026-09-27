@@ -122,3 +122,145 @@ AvailableProviderPage:
             max_candidates: 4
     next_cursor: null
     has_more: false
+
+TemporarilyOfflineProviderPage:
+  summary: Provider temporarily offline and unavailable for new jobs until recovery
+  value:
+    items:
+      - id: 01992b5a-0000-7000-8000-000000000220
+        display_name: ComfyUI · node-b
+        type: comfyui
+        availability: temporarily_offline
+        unavailable_reason: AutoDL 节点离线，等待节点恢复后自动继续。
+        is_default: false
+        config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000220
+          config_version_id: 01992b5a-0000-7000-8000-000000000221
+          revision: 1
+        capabilities:
+          schema_version: 1
+          garment_categories:
+            values: [upper_body, lower_body, dress]
+            source: workflow_declared
+            verification: verified
+          manual_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          multiple_candidates:
+            supported: true
+            source: derived
+            verification: verified
+          multi_person_reference:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          batch_input:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          interrupt_running:
+            supported: true
+            source: adapter
+            verification: verified
+          sequential_layering:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          supported_layer_roles:
+            values: []
+            source: workflow_declared
+            verification: declared
+          preserve_existing_garments:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          outfit_context:
+            supported: false
+            source: workflow_declared
+            verification: declared
+          region_mask:
+            supported: true
+            source: workflow_declared
+            verification: verified
+          input_constraints:
+            content_types: [image/jpeg, image/png]
+            max_size_bytes: 20971520
+            max_width: 4096
+            max_height: 4096
+          output_constraints:
+            max_candidates: 4
+    next_cursor: null
+    has_more: false
+
+RedactedProviderConfig:
+  summary: Admin-facing provider configuration that never returns the secret value
+  value:
+    id: 01992b5a-0000-7000-8000-000000000201
+    display_name: Image Edit Provider · model-a
+    type: llm_image_edit
+    adapter_type: openai_image_edit
+    endpoint: https://provider.internal/v1
+    model: model-a
+    timeout_seconds: 120
+    state: active
+    secret_configured: true
+    secret_updated_at: '2026-09-27T02:00:00Z'
+    config_ref:
+      provider_id: 01992b5a-0000-7000-8000-000000000201
+      config_version_id: 01992b5a-0000-7000-8000-000000000210
+      revision: 4
+    capabilities:
+      schema_version: 1
+      garment_categories:
+        values: [upper_body, lower_body, dress]
+        source: adapter
+        verification: verified
+      manual_mask:
+        supported: true
+        source: adapter
+        verification: verified
+      multiple_candidates:
+        supported: true
+        source: adapter
+        verification: verified
+      multi_person_reference:
+        supported: false
+        source: adapter
+        verification: declared
+      batch_input:
+        supported: false
+        source: adapter
+        verification: declared
+      interrupt_running:
+        supported: false
+        source: adapter
+        verification: declared
+      sequential_layering:
+        supported: false
+        source: adapter
+        verification: declared
+      supported_layer_roles:
+        values: []
+        source: adapter
+        verification: declared
+      preserve_existing_garments:
+        supported: false
+        source: adapter
+        verification: declared
+      outfit_context:
+        supported: false
+        source: adapter
+        verification: declared
+      region_mask:
+        supported: true
+        source: adapter
+        verification: verified
+      input_constraints:
+        content_types: [image/jpeg, image/png]
+        max_size_bytes: 20971520
+        max_width: 4096
+        max_height: 4096
+      output_constraints:
+        max_candidates: 4
+    updated_at: '2026-09-27T02:00:00Z'

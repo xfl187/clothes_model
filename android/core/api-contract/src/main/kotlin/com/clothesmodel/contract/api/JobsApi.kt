@@ -26,7 +26,7 @@ interface JobsApi {
      *  - 200: Updated aggregate job state.
      *  - 401: Authentication is missing or invalid.
      *  - 404: Request failed with a stable machine-readable error code.
-     *  - 409: Request failed with a stable machine-readable error code.
+     *  - 409: The command is not allowed from the current job or item state.
      *
      * @param jobId 
      * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
@@ -43,7 +43,7 @@ interface JobsApi {
      *  - 200: Updated aggregate job state.
      *  - 401: Authentication is missing or invalid.
      *  - 404: Request failed with a stable machine-readable error code.
-     *  - 409: Request failed with a stable machine-readable error code.
+     *  - 409: The command is not allowed from the current job or item state.
      *
      * @param jobItemId 
      * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
@@ -59,7 +59,7 @@ interface JobsApi {
      * Responses:
      *  - 201: Persisted job, including locked Provider and Workflow references.
      *  - 401: Authentication is missing or invalid.
-     *  - 409: Request failed with a stable machine-readable error code.
+     *  - 409: The selected provider is disabled, unavailable, or capability-incompatible.
      *  - 422: Request failed with a stable machine-readable error code.
      *  - 507: New uploads or jobs are blocked because storage capacity is insufficient.
      *
@@ -78,7 +78,7 @@ interface JobsApi {
      *  - 200: JobItem ended as failed and aggregate job recalculated.
      *  - 401: Authentication is missing or invalid.
      *  - 404: Request failed with a stable machine-readable error code.
-     *  - 409: Request failed with a stable machine-readable error code.
+     *  - 409: The command is not allowed from the current job or item state.
      *
      * @param jobItemId 
      * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
@@ -142,7 +142,7 @@ interface JobsApi {
      *  - 200: Job synchronized with the known external state.
      *  - 401: Authentication is missing or invalid.
      *  - 404: Request failed with a stable machine-readable error code.
-     *  - 409: Request failed with a stable machine-readable error code.
+     *  - 409: The command is not allowed from the current job or item state.
      *
      * @param jobItemId 
      * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
@@ -159,7 +159,7 @@ interface JobsApi {
      *  - 201: New JobItem created in queued state and aggregate job recalculated.
      *  - 401: Authentication is missing or invalid.
      *  - 404: Request failed with a stable machine-readable error code.
-     *  - 409: Request failed with a stable machine-readable error code.
+     *  - 409: The command is not allowed from the current job or item state.
      *
      * @param jobItemId 
      * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.

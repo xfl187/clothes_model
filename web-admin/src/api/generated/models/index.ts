@@ -52,6 +52,7 @@ export * from './ProviderConfigRef';
 export * from './ProviderConfigRequest';
 export * from './ProviderConfigState';
 export * from './ProviderPage';
+export * from './ProviderSnapshot';
 export * from './ProviderSummary';
 export * from './ProviderType';
 export * from './ProviderValidationResult';

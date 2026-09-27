@@ -4,8 +4,8 @@
 
 - Phase 1 — COMPLETE
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
-- Phase 3 — PLANNED (0 / 11 tasks; ready for implementation)
-- Next — implement Phase 3 Task 1: close contracts and record execution semantics
+- Phase 3 — IN PROGRESS (1 / 11 tasks; contracts closed, ADR-0008 accepted)
+- Next — implement Phase 3 Task 2: add schema, migration, and repositories
 
 ## Current Repository State
 

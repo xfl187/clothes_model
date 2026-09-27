@@ -8,11 +8,12 @@
 
 ## Progress
 
-- Status: READY FOR IMPLEMENTATION
-- Tasks 1–11 — NOT_STARTED
-- Current: Task 1 — Close Phase 3 contracts and record execution semantics
-- Last planned: 2026-09-27
-- Next: implementation Task 1 only, then verify and review the contract/ADR boundary
+- Status: IN PROGRESS
+- Task 1 — COMPLETE (2026-09-27; contract additions, ADR-0008, Phase 3 boundary gate)
+- Tasks 2–11 — NOT_STARTED
+- Current: Task 2 — Add Phase 3 schema, migration, and repositories
+- Last updated: 2026-09-27
+- Next: implementation Task 2 only, then verify migration/constraint boundary
 
 ## Confirmed Inputs
 

@@ -99,6 +99,311 @@ PartiallySucceeded:
     created_at: '2026-09-24T06:00:00Z'
     updated_at: '2026-09-24T06:06:00Z'
 
+QueuedStorageBlocked:
+  summary: Persisted job stays queued with a storage-capacity block until capacity recovers
+  value:
+    id: 01992b5a-0000-7000-8000-000000000004
+    person_asset_ids: [01992b5a-0000-7000-8000-000000000101]
+    garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+    mode: precise_try_on
+    generation_options:
+      candidate_count: 1
+      seed: null
+      advanced_parameters: {}
+    state: queued
+    block_reason: storage_capacity
+    blocked_detail: 存储空间不足，已持久化任务将在空间释放后自动继续。
+    next_attempt_at: '2026-09-27T06:05:00Z'
+    provider_config_ref:
+      provider_id: 01992b5a-0000-7000-8000-000000000201
+      config_version_id: 01992b5a-0000-7000-8000-000000000202
+      revision: 3
+    provider_snapshot:
+      label: Image Edit Provider · model-a
+      adapter_type: llm_image_edit
+      model: model-a
+      semantic_parameters:
+        num_inference_steps: 30
+      capabilities_schema_version: 1
+    items:
+      - id: 01992b5a-0000-7000-8000-000000000305
+        job_id: 01992b5a-0000-7000-8000-000000000004
+        person_asset_id: 01992b5a-0000-7000-8000-000000000101
+        candidate_index: 0
+        state: queued
+        block_reason: storage_capacity
+        attempt: 1
+        next_attempt_at: '2026-09-27T06:05:00Z'
+        outputs: []
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:04:00Z'
+    created_at: '2026-09-27T06:00:00Z'
+    updated_at: '2026-09-27T06:04:00Z'
+
+Running:
+  summary: Candidate is executing at the provider and can still be cancelled
+  value:
+    id: 01992b5a-0000-7000-8000-000000000005
+    person_asset_ids: [01992b5a-0000-7000-8000-000000000101]
+    garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+    mode: precise_try_on
+    generation_options:
+      candidate_count: 1
+      seed: null
+      advanced_parameters: {}
+    state: running
+    provider_config_ref:
+      provider_id: 01992b5a-0000-7000-8000-000000000201
+      config_version_id: 01992b5a-0000-7000-8000-000000000202
+      revision: 3
+    provider_snapshot:
+      label: ComfyUI · precise-vton
+      adapter_type: comfyui
+      model: precise-vton
+      semantic_parameters:
+        steps: 25
+      capabilities_schema_version: 1
+    workflow_version_ref:
+      workflow_id: precise-vton
+      workflow_version_id: 01992b5a-0000-7000-8000-000000000203
+      version: 2
+    workflow_snapshot:
+      label: precise-vton v2
+    items:
+      - id: 01992b5a-0000-7000-8000-000000000306
+        job_id: 01992b5a-0000-7000-8000-000000000005
+        person_asset_id: 01992b5a-0000-7000-8000-000000000101
+        candidate_index: 0
+        state: running
+        attempt: 1
+        external_execution_id: comfy-prompt-safe-id
+        outputs: []
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:02:00Z'
+    created_at: '2026-09-27T06:00:00Z'
+    updated_at: '2026-09-27T06:02:00Z'
+
+Succeeded:
+  summary: Every candidate succeeded with a private generated output
+  value:
+    id: 01992b5a-0000-7000-8000-000000000006
+    person_asset_ids: [01992b5a-0000-7000-8000-000000000101]
+    garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+    mode: precise_try_on
+    generation_options:
+      candidate_count: 2
+      seed: 42
+      advanced_parameters: {}
+    state: succeeded
+    provider_config_ref:
+      provider_id: 01992b5a-0000-7000-8000-000000000201
+      config_version_id: 01992b5a-0000-7000-8000-000000000202
+      revision: 3
+    provider_snapshot:
+      label: Image Edit Provider · model-a
+      adapter_type: llm_image_edit
+      model: model-a
+      semantic_parameters:
+        num_inference_steps: 30
+      capabilities_schema_version: 1
+    items:
+      - id: 01992b5a-0000-7000-8000-000000000307
+        job_id: 01992b5a-0000-7000-8000-000000000006
+        person_asset_id: 01992b5a-0000-7000-8000-000000000101
+        candidate_index: 0
+        state: succeeded
+        attempt: 1
+        external_execution_id: safe-execution-1
+        outputs:
+          - id: 01992b5a-0000-7000-8000-000000000501
+            job_item_id: 01992b5a-0000-7000-8000-000000000307
+            asset_id: 01992b5a-0000-7000-8000-000000000502
+            favorite: false
+            content_available: true
+            seed: 42
+            actual_parameters: {}
+            quality_warnings: []
+            created_at: '2026-09-27T06:05:00Z'
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:05:00Z'
+      - id: 01992b5a-0000-7000-8000-000000000308
+        job_id: 01992b5a-0000-7000-8000-000000000006
+        person_asset_id: 01992b5a-0000-7000-8000-000000000101
+        candidate_index: 1
+        state: succeeded
+        attempt: 1
+        external_execution_id: safe-execution-2
+        outputs:
+          - id: 01992b5a-0000-7000-8000-000000000503
+            job_item_id: 01992b5a-0000-7000-8000-000000000308
+            asset_id: 01992b5a-0000-7000-8000-000000000504
+            favorite: false
+            content_available: true
+            seed: 42
+            actual_parameters: {}
+            quality_warnings: []
+            created_at: '2026-09-27T06:05:00Z'
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:05:00Z'
+    created_at: '2026-09-27T06:00:00Z'
+    updated_at: '2026-09-27T06:05:00Z'
+
+Cancelled:
+  summary: Whole-job cancel with no successful candidate
+  value:
+    id: 01992b5a-0000-7000-8000-000000000007
+    person_asset_ids: [01992b5a-0000-7000-8000-000000000101]
+    garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+    mode: precise_try_on
+    generation_options:
+      candidate_count: 2
+      seed: null
+      advanced_parameters: {}
+    state: cancelled
+    provider_config_ref:
+      provider_id: 01992b5a-0000-7000-8000-000000000201
+      config_version_id: 01992b5a-0000-7000-8000-000000000202
+      revision: 3
+    provider_snapshot:
+      label: ComfyUI · precise-vton
+      adapter_type: comfyui
+      model: precise-vton
+      capabilities_schema_version: 1
+    items:
+      - id: 01992b5a-0000-7000-8000-000000000309
+        job_id: 01992b5a-0000-7000-8000-000000000007
+        person_asset_id: 01992b5a-0000-7000-8000-000000000101
+        candidate_index: 0
+        state: cancelled
+        attempt: 1
+        outputs: []
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:03:00Z'
+      - id: 01992b5a-0000-7000-8000-000000000310
+        job_id: 01992b5a-0000-7000-8000-000000000007
+        person_asset_id: 01992b5a-0000-7000-8000-000000000101
+        candidate_index: 1
+        state: cancelled
+        attempt: 1
+        outputs: []
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:03:00Z'
+    created_at: '2026-09-27T06:00:00Z'
+    updated_at: '2026-09-27T06:03:00Z'
+
+RetryLineage:
+  summary: A failed attempt is retained and superseded by a newer successful retry
+  value:
+    id: 01992b5a-0000-7000-8000-000000000008
+    person_asset_ids: [01992b5a-0000-7000-8000-000000000101]
+    garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+    mode: precise_try_on
+    generation_options:
+      candidate_count: 1
+      seed: 42
+      advanced_parameters: {}
+    state: succeeded
+    provider_config_ref:
+      provider_id: 01992b5a-0000-7000-8000-000000000201
+      config_version_id: 01992b5a-0000-7000-8000-000000000202
+      revision: 3
+    provider_snapshot:
+      label: Image Edit Provider · model-a
+      adapter_type: llm_image_edit
+      model: model-a
+      capabilities_schema_version: 1
+    items:
+      - id: 01992b5a-0000-7000-8000-000000000311
+        job_id: 01992b5a-0000-7000-8000-000000000008
+        person_asset_id: 01992b5a-0000-7000-8000-000000000101
+        candidate_index: 0
+        state: failed
+        attempt: 1
+        superseded_by_job_item_id: 01992b5a-0000-7000-8000-000000000312
+        external_execution_id: safe-execution-old
+        error:
+          type: https://clothes-model.local/problems/provider-retry-exhausted
+          title: 生成失败
+          status: 502
+          code: provider_retry_exhausted
+          detail: 临时故障重试次数已耗尽，可单独重试此候选。
+          trace_id: tr_01K5RETRYOLD
+          retryable: true
+          field_errors: []
+          context: {}
+        outputs: []
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:06:00Z'
+      - id: 01992b5a-0000-7000-8000-000000000312
+        job_id: 01992b5a-0000-7000-8000-000000000008
+        person_asset_id: 01992b5a-0000-7000-8000-000000000101
+        candidate_index: 0
+        state: succeeded
+        attempt: 2
+        retry_of_job_item_id: 01992b5a-0000-7000-8000-000000000311
+        external_execution_id: safe-execution-retry
+        outputs:
+          - id: 01992b5a-0000-7000-8000-000000000505
+            job_item_id: 01992b5a-0000-7000-8000-000000000312
+            asset_id: 01992b5a-0000-7000-8000-000000000506
+            favorite: false
+            content_available: true
+            seed: 42
+            actual_parameters: {}
+            quality_warnings: []
+            created_at: '2026-09-27T06:10:00Z'
+        created_at: '2026-09-27T06:06:00Z'
+        updated_at: '2026-09-27T06:10:00Z'
+    created_at: '2026-09-27T06:00:00Z'
+    updated_at: '2026-09-27T06:10:00Z'
+
+RetryCommandResult:
+  summary: Retry created a new traceable attempt and recalculated the aggregate
+  value:
+    job:
+      id: 01992b5a-0000-7000-8000-000000000009
+      person_asset_ids: [01992b5a-0000-7000-8000-000000000101]
+      garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+      mode: precise_try_on
+      generation_options:
+        candidate_count: 1
+        seed: 42
+        advanced_parameters: {}
+      state: queued
+      provider_config_ref:
+        provider_id: 01992b5a-0000-7000-8000-000000000201
+        config_version_id: 01992b5a-0000-7000-8000-000000000202
+        revision: 3
+      provider_snapshot:
+        label: Image Edit Provider · model-a
+        adapter_type: llm_image_edit
+        model: model-a
+        capabilities_schema_version: 1
+      items:
+        - id: 01992b5a-0000-7000-8000-000000000313
+          job_id: 01992b5a-0000-7000-8000-000000000009
+          person_asset_id: 01992b5a-0000-7000-8000-000000000101
+          candidate_index: 0
+          state: failed
+          attempt: 1
+          superseded_by_job_item_id: 01992b5a-0000-7000-8000-000000000314
+          outputs: []
+          created_at: '2026-09-27T06:00:00Z'
+          updated_at: '2026-09-27T06:06:00Z'
+        - id: 01992b5a-0000-7000-8000-000000000314
+          job_id: 01992b5a-0000-7000-8000-000000000009
+          person_asset_id: 01992b5a-0000-7000-8000-000000000101
+          candidate_index: 0
+          state: queued
+          attempt: 2
+          retry_of_job_item_id: 01992b5a-0000-7000-8000-000000000313
+          outputs: []
+          created_at: '2026-09-27T06:11:00Z'
+          updated_at: '2026-09-27T06:11:00Z'
+      created_at: '2026-09-27T06:00:00Z'
+      updated_at: '2026-09-27T06:11:00Z'
+    created_job_item_id: 01992b5a-0000-7000-8000-000000000314
+
 NeedsAttention:
   summary: Original external execution is uncertain and automatic progress stopped
   value:

@@ -528,7 +528,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/ProviderNotUsable'
         '422':
           $ref: '#/components/responses/Problem'
         '507':
@@ -555,12 +555,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/TryOnJob'
               examples:
+                queuedStorageBlocked:
+                  $ref: '#/components/examples/QueuedStorageBlocked'
                 waitingProvider:
                   $ref: '#/components/examples/WaitingProvider'
+                running:
+                  $ref: '#/components/examples/Running'
+                succeeded:
+                  $ref: '#/components/examples/Succeeded'
                 partiallySucceeded:
                   $ref: '#/components/examples/PartiallySucceeded'
                 needsAttention:
                   $ref: '#/components/examples/NeedsAttention'
+                cancelled:
+                  $ref: '#/components/examples/Cancelled'
+                retryLineage:
+                  $ref: '#/components/examples/RetryLineage'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -593,7 +603,7 @@ paths:
         '404':
           $ref: '#/components/responses/Problem'
         '409':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/JobStateConflict'
   /api/v1/job-items/{job_item_id}:
     parameters:
       - name: job_item_id
@@ -647,7 +657,7 @@ paths:
         '404':
           $ref: '#/components/responses/Problem'
         '409':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/JobStateConflict'
   /api/v1/job-items/{job_item_id}/retry:
     parameters:
       - name: job_item_id
@@ -677,12 +687,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JobCommandResult'
+              examples:
+                retryCommandResult:
+                  $ref: '#/components/examples/RetryCommandResult'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/Problem'
         '409':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/JobStateConflict'
   /api/v1/job-items/{job_item_id}/requery:
     parameters:
       - name: job_item_id
@@ -711,7 +724,7 @@ paths:
         '404':
           $ref: '#/components/responses/Problem'
         '409':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/JobStateConflict'
   /api/v1/job-items/{job_item_id}/finish-failed:
     parameters:
       - name: job_item_id
@@ -746,7 +759,7 @@ paths:
         '404':
           $ref: '#/components/responses/Problem'
         '409':
-          $ref: '#/components/responses/Problem'
+          $ref: '#/components/responses/JobStateConflict'
   /api/v1/providers:
     get:
       tags:
@@ -768,6 +781,8 @@ paths:
               examples:
                 availableProviders:
                   $ref: '#/components/examples/AvailableProviderPage'
+                temporarilyOfflineProviders:
+                  $ref: '#/components/examples/TemporarilyOfflineProviderPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/v1/admin/provider-configs:
@@ -838,6 +853,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProviderConfig'
+              examples:
+                redactedProviderConfig:
+                  $ref: '#/components/examples/RedactedProviderConfig'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1380,6 +1398,24 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
+    JobStateConflict:
+      description: The command is not allowed from the current job or item state.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            jobStateConflict:
+              $ref: '#/components/examples/JobStateConflict'
+    ProviderNotUsable:
+      description: The selected provider is disabled, unavailable, or capability-incompatible.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            providerNotUsable:
+              $ref: '#/components/examples/ProviderNotUsable'
     Unauthorized:
       description: Authentication is missing or invalid.
       content:
@@ -1924,280 +1960,6 @@ components:
         revision:
           type: integer
           minimum: 1
-    VersionSnapshot:
-      type: object
-      additionalProperties: false
-      required:
-        - label
-      properties:
-        label:
-          type: string
-          description: Read-only display label captured when the owning resource was created.
-    WorkflowVersionRef:
-      type: object
-      additionalProperties: false
-      required:
-        - workflow_id
-        - workflow_version_id
-        - version
-      properties:
-        workflow_id:
-          type: string
-          minLength: 1
-          maxLength: 100
-        workflow_version_id:
-          $ref: '#/components/schemas/Identifier'
-        version:
-          type: integer
-          minimum: 1
-    JobItemState:
-      type: string
-      enum:
-        - queued
-        - waiting_provider
-        - preparing
-        - running
-        - needs_attention
-        - succeeded
-        - failed
-        - cancelled
-        - unknown
-    GeneratedOutput:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - job_item_id
-        - asset_id
-        - favorite
-        - content_available
-        - created_at
-      properties:
-        id:
-          $ref: '#/components/schemas/Identifier'
-        job_item_id:
-          $ref: '#/components/schemas/Identifier'
-        asset_id:
-          $ref: '#/components/schemas/Identifier'
-        favorite:
-          type: boolean
-        content_available:
-          type: boolean
-        seed:
-          type: integer
-          format: int64
-          nullable: true
-        actual_parameters:
-          type: object
-          additionalProperties: true
-        quality_warnings:
-          type: array
-          items:
-            type: string
-        created_at:
-          $ref: '#/components/schemas/Timestamp'
-    JobItem:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - job_id
-        - person_asset_id
-        - candidate_index
-        - state
-        - attempt
-        - outputs
-        - created_at
-        - updated_at
-      properties:
-        id:
-          $ref: '#/components/schemas/Identifier'
-        job_id:
-          $ref: '#/components/schemas/Identifier'
-        person_asset_id:
-          $ref: '#/components/schemas/Identifier'
-        candidate_index:
-          type: integer
-          minimum: 0
-        state:
-          $ref: '#/components/schemas/JobItemState'
-        block_reason:
-          $ref: '#/components/schemas/JobBlockReason'
-        attempt:
-          type: integer
-          minimum: 1
-        retry_of_job_item_id:
-          type: string
-          format: uuid
-        external_execution_id:
-          type: string
-          nullable: true
-          description: Safe provider execution identifier; provider credentials are never included.
-        next_attempt_at:
-          type: string
-          format: date-time
-        error:
-          $ref: '#/components/schemas/ProblemDetails'
-        outputs:
-          type: array
-          items:
-            $ref: '#/components/schemas/GeneratedOutput'
-        created_at:
-          $ref: '#/components/schemas/Timestamp'
-        updated_at:
-          $ref: '#/components/schemas/Timestamp'
-    TryOnJob:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - person_asset_ids
-        - garment_asset_id
-        - mode
-        - generation_options
-        - state
-        - provider_config_ref
-        - provider_snapshot
-        - items
-        - created_at
-        - updated_at
-      properties:
-        id:
-          $ref: '#/components/schemas/Identifier'
-        person_asset_ids:
-          type: array
-          items:
-            $ref: '#/components/schemas/Identifier'
-        garment_asset_id:
-          $ref: '#/components/schemas/Identifier'
-        mask_asset_id:
-          type: string
-          format: uuid
-        related_job_id:
-          type: string
-          format: uuid
-        mode:
-          $ref: '#/components/schemas/TryOnMode'
-        generation_options:
-          $ref: '#/components/schemas/GenerationOptions'
-        state:
-          $ref: '#/components/schemas/JobState'
-        block_reason:
-          $ref: '#/components/schemas/JobBlockReason'
-        blocked_detail:
-          type: string
-          nullable: true
-        provider_config_ref:
-          $ref: '#/components/schemas/ProviderConfigRef'
-        provider_snapshot:
-          $ref: '#/components/schemas/VersionSnapshot'
-        workflow_version_ref:
-          $ref: '#/components/schemas/WorkflowVersionRef'
-        workflow_snapshot:
-          $ref: '#/components/schemas/VersionSnapshot'
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/JobItem'
-        created_at:
-          $ref: '#/components/schemas/Timestamp'
-        updated_at:
-          $ref: '#/components/schemas/Timestamp'
-    JobPage:
-      type: object
-      additionalProperties: false
-      required:
-        - items
-        - next_cursor
-        - has_more
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/TryOnJob'
-        next_cursor:
-          type: string
-          nullable: true
-        has_more:
-          type: boolean
-    CreateJobRequest:
-      type: object
-      additionalProperties: false
-      required:
-        - person_asset_ids
-        - garment_asset_id
-        - provider_id
-        - mode
-        - generation_options
-      properties:
-        person_asset_ids:
-          type: array
-          minItems: 1
-          maxItems: 1
-          description: V1 submits one person asset while preserving the future-safe list shape.
-          items:
-            $ref: '#/components/schemas/Identifier'
-        garment_asset_id:
-          $ref: '#/components/schemas/Identifier'
-        mask_asset_id:
-          type: string
-          format: uuid
-        provider_id:
-          $ref: '#/components/schemas/Identifier'
-        mode:
-          $ref: '#/components/schemas/TryOnMode'
-        generation_options:
-          $ref: '#/components/schemas/GenerationOptions'
-        related_job_id:
-          type: string
-          format: uuid
-          description: Links a mask-correction job to the original job without overwriting it.
-    JobCommandResult:
-      type: object
-      additionalProperties: false
-      required:
-        - job
-      properties:
-        job:
-          $ref: '#/components/schemas/TryOnJob'
-        created_job_item_id:
-          type: string
-          format: uuid
-    RetryJobItemRequest:
-      type: object
-      additionalProperties: false
-      properties:
-        provider_id:
-          type: string
-          format: uuid
-          description: Explicit compatible provider selection when the locked provider cannot be reused.
-        reason:
-          type: string
-          nullable: true
-    FinishFailedRequest:
-      type: object
-      additionalProperties: false
-      required:
-        - reason
-      properties:
-        reason:
-          type: string
-          minLength: 1
-          maxLength: 500
-    ProviderType:
-      type: string
-      enum:
-        - llm_image_edit
-        - comfyui
-        - unknown
-    ProviderAvailability:
-      type: string
-      enum:
-        - available
-        - temporarily_offline
-        - unavailable_configuration
-        - disabled
-        - unknown
     CapabilitySource:
       type: string
       enum:
@@ -2339,6 +2101,316 @@ components:
           $ref: '#/components/schemas/ImageConstraints'
         output_constraints:
           $ref: '#/components/schemas/OutputConstraints'
+    ProviderSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - label
+      description: Immutable copy of the generation-semantic Provider configuration captured when the job was created. Later default or configuration changes never alter it. Encrypted credentials are referenced through provider_config_ref and are never copied into this snapshot or any API response.
+      properties:
+        label:
+          type: string
+          description: Read-only display label captured at creation.
+        adapter_type:
+          type: string
+          description: Adapter implementation selected for this job's locked semantics.
+        model:
+          type: string
+          description: Locked model or workflow identity that shapes generation semantics.
+        semantic_parameters:
+          type: object
+          additionalProperties: true
+          description: Locked non-secret vendor/model parameters that affect generation.
+        capabilities_schema_version:
+          type: integer
+          enum:
+            - 1
+        capabilities:
+          $ref: '#/components/schemas/ProviderCapabilities'
+    WorkflowVersionRef:
+      type: object
+      additionalProperties: false
+      required:
+        - workflow_id
+        - workflow_version_id
+        - version
+      properties:
+        workflow_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        workflow_version_id:
+          $ref: '#/components/schemas/Identifier'
+        version:
+          type: integer
+          minimum: 1
+    VersionSnapshot:
+      type: object
+      additionalProperties: false
+      required:
+        - label
+      properties:
+        label:
+          type: string
+          description: Read-only display label captured when the owning resource was created.
+    JobItemState:
+      type: string
+      enum:
+        - queued
+        - waiting_provider
+        - preparing
+        - running
+        - needs_attention
+        - succeeded
+        - failed
+        - cancelled
+        - unknown
+    GeneratedOutput:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - job_item_id
+        - asset_id
+        - favorite
+        - content_available
+        - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        job_item_id:
+          $ref: '#/components/schemas/Identifier'
+        asset_id:
+          $ref: '#/components/schemas/Identifier'
+        favorite:
+          type: boolean
+        content_available:
+          type: boolean
+        seed:
+          type: integer
+          format: int64
+          nullable: true
+        actual_parameters:
+          type: object
+          additionalProperties: true
+        quality_warnings:
+          type: array
+          items:
+            type: string
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    JobItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - job_id
+        - person_asset_id
+        - candidate_index
+        - state
+        - attempt
+        - outputs
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        job_id:
+          $ref: '#/components/schemas/Identifier'
+        person_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        candidate_index:
+          type: integer
+          minimum: 0
+        state:
+          $ref: '#/components/schemas/JobItemState'
+        block_reason:
+          $ref: '#/components/schemas/JobBlockReason'
+        attempt:
+          type: integer
+          minimum: 1
+        retry_of_job_item_id:
+          type: string
+          format: uuid
+        superseded_by_job_item_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Newer attempt for the same candidate that replaced this retained attempt; null or absent while this is the latest attempt in the candidate lineage.
+        external_execution_id:
+          type: string
+          nullable: true
+          description: Safe provider execution identifier; provider credentials are never included.
+        next_attempt_at:
+          type: string
+          format: date-time
+        error:
+          $ref: '#/components/schemas/ProblemDetails'
+        outputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratedOutput'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    TryOnJob:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - person_asset_ids
+        - garment_asset_id
+        - mode
+        - generation_options
+        - state
+        - provider_config_ref
+        - provider_snapshot
+        - items
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        person_asset_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Identifier'
+        garment_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        mask_asset_id:
+          type: string
+          format: uuid
+        related_job_id:
+          type: string
+          format: uuid
+        mode:
+          $ref: '#/components/schemas/TryOnMode'
+        generation_options:
+          $ref: '#/components/schemas/GenerationOptions'
+        state:
+          $ref: '#/components/schemas/JobState'
+        block_reason:
+          $ref: '#/components/schemas/JobBlockReason'
+        blocked_detail:
+          type: string
+          nullable: true
+        next_attempt_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Earliest UTC time the scheduler may continue this job after transient backoff or storage-capacity recovery; null when nothing is waiting.
+        provider_config_ref:
+          $ref: '#/components/schemas/ProviderConfigRef'
+        provider_snapshot:
+          $ref: '#/components/schemas/ProviderSnapshot'
+        workflow_version_ref:
+          $ref: '#/components/schemas/WorkflowVersionRef'
+        workflow_snapshot:
+          $ref: '#/components/schemas/VersionSnapshot'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobItem'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    JobPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TryOnJob'
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+    CreateJobRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - person_asset_ids
+        - garment_asset_id
+        - provider_id
+        - mode
+        - generation_options
+      properties:
+        person_asset_ids:
+          type: array
+          minItems: 1
+          maxItems: 1
+          description: V1 submits one person asset while preserving the future-safe list shape.
+          items:
+            $ref: '#/components/schemas/Identifier'
+        garment_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        mask_asset_id:
+          type: string
+          format: uuid
+        provider_id:
+          $ref: '#/components/schemas/Identifier'
+        mode:
+          $ref: '#/components/schemas/TryOnMode'
+        generation_options:
+          $ref: '#/components/schemas/GenerationOptions'
+        related_job_id:
+          type: string
+          format: uuid
+          description: Links a mask-correction job to the original job without overwriting it.
+    JobCommandResult:
+      type: object
+      additionalProperties: false
+      required:
+        - job
+      properties:
+        job:
+          $ref: '#/components/schemas/TryOnJob'
+        created_job_item_id:
+          type: string
+          format: uuid
+    RetryJobItemRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        provider_id:
+          type: string
+          format: uuid
+          description: Explicit compatible provider selection when the locked provider cannot be reused.
+        reason:
+          type: string
+          nullable: true
+    FinishFailedRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    ProviderType:
+      type: string
+      enum:
+        - llm_image_edit
+        - comfyui
+        - unknown
+    ProviderAvailability:
+      type: string
+      enum:
+        - available
+        - temporarily_offline
+        - unavailable_configuration
+        - disabled
+        - unknown
     ProviderSummary:
       type: object
       additionalProperties: false
@@ -3173,6 +3245,167 @@ components:
             updated_at: '2026-09-24T06:01:00Z'
         created_at: '2026-09-24T06:00:00Z'
         updated_at: '2026-09-24T06:01:00Z'
+    ProviderNotUsable:
+      summary: Job creation rejected because the provider is disabled or incompatible
+      value:
+        type: https://clothes-model.local/problems/provider-not-usable
+        title: 无法使用该 Provider
+        status: 409
+        code: provider_not_usable
+        detail: 所选 Provider 未启用或能力不兼容，请选择其他可用 Provider。
+        trace_id: tr_01K5PROVIDER
+        retryable: false
+        field_errors: []
+        context: {}
+    QueuedStorageBlocked:
+      summary: Persisted job stays queued with a storage-capacity block until capacity recovers
+      value:
+        id: 01992b5a-0000-7000-8000-000000000004
+        person_asset_ids:
+          - 01992b5a-0000-7000-8000-000000000101
+        garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+        mode: precise_try_on
+        generation_options:
+          candidate_count: 1
+          seed: null
+          advanced_parameters: {}
+        state: queued
+        block_reason: storage_capacity
+        blocked_detail: 存储空间不足，已持久化任务将在空间释放后自动继续。
+        next_attempt_at: '2026-09-27T06:05:00Z'
+        provider_config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        provider_snapshot:
+          label: Image Edit Provider · model-a
+          adapter_type: llm_image_edit
+          model: model-a
+          semantic_parameters:
+            num_inference_steps: 30
+          capabilities_schema_version: 1
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000305
+            job_id: 01992b5a-0000-7000-8000-000000000004
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 0
+            state: queued
+            block_reason: storage_capacity
+            attempt: 1
+            next_attempt_at: '2026-09-27T06:05:00Z'
+            outputs: []
+            created_at: '2026-09-27T06:00:00Z'
+            updated_at: '2026-09-27T06:04:00Z'
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:04:00Z'
+    Running:
+      summary: Candidate is executing at the provider and can still be cancelled
+      value:
+        id: 01992b5a-0000-7000-8000-000000000005
+        person_asset_ids:
+          - 01992b5a-0000-7000-8000-000000000101
+        garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+        mode: precise_try_on
+        generation_options:
+          candidate_count: 1
+          seed: null
+          advanced_parameters: {}
+        state: running
+        provider_config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        provider_snapshot:
+          label: ComfyUI · precise-vton
+          adapter_type: comfyui
+          model: precise-vton
+          semantic_parameters:
+            steps: 25
+          capabilities_schema_version: 1
+        workflow_version_ref:
+          workflow_id: precise-vton
+          workflow_version_id: 01992b5a-0000-7000-8000-000000000203
+          version: 2
+        workflow_snapshot:
+          label: precise-vton v2
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000306
+            job_id: 01992b5a-0000-7000-8000-000000000005
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 0
+            state: running
+            attempt: 1
+            external_execution_id: comfy-prompt-safe-id
+            outputs: []
+            created_at: '2026-09-27T06:00:00Z'
+            updated_at: '2026-09-27T06:02:00Z'
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:02:00Z'
+    Succeeded:
+      summary: Every candidate succeeded with a private generated output
+      value:
+        id: 01992b5a-0000-7000-8000-000000000006
+        person_asset_ids:
+          - 01992b5a-0000-7000-8000-000000000101
+        garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+        mode: precise_try_on
+        generation_options:
+          candidate_count: 2
+          seed: 42
+          advanced_parameters: {}
+        state: succeeded
+        provider_config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        provider_snapshot:
+          label: Image Edit Provider · model-a
+          adapter_type: llm_image_edit
+          model: model-a
+          semantic_parameters:
+            num_inference_steps: 30
+          capabilities_schema_version: 1
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000307
+            job_id: 01992b5a-0000-7000-8000-000000000006
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 0
+            state: succeeded
+            attempt: 1
+            external_execution_id: safe-execution-1
+            outputs:
+              - id: 01992b5a-0000-7000-8000-000000000501
+                job_item_id: 01992b5a-0000-7000-8000-000000000307
+                asset_id: 01992b5a-0000-7000-8000-000000000502
+                favorite: false
+                content_available: true
+                seed: 42
+                actual_parameters: {}
+                quality_warnings: []
+                created_at: '2026-09-27T06:05:00Z'
+            created_at: '2026-09-27T06:00:00Z'
+            updated_at: '2026-09-27T06:05:00Z'
+          - id: 01992b5a-0000-7000-8000-000000000308
+            job_id: 01992b5a-0000-7000-8000-000000000006
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 1
+            state: succeeded
+            attempt: 1
+            external_execution_id: safe-execution-2
+            outputs:
+              - id: 01992b5a-0000-7000-8000-000000000503
+                job_item_id: 01992b5a-0000-7000-8000-000000000308
+                asset_id: 01992b5a-0000-7000-8000-000000000504
+                favorite: false
+                content_available: true
+                seed: 42
+                actual_parameters: {}
+                quality_warnings: []
+                created_at: '2026-09-27T06:05:00Z'
+            created_at: '2026-09-27T06:00:00Z'
+            updated_at: '2026-09-27T06:05:00Z'
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:05:00Z'
     PartiallySucceeded:
       summary: Successful output is retained while another candidate failed
       value:
@@ -3275,6 +3508,174 @@ components:
             updated_at: '2026-09-24T06:08:00Z'
         created_at: '2026-09-24T06:00:00Z'
         updated_at: '2026-09-24T06:08:00Z'
+    Cancelled:
+      summary: Whole-job cancel with no successful candidate
+      value:
+        id: 01992b5a-0000-7000-8000-000000000007
+        person_asset_ids:
+          - 01992b5a-0000-7000-8000-000000000101
+        garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+        mode: precise_try_on
+        generation_options:
+          candidate_count: 2
+          seed: null
+          advanced_parameters: {}
+        state: cancelled
+        provider_config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        provider_snapshot:
+          label: ComfyUI · precise-vton
+          adapter_type: comfyui
+          model: precise-vton
+          capabilities_schema_version: 1
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000309
+            job_id: 01992b5a-0000-7000-8000-000000000007
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 0
+            state: cancelled
+            attempt: 1
+            outputs: []
+            created_at: '2026-09-27T06:00:00Z'
+            updated_at: '2026-09-27T06:03:00Z'
+          - id: 01992b5a-0000-7000-8000-000000000310
+            job_id: 01992b5a-0000-7000-8000-000000000007
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 1
+            state: cancelled
+            attempt: 1
+            outputs: []
+            created_at: '2026-09-27T06:00:00Z'
+            updated_at: '2026-09-27T06:03:00Z'
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:03:00Z'
+    RetryLineage:
+      summary: A failed attempt is retained and superseded by a newer successful retry
+      value:
+        id: 01992b5a-0000-7000-8000-000000000008
+        person_asset_ids:
+          - 01992b5a-0000-7000-8000-000000000101
+        garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+        mode: precise_try_on
+        generation_options:
+          candidate_count: 1
+          seed: 42
+          advanced_parameters: {}
+        state: succeeded
+        provider_config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000202
+          revision: 3
+        provider_snapshot:
+          label: Image Edit Provider · model-a
+          adapter_type: llm_image_edit
+          model: model-a
+          capabilities_schema_version: 1
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000311
+            job_id: 01992b5a-0000-7000-8000-000000000008
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 0
+            state: failed
+            attempt: 1
+            superseded_by_job_item_id: 01992b5a-0000-7000-8000-000000000312
+            external_execution_id: safe-execution-old
+            error:
+              type: https://clothes-model.local/problems/provider-retry-exhausted
+              title: 生成失败
+              status: 502
+              code: provider_retry_exhausted
+              detail: 临时故障重试次数已耗尽，可单独重试此候选。
+              trace_id: tr_01K5RETRYOLD
+              retryable: true
+              field_errors: []
+              context: {}
+            outputs: []
+            created_at: '2026-09-27T06:00:00Z'
+            updated_at: '2026-09-27T06:06:00Z'
+          - id: 01992b5a-0000-7000-8000-000000000312
+            job_id: 01992b5a-0000-7000-8000-000000000008
+            person_asset_id: 01992b5a-0000-7000-8000-000000000101
+            candidate_index: 0
+            state: succeeded
+            attempt: 2
+            retry_of_job_item_id: 01992b5a-0000-7000-8000-000000000311
+            external_execution_id: safe-execution-retry
+            outputs:
+              - id: 01992b5a-0000-7000-8000-000000000505
+                job_item_id: 01992b5a-0000-7000-8000-000000000312
+                asset_id: 01992b5a-0000-7000-8000-000000000506
+                favorite: false
+                content_available: true
+                seed: 42
+                actual_parameters: {}
+                quality_warnings: []
+                created_at: '2026-09-27T06:10:00Z'
+            created_at: '2026-09-27T06:06:00Z'
+            updated_at: '2026-09-27T06:10:00Z'
+        created_at: '2026-09-27T06:00:00Z'
+        updated_at: '2026-09-27T06:10:00Z'
+    JobStateConflict:
+      summary: Job command rejected by the current item or aggregate state
+      value:
+        type: https://clothes-model.local/problems/job-state-conflict
+        title: 任务状态冲突
+        status: 409
+        code: job_state_conflict
+        detail: 当前任务或候选状态不允许执行该操作，请刷新后重试。
+        trace_id: tr_01K5JOBSTATE
+        retryable: false
+        field_errors: []
+        context: {}
+    RetryCommandResult:
+      summary: Retry created a new traceable attempt and recalculated the aggregate
+      value:
+        job:
+          id: 01992b5a-0000-7000-8000-000000000009
+          person_asset_ids:
+            - 01992b5a-0000-7000-8000-000000000101
+          garment_asset_id: 01992b5a-0000-7000-8000-000000000102
+          mode: precise_try_on
+          generation_options:
+            candidate_count: 1
+            seed: 42
+            advanced_parameters: {}
+          state: queued
+          provider_config_ref:
+            provider_id: 01992b5a-0000-7000-8000-000000000201
+            config_version_id: 01992b5a-0000-7000-8000-000000000202
+            revision: 3
+          provider_snapshot:
+            label: Image Edit Provider · model-a
+            adapter_type: llm_image_edit
+            model: model-a
+            capabilities_schema_version: 1
+          items:
+            - id: 01992b5a-0000-7000-8000-000000000313
+              job_id: 01992b5a-0000-7000-8000-000000000009
+              person_asset_id: 01992b5a-0000-7000-8000-000000000101
+              candidate_index: 0
+              state: failed
+              attempt: 1
+              superseded_by_job_item_id: 01992b5a-0000-7000-8000-000000000314
+              outputs: []
+              created_at: '2026-09-27T06:00:00Z'
+              updated_at: '2026-09-27T06:06:00Z'
+            - id: 01992b5a-0000-7000-8000-000000000314
+              job_id: 01992b5a-0000-7000-8000-000000000009
+              person_asset_id: 01992b5a-0000-7000-8000-000000000101
+              candidate_index: 0
+              state: queued
+              attempt: 2
+              retry_of_job_item_id: 01992b5a-0000-7000-8000-000000000313
+              outputs: []
+              created_at: '2026-09-27T06:11:00Z'
+              updated_at: '2026-09-27T06:11:00Z'
+          created_at: '2026-09-27T06:00:00Z'
+          updated_at: '2026-09-27T06:11:00Z'
+        created_job_item_id: 01992b5a-0000-7000-8000-000000000314
     AvailableProviderPage:
       summary: Available ComfyUI provider with a verified capability snapshot
       value:
@@ -3348,6 +3749,156 @@ components:
                 max_candidates: 4
         next_cursor: null
         has_more: false
+    TemporarilyOfflineProviderPage:
+      summary: Provider temporarily offline and unavailable for new jobs until recovery
+      value:
+        items:
+          - id: 01992b5a-0000-7000-8000-000000000220
+            display_name: ComfyUI · node-b
+            type: comfyui
+            availability: temporarily_offline
+            unavailable_reason: AutoDL 节点离线，等待节点恢复后自动继续。
+            is_default: false
+            config_ref:
+              provider_id: 01992b5a-0000-7000-8000-000000000220
+              config_version_id: 01992b5a-0000-7000-8000-000000000221
+              revision: 1
+            capabilities:
+              schema_version: 1
+              garment_categories:
+                values:
+                  - upper_body
+                  - lower_body
+                  - dress
+                source: workflow_declared
+                verification: verified
+              manual_mask:
+                supported: true
+                source: workflow_declared
+                verification: verified
+              multiple_candidates:
+                supported: true
+                source: derived
+                verification: verified
+              multi_person_reference:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              batch_input:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              interrupt_running:
+                supported: true
+                source: adapter
+                verification: verified
+              sequential_layering:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              supported_layer_roles:
+                values: []
+                source: workflow_declared
+                verification: declared
+              preserve_existing_garments:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              outfit_context:
+                supported: false
+                source: workflow_declared
+                verification: declared
+              region_mask:
+                supported: true
+                source: workflow_declared
+                verification: verified
+              input_constraints:
+                content_types:
+                  - image/jpeg
+                  - image/png
+                max_size_bytes: 20971520
+                max_width: 4096
+                max_height: 4096
+              output_constraints:
+                max_candidates: 4
+        next_cursor: null
+        has_more: false
+    RedactedProviderConfig:
+      summary: Admin-facing provider configuration that never returns the secret value
+      value:
+        id: 01992b5a-0000-7000-8000-000000000201
+        display_name: Image Edit Provider · model-a
+        type: llm_image_edit
+        adapter_type: openai_image_edit
+        endpoint: https://provider.internal/v1
+        model: model-a
+        timeout_seconds: 120
+        state: active
+        secret_configured: true
+        secret_updated_at: '2026-09-27T02:00:00Z'
+        config_ref:
+          provider_id: 01992b5a-0000-7000-8000-000000000201
+          config_version_id: 01992b5a-0000-7000-8000-000000000210
+          revision: 4
+        capabilities:
+          schema_version: 1
+          garment_categories:
+            values:
+              - upper_body
+              - lower_body
+              - dress
+            source: adapter
+            verification: verified
+          manual_mask:
+            supported: true
+            source: adapter
+            verification: verified
+          multiple_candidates:
+            supported: true
+            source: adapter
+            verification: verified
+          multi_person_reference:
+            supported: false
+            source: adapter
+            verification: declared
+          batch_input:
+            supported: false
+            source: adapter
+            verification: declared
+          interrupt_running:
+            supported: false
+            source: adapter
+            verification: declared
+          sequential_layering:
+            supported: false
+            source: adapter
+            verification: declared
+          supported_layer_roles:
+            values: []
+            source: adapter
+            verification: declared
+          preserve_existing_garments:
+            supported: false
+            source: adapter
+            verification: declared
+          outfit_context:
+            supported: false
+            source: adapter
+            verification: declared
+          region_mask:
+            supported: true
+            source: adapter
+            verification: verified
+          input_constraints:
+            content_types:
+              - image/jpeg
+              - image/png
+            max_size_bytes: 20971520
+            max_width: 4096
+            max_height: 4096
+          output_constraints:
+            max_candidates: 4
+        updated_at: '2026-09-27T02:00:00Z'
     Blocked:
       summary: Storage blocks new uploads and jobs
       value:
