@@ -12,10 +12,21 @@ from clothes_model.modules.jobs.domain.models import (
     JobState,
     TryOnMode,
 )
+from clothes_model.modules.jobs.domain.state import (
+    ACTIVE_ITEM_STATES,
+    IllegalJobTransition,
+    aggregate_state,
+    assert_transition,
+    backoff_seconds,
+    can_transition,
+    is_terminal,
+)
 
 __all__ = [
+    "ACTIVE_ITEM_STATES",
     "TERMINAL_JOB_ITEM_STATES",
     "GeneratedOutputRecord",
+    "IllegalJobTransition",
     "Job",
     "JobBlockReason",
     "JobExecutionEvent",
@@ -24,4 +35,9 @@ __all__ = [
     "JobPersonInput",
     "JobState",
     "TryOnMode",
+    "aggregate_state",
+    "assert_transition",
+    "backoff_seconds",
+    "can_transition",
+    "is_terminal",
 ]
