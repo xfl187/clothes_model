@@ -211,6 +211,34 @@ def test_retry_creates_traceable_new_attempt(tmp_path: Path) -> None:
         assert conflict.status_code == 200
 
 
+def test_admin_diagnostics_are_redacted(tmp_path: Path) -> None:
+    database_path = tmp_path / "diagnostics.db"
+    database_url = f"sqlite+aiosqlite:///{database_path.as_posix()}"
+    upgrade_database(database_url, tmp_path / "migration.lock")
+    tokens = _bootstrap(database_url)
+    seeded = _seed(database_url, 1)
+
+    with _client(database_url, tmp_path) as client:
+        job = _create_job(client, tokens["app"], seeded, 1)
+        login = client.post(
+            "/api/v1/admin/auth/session", json={"admin_token": tokens["admin"]}
+        )
+        assert login.status_code == 201
+
+        listing = client.get("/api/v1/admin/diagnostics/jobs")
+        assert listing.status_code == 200
+        item = listing.json()["items"][0]
+        assert item["job_id"] == job["id"]
+        assert item["provider_label"]
+
+        detail = client.get(f"/api/v1/admin/diagnostics/jobs/{job['id']}")
+        assert detail.status_code == 200
+        serialized = detail.text
+        assert tokens["admin"] not in serialized
+        assert job["provider_snapshot"]["semantic_parameters"] is not None
+        assert "redacted_external_events" in detail.json()
+
+
 def test_requery_and_finish_failed_on_needs_attention(tmp_path: Path) -> None:
     database_path = tmp_path / "requery.db"
     database_url = f"sqlite+aiosqlite:///{database_path.as_posix()}"

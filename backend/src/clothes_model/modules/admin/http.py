@@ -1,7 +1,10 @@
+import json
 import shutil
-from typing import Annotated
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, select
 
 from clothes_model.core.problems import AppProblem
@@ -10,6 +13,7 @@ from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.infrastructure.database import models as db
 from clothes_model.modules._stub import StubRoute, add_stub_routes
 from clothes_model.modules.auth.http import AdminIdentity, require_admin
+from clothes_model.modules.jobs.payloads import job_payload
 from clothes_model.modules.providers.application.services import ProviderConfigService
 from clothes_model.modules.providers.domain import ProviderError
 
@@ -26,6 +30,15 @@ def _provider_service(request: Request) -> ProviderConfigService:
 
 def _default_problem(code: str, detail: str) -> AppProblem:
     return AppProblem(409, code, "默认 Provider 无法更新", detail)
+
+
+def _provider_label(snapshot_json: str) -> str:
+    decoded: object = json.loads(snapshot_json or "{}")
+    if isinstance(decoded, dict):
+        label = cast(Mapping[str, object], decoded).get("label")
+        if isinstance(label, str):
+            return label
+    return "Provider"
 
 
 @router.get(
@@ -97,10 +110,66 @@ add_stub_routes(
         StubRoute("/api/v1/admin/configuration/retention", "GET", "getRetentionPolicy"),
         StubRoute("/api/v1/admin/configuration/retention", "PUT", "updateRetentionPolicy"),
         StubRoute("/api/v1/admin/storage/scan", "POST", "scanStorage"),
-        StubRoute("/api/v1/admin/diagnostics/jobs", "GET", "listDiagnosticJobs"),
-        StubRoute("/api/v1/admin/diagnostics/jobs/{job_id}", "GET", "getDiagnosticJob"),
     ),
 )
+
+
+@router.get("/api/v1/admin/diagnostics/jobs", operation_id="listDiagnosticJobs")
+async def list_diagnostic_jobs(
+    request: Request,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+    limit: int = Query(50, ge=1, le=100),
+    state: str | None = None,
+) -> dict[str, object]:
+    del identity
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        jobs = await uow.jobs.list_jobs(state=state, limit=limit)
+        items: list[dict[str, object]] = []
+        for job in jobs:
+            items_count = len(await uow.jobs.list_items(job.id))
+            items.append(
+                {
+                    "job_id": job.id,
+                    "state": job.state,
+                    "provider_label": _provider_label(job.provider_snapshot_json),
+                    "item_count": max(1, items_count),
+                    "updated_at": job.updated_at,
+                }
+            )
+    return {
+        "items": items,
+        "next_cursor": None,
+        "has_more": False,
+        "snapshot_at": datetime.now(UTC),
+    }
+
+
+@router.get("/api/v1/admin/diagnostics/jobs/{job_id}", operation_id="getDiagnosticJob")
+async def get_diagnostic_job(
+    request: Request,
+    job_id: str,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+) -> dict[str, object]:
+    del identity
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        job = await uow.jobs.get_job(job_id)
+        if job is None:
+            raise AppProblem(404, "not_found", "任务不存在", "诊断对象不存在。")
+        payload = await job_payload(uow, job)
+        events = await uow.job_events.list_events(job_id)
+        redacted = [
+            {
+                "at": event.occurred_at,
+                "category": event.event_type,
+                "conclusion": event.to_state or "recorded",
+            }
+            for event in events
+        ]
+    return {
+        "job": payload,
+        "snapshot_at": datetime.now(UTC),
+        "redacted_external_events": redacted,
+    }
 
 
 @router.get("/api/v1/admin/storage", operation_id="getStorageStatus")

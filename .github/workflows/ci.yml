@@ -155,6 +155,19 @@ jobs:
           mkdir -p reports
           uv run pytest --junitxml=reports/pytest.xml 2>&1 | tee artifacts/backend-test.log
 
+      - name: Phase 3 verification
+        working-directory: backend
+        run: |
+          uv run pytest \
+            tests/test_phase3_persistence.py \
+            tests/test_job_state_machine.py \
+            tests/test_provider_contract.py \
+            tests/test_provider_config_http.py \
+            tests/test_jobs_http.py \
+            tests/test_scheduler_execution.py \
+            tests/test_job_commands.py \
+            -q 2>&1 | tee artifacts/backend-phase3.log
+
       - name: Build wheel and source distribution
         working-directory: backend
         run: uv build --out-dir artifacts/dist 2>&1 | tee artifacts/backend-build.log
