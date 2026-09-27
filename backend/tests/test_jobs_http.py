@@ -1,0 +1,233 @@
+import asyncio
+from datetime import UTC, datetime
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi.testclient import TestClient
+
+from clothes_model.api.application import create_app
+from clothes_model.core.config import Settings
+from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork, create_database_runtime
+from clothes_model.infrastructure.database.migrations import upgrade_database
+from clothes_model.modules.assets.domain import Asset, GarmentMetadata, PersonMetadata, StoredObject
+from clothes_model.modules.auth.application import TokenService
+from clothes_model.modules.providers.domain import (
+    ProviderCapabilities,
+    ProviderConfig,
+    ProviderConfigRevision,
+)
+
+
+def _now() -> datetime:
+    return datetime(2026, 9, 27, 12, 0, tzinfo=UTC)
+
+
+def _bootstrap_tokens(database_url: str) -> dict[str, str]:
+    async def run() -> dict[str, str]:
+        runtime = create_database_runtime(database_url, 5000)
+        try:
+            service = TokenService(lambda: SqlAlchemyUnitOfWork(runtime.sessions))
+            return {item.scope: item.value for item in await service.bootstrap()}
+        finally:
+            await runtime.close()
+
+    return asyncio.run(run())
+
+
+def _seed(database_url: str, provider_id: str, scenario: str, state: str) -> dict[str, str]:
+    person_id, garment_id = str(uuid4()), str(uuid4())
+    person_object_id, garment_object_id = str(uuid4()), str(uuid4())
+    provider_revision_id = str(uuid4())
+
+    async def run() -> None:
+        runtime = create_database_runtime(database_url, 5000)
+        try:
+            async with SqlAlchemyUnitOfWork(runtime.sessions) as uow:
+                await uow.stored_objects.add(
+                    StoredObject(
+                        id=person_object_id,
+                        sha256="b" * 64,
+                        relative_path="objects/bb/person",
+                        content_type="image/jpeg",
+                        size_bytes=128,
+                        width=16,
+                        height=8,
+                        state="available",
+                        asset_ref_count=0,
+                        created_at=_now(),
+                    )
+                )
+                await uow.stored_objects.add(
+                    StoredObject(
+                        id=garment_object_id,
+                        sha256="c" * 64,
+                        relative_path="objects/cc/garment",
+                        content_type="image/jpeg",
+                        size_bytes=128,
+                        width=16,
+                        height=8,
+                        state="available",
+                        asset_ref_count=0,
+                        created_at=_now(),
+                    )
+                )
+                await uow.assets.add(
+                    Asset(
+                        id=person_id,
+                        kind="person",
+                        stored_object_id=person_object_id,
+                        favorite=False,
+                        content_state="available",
+                        created_at=_now(),
+                        updated_at=_now(),
+                        person=PersonMetadata(asset_id=person_id),
+                    )
+                )
+                await uow.assets.add(
+                    Asset(
+                        id=garment_id,
+                        kind="garment",
+                        stored_object_id=garment_object_id,
+                        favorite=False,
+                        content_state="available",
+                        created_at=_now(),
+                        updated_at=_now(),
+                        garment=GarmentMetadata(
+                            asset_id=garment_id, category="upper_body", source="photo"
+                        ),
+                    )
+                )
+                await uow.provider_configs.add_config(
+                    ProviderConfig(
+                        id=provider_id,
+                        display_name="Fake Provider",
+                        provider_type="llm_image_edit",
+                        state=state,  # type: ignore[arg-type]
+                        created_at=_now(),
+                        updated_at=_now(),
+                    )
+                )
+                await uow.provider_configs.add_revision(
+                    ProviderConfigRevision(
+                        id=provider_revision_id,
+                        provider_id=provider_id,
+                        revision=1,
+                        adapter_type="fake_image_edit",
+                        endpoint="https://fake.local",
+                        model="fake-model",
+                        timeout_seconds=30,
+                        capabilities_json=ProviderCapabilities(
+                            manual_mask=True, region_mask=True
+                        ).to_json(),
+                        vendor_parameters_json='{"scenario":"' + scenario + '"}',
+                        created_at=_now(),
+                    )
+                )
+                await uow.commit()
+        finally:
+            await runtime.close()
+
+    asyncio.run(run())
+    return {"person": person_id, "garment": garment_id}
+
+
+def _job_body(seeded: dict[str, str], provider_id: str, candidates: int = 2) -> dict[str, object]:
+    return {
+        "person_asset_ids": [seeded["person"]],
+        "garment_asset_id": seeded["garment"],
+        "provider_id": provider_id,
+        "mode": "precise_try_on",
+        "generation_options": {"candidate_count": candidates},
+    }
+
+
+def _client(database_url: str, tmp_path: Path) -> TestClient:
+    settings = Settings(
+        environment="test",
+        database_url=database_url,
+        instance_lock_path=tmp_path / "instance.lock",
+        storage_root=tmp_path / "storage",
+        admin_session_cookie_secure=False,
+    )
+    return TestClient(create_app(settings))
+
+
+def test_job_creation_idempotency_queries_and_validation(tmp_path: Path) -> None:
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'jobs.db').as_posix()}"
+    upgrade_database(database_url, tmp_path / "migration.lock")
+    tokens = _bootstrap_tokens(database_url)
+    provider_id = str(uuid4())
+    seeded = _seed(database_url, provider_id, "success", "active")
+    headers = {"Authorization": f"Bearer {tokens['app']}", "Idempotency-Key": "job-create-key-0001"}
+
+    with _client(database_url, tmp_path) as client:
+        created = client.post("/api/v1/jobs", json=_job_body(seeded, provider_id), headers=headers)
+        assert created.status_code == 201, created.text
+        job = created.json()
+        assert job["state"] == "queued"
+        assert len(job["items"]) == 2
+        assert job["provider_config_ref"]["revision"] == 1
+        assert job["provider_snapshot"]["adapter_type"] == "fake_image_edit"
+        assert job["provider_snapshot"]["capabilities"]["manual_mask"]["supported"] is True
+        job_id = job["id"]
+
+        replay = client.post("/api/v1/jobs", json=_job_body(seeded, provider_id), headers=headers)
+        assert replay.status_code == 201 and replay.json()["id"] == job_id
+
+        conflict = client.post(
+            "/api/v1/jobs", json=_job_body(seeded, provider_id, candidates=1), headers=headers
+        )
+        assert conflict.status_code == 409
+
+        fetched = client.get(
+            f"/api/v1/jobs/{job_id}", headers={"Authorization": f"Bearer {tokens['app']}"}
+        )
+        assert fetched.status_code == 200 and fetched.json()["id"] == job_id
+
+        page = client.get(
+            "/api/v1/jobs", headers={"Authorization": f"Bearer {tokens['app']}"}
+        )
+        assert page.status_code == 200 and page.json()["has_more"] is False
+        assert [item["id"] for item in page.json()["items"]] == [job_id]
+
+        item_id = job["items"][0]["id"]
+        item = client.get(
+            f"/api/v1/job-items/{item_id}", headers={"Authorization": f"Bearer {tokens['app']}"}
+        )
+        assert item.status_code == 200 and item.json()["job_id"] == job_id
+
+        missing = client.post(
+            "/api/v1/jobs",
+            json={
+                **_job_body(seeded, provider_id),
+                "garment_asset_id": str(uuid4()),
+            },
+            headers={**headers, "Idempotency-Key": "job-create-key-0002"},
+        )
+        assert missing.status_code == 422
+
+        unusable = client.post(
+            "/api/v1/jobs",
+            json=_job_body(seeded, str(uuid4())),
+            headers={**headers, "Idempotency-Key": "job-create-key-0003"},
+        )
+        assert unusable.status_code == 409
+
+
+def test_offline_provider_creates_waiting_job(tmp_path: Path) -> None:
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'offline.db').as_posix()}"
+    upgrade_database(database_url, tmp_path / "migration.lock")
+    tokens = _bootstrap_tokens(database_url)
+    provider_id = str(uuid4())
+    seeded = _seed(database_url, provider_id, "offline", "active")
+    headers = {"Authorization": f"Bearer {tokens['app']}", "Idempotency-Key": "job-offline-key-001"}
+
+    with _client(database_url, tmp_path) as client:
+        created = client.post(
+            "/api/v1/jobs", json=_job_body(seeded, provider_id, 1), headers=headers
+        )
+        assert created.status_code == 201, created.text
+        job = created.json()
+        assert job["state"] == "waiting_provider"
+        assert job["block_reason"] == "provider_offline"
+        assert job["items"][0]["state"] == "waiting_provider"
