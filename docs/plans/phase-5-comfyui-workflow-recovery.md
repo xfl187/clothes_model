@@ -6,10 +6,11 @@
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Task 1: COMPLETE (contract, ADR, generated clients, and boundary verification)
-- Tasks 2–10: NOT STARTED
+- Task 2: COMPLETE (persistence, repositories, logical Provider bootstrap, and migration)
+- Tasks 3–10: NOT STARTED
 - Prerequisite: Phase 4 complete with credentialed real-Provider acceptance
-- Last verified: 2026-09-28 with `verify-contract.ps1` and `verify-generated.ps1`
-- Next action: review Task 1, then implement Task 2 — add Phase 5 persistence and migration
+- Last verified: 2026-09-28 with contract/generated gates plus 68 Backend tests, Ruff, and Pyright
+- Next action: implement Task 3 — secure singleton Comfy node configuration and health probing
 
 ## Goal
 
@@ -181,7 +182,7 @@ Dependencies and parallelization:
 - No implementation dependency beyond completed Phase 4.
 - Must complete before database/API/runtime tasks. Review the ADR and generated diff before Task 2.
 
-### Task 2 — Add Comfy node and Workflow persistence with reversible migration
+### Task 2 — Add Comfy node and Workflow persistence with reversible migration — COMPLETE
 
 Affected:
 

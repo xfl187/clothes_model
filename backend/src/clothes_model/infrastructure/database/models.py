@@ -382,6 +382,107 @@ provider_default_selection = Table(
     CheckConstraint("id = 'default'", name="singleton"),
 )
 
+comfy_node_config = Table(
+    "comfy_node_config",
+    metadata,
+    Column("id", String(16), primary_key=True),
+    Column("endpoint", String(512), nullable=False),
+    Column("credential_envelope", Text, nullable=True),
+    Column("credential_updated_at", utc_timestamp(), nullable=True),
+    Column("timeout_seconds", Integer, nullable=False),
+    Column("enabled", Boolean, nullable=False, server_default="0"),
+    Column("health_status", String(16), nullable=False, server_default="unchecked"),
+    Column("health_detail", String(500), nullable=True),
+    Column("observed_server_version", String(160), nullable=True),
+    Column("observed_capabilities_json", Text, nullable=False, server_default="{}"),
+    Column("last_checked_at", utc_timestamp(), nullable=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+    Column("updated_at", utc_timestamp(), nullable=False),
+    CheckConstraint("id = 'default'", name="singleton"),
+    CheckConstraint("timeout_seconds >= 1 AND timeout_seconds <= 300", name="timeout"),
+    CheckConstraint(
+        "health_status IN ('unchecked', 'healthy', 'offline', 'incompatible')",
+        name="health_status",
+    ),
+    CheckConstraint(
+        "(credential_envelope IS NULL AND credential_updated_at IS NULL) OR "
+        "(credential_envelope IS NOT NULL AND credential_updated_at IS NOT NULL)",
+        name="credential_pair",
+    ),
+)
+
+workflow_versions = Table(
+    "workflow_versions",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("workflow_id", String(36), nullable=False),
+    Column("version", Integer, nullable=False),
+    Column("mode", String(32), nullable=False),
+    Column("display_name", String(160), nullable=False),
+    Column("state", String(16), nullable=False),
+    Column("workflow_sha256", String(64), nullable=False),
+    Column("workflow_path", Text, nullable=False),
+    Column("manifest_sha256", String(64), nullable=False),
+    Column("manifest_path", Text, nullable=False),
+    Column("bindings_schema_version", String(32), nullable=False),
+    Column("manifest_json", Text, nullable=False),
+    Column("capabilities_json", Text, nullable=False),
+    Column("validation_json", Text, nullable=True),
+    Column("validated_at", utc_timestamp(), nullable=True),
+    Column("activated_at", utc_timestamp(), nullable=True),
+    Column("retired_at", utc_timestamp(), nullable=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+    UniqueConstraint("workflow_id", "version", name="uq_workflow_versions_identity"),
+    CheckConstraint("version >= 1", name="version"),
+    CheckConstraint("mode IN ('precise_try_on', 'unknown')", name="mode"),
+    CheckConstraint("state IN ('draft', 'active', 'retired')", name="state"),
+    CheckConstraint("length(workflow_sha256) = 64", name="workflow_sha256_length"),
+    CheckConstraint("length(manifest_sha256) = 64", name="manifest_sha256_length"),
+    CheckConstraint(
+        "(state = 'draft' AND activated_at IS NULL AND retired_at IS NULL) OR "
+        "(state = 'active' AND validated_at IS NOT NULL AND activated_at IS NOT NULL "
+        "AND retired_at IS NULL) OR "
+        "(state = 'retired' AND validated_at IS NOT NULL AND activated_at IS NOT NULL "
+        "AND retired_at IS NOT NULL)",
+        name="lifecycle",
+    ),
+)
+Index("ix_workflow_versions_workflow", workflow_versions.c.workflow_id, workflow_versions.c.version)
+Index(
+    "ux_workflow_versions_artifact_identity",
+    workflow_versions.c.workflow_sha256,
+    workflow_versions.c.manifest_sha256,
+    unique=True,
+)
+Index(
+    "ux_workflow_versions_active_mode",
+    workflow_versions.c.mode,
+    unique=True,
+    sqlite_where=text("state = 'active'"),
+)
+
+workflow_validation_runs = Table(
+    "workflow_validation_runs",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column(
+        "workflow_version_id",
+        String(36),
+        ForeignKey("workflow_versions.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("status", String(16), nullable=False),
+    Column("result_json", Text, nullable=False),
+    Column("checked_node_fingerprint", String(128), nullable=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+    CheckConstraint("status IN ('passed', 'failed', 'offline', 'incompatible')", name="status"),
+)
+Index(
+    "ix_workflow_validation_runs_version",
+    workflow_validation_runs.c.workflow_version_id,
+    workflow_validation_runs.c.created_at,
+)
+
 jobs_block_reason_values = (
     "'provider_offline', 'storage_capacity', 'retry_backoff', "
     "'locked_configuration_unavailable', 'external_state_unknown', "
@@ -429,7 +530,12 @@ jobs = Table(
         nullable=False,
     ),
     Column("provider_snapshot_json", Text, nullable=False),
-    Column("workflow_version_id", String(36), nullable=True),
+    Column(
+        "workflow_version_id",
+        String(36),
+        ForeignKey("workflow_versions.id", ondelete="RESTRICT"),
+        nullable=True,
+    ),
     Column("workflow_snapshot_json", Text, nullable=True),
     Column("next_attempt_at", utc_timestamp(), nullable=True),
     Column("created_at", utc_timestamp(), nullable=False),

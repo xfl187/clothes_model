@@ -19,5 +19,10 @@ add_stub_routes(
             "POST",
             "activateWorkflowVersion",
         ),
+        StubRoute(
+            "/api/v1/admin/workflows/{workflow_version_id}/retire",
+            "POST",
+            "retireWorkflowVersion",
+        ),
     ),
 )

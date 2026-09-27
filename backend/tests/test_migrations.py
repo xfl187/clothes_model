@@ -9,6 +9,7 @@ from clothes_model.infrastructure.database.migrations import alembic_config, upg
 BASELINE_REVISION = "20260924_0001"
 PHASE_2_REVISION = "20260926_0002"
 PHASE_3_REVISION = "20260927_0003"
+PHASE_5_REVISION = "20260928_0004"
 PHASE_2_TABLES = {
     "access_tokens",
     "admin_sessions",
@@ -32,6 +33,11 @@ PHASE_3_TABLES = PHASE_2_TABLES | {
     "provider_config_revisions",
     "provider_configs",
     "provider_default_selection",
+}
+PHASE_5_TABLES = PHASE_3_TABLES | {
+    "comfy_node_config",
+    "workflow_validation_runs",
+    "workflow_versions",
 }
 
 
@@ -62,17 +68,17 @@ def test_empty_database_upgrade_is_repeatable_and_reversible(tmp_path: Path) -> 
 
     upgrade_database(database_url, lock_path)
     upgrade_database(database_url, lock_path)
-    assert current_revision(database_path) == PHASE_3_REVISION
-    assert table_names(database_path) == PHASE_3_TABLES
+    assert current_revision(database_path) == PHASE_5_REVISION
+    assert table_names(database_path) == PHASE_5_TABLES
 
     config = alembic_config(database_url)
-    command.downgrade(config, PHASE_2_REVISION)
-    assert current_revision(database_path) == PHASE_2_REVISION
-    assert table_names(database_path) == PHASE_2_TABLES
-
-    command.upgrade(config, "head")
+    command.downgrade(config, PHASE_3_REVISION)
     assert current_revision(database_path) == PHASE_3_REVISION
     assert table_names(database_path) == PHASE_3_TABLES
+
+    command.upgrade(config, "head")
+    assert current_revision(database_path) == PHASE_5_REVISION
+    assert table_names(database_path) == PHASE_5_TABLES
 
 
 def test_phase_2_database_upgrades_to_phase_3_and_has_no_future_tables(
@@ -85,9 +91,9 @@ def test_phase_2_database_upgrades_to_phase_3_and_has_no_future_tables(
     assert current_revision(database_path) == PHASE_2_REVISION
     command.upgrade(config, "head")
 
-    assert current_revision(database_path) == PHASE_3_REVISION
+    assert current_revision(database_path) == PHASE_5_REVISION
     tables = table_names(database_path)
-    assert tables == PHASE_3_TABLES
+    assert tables == PHASE_5_TABLES
     assert not tables & {"outfit_sessions", "outfit_revisions", "outfit_layers"}
     command.check(config)
 
@@ -126,7 +132,7 @@ def test_phase_3_upgrade_preserves_phase_2_rows(tmp_path: Path) -> None:
         connection.commit()
 
     command.upgrade(config, "head")
-    assert current_revision(database_path) == PHASE_3_REVISION
+    assert current_revision(database_path) == PHASE_5_REVISION
 
     with sqlite3.connect(database_path) as connection:
         connection.execute("PRAGMA foreign_keys=ON")
@@ -158,6 +164,84 @@ def test_phase_3_upgrade_preserves_phase_2_rows(tmp_path: Path) -> None:
         "asset_references": 1,
     }
     assert ref_count == 1
+    assert violations == []
+
+
+def test_phase_5_upgrade_and_downgrade_preserve_phase_3_job_and_default(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "preserve-phase3.db"
+    config = alembic_config(sqlite_url(database_path))
+    command.upgrade(config, PHASE_3_REVISION)
+    timestamp = "2026-09-27 12:00:00.000000"
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute(
+            "INSERT INTO stored_objects (id, sha256, relative_path, content_type, "
+            "size_bytes, width, height, state, asset_ref_count, created_at) VALUES "
+            "('garment-object', ?, 'objects/aa/garment', 'image/jpeg', 128, 16, 8, "
+            "'available', 0, ?)",
+            ("a" * 64, timestamp),
+        )
+        connection.execute(
+            "INSERT INTO assets (id, kind, stored_object_id, favorite, content_state, "
+            "created_at, updated_at) VALUES ('garment-asset', 'garment', "
+            "'garment-object', 0, 'available', ?, ?)",
+            (timestamp, timestamp),
+        )
+        connection.execute(
+            "INSERT INTO garment_assets (asset_id, category, source) VALUES "
+            "('garment-asset', 'upper_body', 'photo')"
+        )
+        connection.execute(
+            "INSERT INTO provider_configs (id, display_name, provider_type, state, "
+            "created_at, updated_at) VALUES ('ark-provider', 'Ark', 'llm_image_edit', "
+            "'active', ?, ?)",
+            (timestamp, timestamp),
+        )
+        connection.execute(
+            "INSERT INTO provider_config_revisions (id, provider_id, revision, adapter_type, "
+            "endpoint, model, timeout_seconds, vendor_parameters_json, capabilities_json, "
+            "created_at) VALUES ('ark-revision', 'ark-provider', 1, 'volcengine_ark_seedream', "
+            "'https://ark.example/v1', 'seedream', 120, '{}', '{}', ?)",
+            (timestamp,),
+        )
+        connection.execute(
+            "INSERT INTO provider_default_selection (id, provider_id, config_revision_id, "
+            "updated_at) VALUES ('default', 'ark-provider', 'ark-revision', ?)",
+            (timestamp,),
+        )
+        connection.execute(
+            "INSERT INTO jobs (id, mode, state, candidate_count, advanced_parameters_json, "
+            "garment_asset_id, provider_id, provider_revision_id, provider_snapshot_json, "
+            "created_at, updated_at) VALUES ('job-1', 'precise_try_on', 'queued', 1, '{}', "
+            "'garment-asset', 'ark-provider', 'ark-revision', '{}', ?, ?)",
+            (timestamp, timestamp),
+        )
+        connection.commit()
+
+    command.upgrade(config, "head")
+    command.downgrade(config, PHASE_3_REVISION)
+    command.upgrade(config, "head")
+
+    with sqlite3.connect(database_path) as connection:
+        job = connection.execute(
+            "SELECT provider_id, provider_revision_id, workflow_version_id FROM jobs "
+            "WHERE id = 'job-1'"
+        ).fetchone()
+        selected = connection.execute(
+            "SELECT provider_id, config_revision_id FROM provider_default_selection "
+            "WHERE id = 'default'"
+        ).fetchone()
+        ark_count = connection.execute(
+            "SELECT COUNT(*) FROM provider_configs WHERE id = 'ark-provider'"
+        ).fetchone()[0]
+        violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+
+    assert job == ("ark-provider", "ark-revision", None)
+    assert selected == ("ark-provider", "ark-revision")
+    assert ark_count == 1
     assert violations == []
 
 

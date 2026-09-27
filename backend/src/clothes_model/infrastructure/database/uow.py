@@ -12,6 +12,7 @@ from clothes_model.infrastructure.database.repositories import (
     SqlAlchemyAssetReferenceRepository,
     SqlAlchemyAssetRepository,
     SqlAlchemyAuthThrottleRepository,
+    SqlAlchemyComfyNodeRepository,
     SqlAlchemyGeneratedOutputRepository,
     SqlAlchemyIdempotencyRepository,
     SqlAlchemyJobExecutionEventRepository,
@@ -20,6 +21,7 @@ from clothes_model.infrastructure.database.repositories import (
     SqlAlchemySecurityAuditRepository,
     SqlAlchemyStoredObjectRepository,
     SqlAlchemyUploadRepository,
+    SqlAlchemyWorkflowRepository,
 )
 
 
@@ -73,6 +75,14 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     @property
     def provider_configs(self) -> SqlAlchemyProviderConfigRepository:
         return SqlAlchemyProviderConfigRepository(self.session)
+
+    @property
+    def comfy_node(self) -> SqlAlchemyComfyNodeRepository:
+        return SqlAlchemyComfyNodeRepository(self.session)
+
+    @property
+    def workflows(self) -> SqlAlchemyWorkflowRepository:
+        return SqlAlchemyWorkflowRepository(self.session)
 
     @property
     def jobs(self) -> SqlAlchemyJobRepository:

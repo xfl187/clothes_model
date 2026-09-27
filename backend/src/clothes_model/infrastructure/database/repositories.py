@@ -27,6 +27,7 @@ from clothes_model.modules.auth.domain import (
     AuthThrottle,
     SecurityAuditEvent,
 )
+from clothes_model.modules.comfy.domain import ComfyNodeConfig
 from clothes_model.modules.jobs.domain import (
     GeneratedOutputRecord,
     Job,
@@ -39,6 +40,7 @@ from clothes_model.modules.providers.domain import (
     ProviderConfigRevision,
     ProviderDefaultSelection,
 )
+from clothes_model.modules.workflows.domain import WorkflowValidationRun, WorkflowVersion
 
 
 async def _insert(session: AsyncSession, table: Any, values: Mapping[str, object]) -> None:
@@ -380,6 +382,82 @@ class SqlAlchemyProviderConfigRepository:
 
     async def clear_default(self) -> None:
         await self._session.execute(delete(models.provider_default_selection))
+
+
+class SqlAlchemyComfyNodeRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get(self) -> ComfyNodeConfig | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.comfy_node_config).where(models.comfy_node_config.c.id == "default"),
+        )
+        return None if row is None else ComfyNodeConfig(**dict(row))
+
+    async def save(self, config: ComfyNodeConfig) -> None:
+        if config.id != "default":
+            raise PersistenceConflict("Comfy node configuration must use the singleton id")
+        existing = await self.get()
+        if existing is None:
+            await _insert(self._session, models.comfy_node_config, asdict(config))
+            return
+        await self._session.execute(
+            update(models.comfy_node_config)
+            .where(models.comfy_node_config.c.id == "default")
+            .values(**asdict(config))
+        )
+
+
+class SqlAlchemyWorkflowRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, workflow: WorkflowVersion) -> None:
+        await _insert(self._session, models.workflow_versions, asdict(workflow))
+
+    async def get(self, workflow_version_id: str) -> WorkflowVersion | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.workflow_versions).where(
+                models.workflow_versions.c.id == workflow_version_id
+            ),
+        )
+        return None if row is None else WorkflowVersion(**dict(row))
+
+    async def list_versions(self, workflow_id: str) -> list[WorkflowVersion]:
+        result = await self._session.execute(
+            select(models.workflow_versions)
+            .where(models.workflow_versions.c.workflow_id == workflow_id)
+            .order_by(models.workflow_versions.c.version)
+        )
+        return [WorkflowVersion(**dict(row)) for row in result.mappings().all()]
+
+    async def get_active(self, mode: str) -> WorkflowVersion | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.workflow_versions).where(
+                models.workflow_versions.c.mode == mode,
+                models.workflow_versions.c.state == "active",
+            ),
+        )
+        return None if row is None else WorkflowVersion(**dict(row))
+
+    async def update_lifecycle(self, workflow: WorkflowVersion) -> None:
+        await self._session.execute(
+            update(models.workflow_versions)
+            .where(models.workflow_versions.c.id == workflow.id)
+            .values(
+                state=workflow.state,
+                validation_json=workflow.validation_json,
+                validated_at=workflow.validated_at,
+                activated_at=workflow.activated_at,
+                retired_at=workflow.retired_at,
+            )
+        )
+
+    async def add_validation(self, run: WorkflowValidationRun) -> None:
+        await _insert(self._session, models.workflow_validation_runs, asdict(run))
 
 
 class SqlAlchemyJobRepository:
