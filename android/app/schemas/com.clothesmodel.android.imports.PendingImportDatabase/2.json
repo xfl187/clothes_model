@@ -1,0 +1,87 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "8fdc9d563f87b59bacc548e2ca4e01e9",
+    "entities": [
+      {
+        "tableName": "pending_imports",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `stagedPath` TEXT NOT NULL, `displayName` TEXT NOT NULL, `contentType` TEXT NOT NULL, `assetKind` TEXT NOT NULL, `uploadId` TEXT, `confirmedOffset` INTEGER NOT NULL, `state` TEXT NOT NULL, `assetId` TEXT, `garmentCategory` TEXT, `garmentSource` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stagedPath",
+            "columnName": "stagedPath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentType",
+            "columnName": "contentType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "assetKind",
+            "columnName": "assetKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadId",
+            "columnName": "uploadId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "confirmedOffset",
+            "columnName": "confirmedOffset",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "assetId",
+            "columnName": "assetId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "garmentCategory",
+            "columnName": "garmentCategory",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "garmentSource",
+            "columnName": "garmentSource",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8fdc9d563f87b59bacc548e2ca4e01e9')"
+    ]
+  }
+}

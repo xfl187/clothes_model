@@ -24,6 +24,7 @@ backend/.venv/
 backend/.pytest_cache/
 backend/.ruff_cache/
 backend/.pyright/
+backend/.pytest-tmp-*/
 backend/**/__pycache__/
 web-admin/node_modules/
 web-admin/dist/

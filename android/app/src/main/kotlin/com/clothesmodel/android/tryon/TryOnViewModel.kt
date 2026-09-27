@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.Room
 import com.clothesmodel.android.connection.ConnectionStore
 import com.clothesmodel.android.connection.TokenVault
 import com.clothesmodel.android.imports.ImportStaging
@@ -67,11 +66,7 @@ fun jobStateMessage(state: String?): String = when (state) {
 class TryOnViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
-    private val database = Room.databaseBuilder(
-        context,
-        PendingImportDatabase::class.java,
-        "pending-imports.db",
-    ).build()
+    private val database = PendingImportDatabase.build(context)
     private val drafts = TryOnDraftStore(context)
     private val mutableState = MutableStateFlow(TryOnUiState())
     val state: StateFlow<TryOnUiState> = mutableState.asStateFlow()
@@ -102,16 +97,16 @@ class TryOnViewModel @Inject constructor(
                 withContext(Dispatchers.IO) {
                     val staged = ImportStaging(context).copy(uri)
                     val id = UUID.randomUUID().toString()
-                    val contentType = context.contentResolver.getType(uri)
-                        ?.takeIf { it == "image/png" || it == "image/jpeg" }
-                        ?: "image/jpeg"
+                    val isGarment = kind != "person"
                     database.pendingImports().save(
                         PendingImport(
                             id = id,
-                            stagedPath = staged.absolutePath,
-                            displayName = if (kind == "person") "人物图片" else "服装图片",
-                            contentType = contentType,
-                            assetKind = if (kind == "person") AssetKind.person.value else AssetKind.garment.value,
+                            stagedPath = staged.file.absolutePath,
+                            displayName = if (isGarment) "服装图片" else "人物图片",
+                            contentType = staged.contentType,
+                            assetKind = if (isGarment) AssetKind.garment.value else AssetKind.person.value,
+                            garmentCategory = if (isGarment) mutableState.value.garmentCategory else null,
+                            garmentSource = if (isGarment) "photo" else null,
                         ),
                     )
                     drafts.selectImport(kind, id)
@@ -133,7 +128,17 @@ class TryOnViewModel @Inject constructor(
 
     fun setGarmentCategory(category: String) {
         mutableState.value = mutableState.value.copy(garmentCategory = category)
-        viewModelScope.launch { drafts.garmentMetadata(category) }
+        viewModelScope.launch {
+            drafts.garmentMetadata(category)
+            val current = mutableState.value.garment ?: return@launch
+            withContext(Dispatchers.IO) {
+                val pending = database.pendingImports().get(current.importId) ?: return@withContext
+                if (pending.state != "completed") {
+                    database.pendingImports().save(pending.copy(garmentCategory = category))
+                    PendingImportScheduler(context).enqueue(pending.id)
+                }
+            }
+        }
     }
 
     fun createJob() {

@@ -1,7 +1,6 @@
 package com.clothesmodel.android.imports
 
 import android.content.Context
-import androidx.room.Room
 import androidx.work.CoroutineWorker
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -10,16 +9,22 @@ import com.clothesmodel.android.connection.TokenVault
 import com.clothesmodel.contract.api.UploadsApi
 import com.clothesmodel.contract.infrastructure.ApiClient
 import com.clothesmodel.contract.model.AssetKind
+import com.clothesmodel.contract.model.GarmentCategory
+import com.clothesmodel.contract.model.GarmentSource
 import com.clothesmodel.contract.model.UploadCompleteRequest
 import com.clothesmodel.contract.model.UploadCreateRequest
 import java.io.File
 import java.security.MessageDigest
 import java.util.UUID
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
 
 class PendingImportWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
         val id = inputData.getString(IMPORT_ID) ?: return Result.failure()
-        val database = Room.databaseBuilder(applicationContext, PendingImportDatabase::class.java, "pending-imports.db").build()
+        val database = PendingImportDatabase.build(applicationContext)
         return try {
             val pending = database.pendingImports().get(id) ?: return Result.success()
             if (!File(pending.stagedPath).isFile) return Result.failure()
@@ -31,12 +36,20 @@ class PendingImportWorker(context: Context, parameters: WorkerParameters) : Coro
                 connections.authenticationExpired()
                 Result.failure()
             } else {
-                val api = ApiClient(connection.serverUrl, authName = "AppBearer", bearerToken = token).createService(UploadsApi::class.java)
+                val serverUrl = connection.serverUrl
+                val api = ApiClient(serverUrl, authName = "AppBearer", bearerToken = token).createService(UploadsApi::class.java)
                 val source = File(pending.stagedPath)
                 val upload = if (pending.uploadId == null) {
                     val response = api.createUploadSession(
                         "create-${pending.id}",
-                        UploadCreateRequest(AssetKind.decode(pending.assetKind) ?: AssetKind.unknown, pending.displayName, pending.contentType, source.length()),
+                        UploadCreateRequest(
+                            assetKind = AssetKind.decode(pending.assetKind) ?: AssetKind.unknown,
+                            filename = pending.displayName,
+                            contentType = pending.contentType,
+                            sizeBytes = source.length(),
+                            garmentCategory = pending.garmentCategory?.let { GarmentCategory.decode(it) },
+                            garmentSource = pending.garmentSource?.let { GarmentSource.decode(it) },
+                        ),
                     )
                     if (response.code() == 401) return authenticationExpired(connections)
                     response.body() ?: return Result.retry()
@@ -58,9 +71,11 @@ class PendingImportWorker(context: Context, parameters: WorkerParameters) : Coro
                             }
                             chunk.outputStream().use(input::copyTo)
                         }
-                        val appended = api.appendUploadContent(upload.id, upload.uploadedBytes, chunk)
-                        if (appended.code() == 401) return authenticationExpired(connections)
-                        if (!appended.isSuccessful) return Result.retry()
+                        // The generated client cannot create a raw request body from a File,
+                        // so the streaming append is sent directly as octet-stream bytes.
+                        val status = appendChunk(serverUrl, token, upload.id.toString(), upload.uploadedBytes, chunk)
+                        if (status == 401) return authenticationExpired(connections)
+                        if (status !in 200..299) return Result.retry()
                     } finally { chunk.delete() }
                 }
                 val checksum = source.inputStream().use { input -> MessageDigest.getInstance("SHA-256").digest(input.readBytes()).joinToString("") { "%02x".format(it) } }
@@ -74,6 +89,22 @@ class PendingImportWorker(context: Context, parameters: WorkerParameters) : Coro
         } finally {
             database.close()
         }
+    }
+
+    private fun appendChunk(
+        serverUrl: String,
+        token: String,
+        uploadId: String,
+        offset: Long,
+        chunk: File,
+    ): Int {
+        val request = Request.Builder()
+            .url("${serverUrl.trimEnd('/')}/api/v1/uploads/$uploadId/content")
+            .patch(chunk.asRequestBody("application/offset+octet-stream".toMediaType()))
+            .header("Authorization", "Bearer $token")
+            .header("Upload-Offset", offset.toString())
+            .build()
+        OkHttpClient().newCall(request).execute().use { return it.code }
     }
 
     private suspend fun authenticationExpired(connections: ConnectionStore): Result {

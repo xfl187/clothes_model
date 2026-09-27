@@ -267,7 +267,14 @@ class ProviderConfigService:
     async def availability_for(
         self, config: ProviderConfig, revision: ProviderConfigRevision
     ) -> str:
-        invocation = self._invocation(config, revision, None)
+        credential = None
+        if config.secret_envelope is not None:
+            if self._cipher is None:
+                return "unavailable_configuration"
+            credential = self._cipher.decrypt(
+                config.secret_envelope, purpose=SECRET_PURPOSE, record_id=config.id
+            )
+        invocation = self._invocation(config, revision, credential)
         adapter = self._registry.resolve(revision.adapter_type)
         return str(await adapter.availability(invocation))
 

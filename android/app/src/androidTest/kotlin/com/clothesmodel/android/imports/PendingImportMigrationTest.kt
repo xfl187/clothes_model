@@ -39,11 +39,13 @@ class PendingImportMigrationTest {
             context,
             PendingImportDatabase::class.java,
             "pending-import-migration-test",
-        ).build()
+        ).addMigrations(PendingImportDatabase.MIGRATION_1_2).build()
         try {
             val recovered = runBlocking { reopened.pendingImports().get("one") }
             assertEquals("/private/one", recovered?.stagedPath)
             assertEquals("staged", recovered?.state)
+            assertEquals(null, recovered?.garmentCategory)
+            assertEquals(null, recovered?.garmentSource)
         } finally {
             reopened.close()
             context.deleteDatabase("pending-import-migration-test")
