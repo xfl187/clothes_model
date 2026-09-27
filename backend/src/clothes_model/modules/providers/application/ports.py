@@ -1,13 +1,48 @@
-"""Persistence ports for provider configuration and immutable revisions."""
+"""Persistence and adapter ports for provider configuration and execution."""
 
 from typing import Protocol
 
 from clothes_model.core.persistence import UnitOfWork
 from clothes_model.modules.providers.domain import (
+    ProviderCapabilities,
     ProviderConfig,
     ProviderConfigRevision,
     ProviderDefaultSelection,
+    ProviderInvocation,
+    ProviderOutput,
+    ProviderRequest,
+    ProviderStatusResult,
+    ProviderSubmission,
 )
+
+
+class ProviderAdapter(Protocol):
+    """Adapter-local transport behind the provider application port."""
+
+    @property
+    def adapter_type(self) -> str: ...
+
+    async def availability(self, invocation: ProviderInvocation) -> str: ...
+
+    async def capabilities(self, invocation: ProviderInvocation) -> ProviderCapabilities: ...
+
+    async def submit(
+        self, invocation: ProviderInvocation, request: ProviderRequest
+    ) -> ProviderSubmission: ...
+
+    async def query(
+        self, invocation: ProviderInvocation, external_execution_id: str
+    ) -> ProviderStatusResult: ...
+
+    async def cancel(self, invocation: ProviderInvocation, external_execution_id: str) -> bool: ...
+
+    async def fetch_outputs(
+        self, invocation: ProviderInvocation, external_execution_id: str
+    ) -> list[ProviderOutput]: ...
+
+
+class ProviderRegistryPort(Protocol):
+    def resolve(self, adapter_type: str) -> ProviderAdapter: ...
 
 
 class ProviderConfigRepository(Protocol):

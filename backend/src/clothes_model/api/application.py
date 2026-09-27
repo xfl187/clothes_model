@@ -20,7 +20,22 @@ from clothes_model.infrastructure.scheduler import (
     NoOpScheduler,
     SchedulerCoordinator,
 )
+from clothes_model.infrastructure.security import (
+    AesGcmSecretCipher,
+    SecretCryptoError,
+    load_master_key,
+)
 from clothes_model.infrastructure.storage import LocalFileStorage, reconcile_upload_sessions
+from clothes_model.modules.providers.infrastructure import FakeImageEditAdapter, ProviderRegistry
+
+
+def _load_secret_cipher(settings: Settings) -> AesGcmSecretCipher | None:
+    if settings.encryption_master_key_file is None:
+        return None
+    try:
+        return AesGcmSecretCipher(load_master_key(settings.encryption_master_key_file))
+    except SecretCryptoError:
+        return None
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -38,6 +53,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         scheduler=NoOpScheduler(NoOpJobSource()),
     )
     storage = LocalFileStorage(resolved_settings.storage_root)
+    secret_cipher = _load_secret_cipher(resolved_settings)
+    provider_registry = ProviderRegistry(
+        [FakeImageEditAdapter()], environment=resolved_settings.environment
+    )
 
     async def maintain_uploads() -> None:
         while True:
@@ -89,6 +108,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.database = database
     app.state.scheduler = scheduler
     app.state.storage = storage
+    app.state.secret_cipher = secret_cipher
+    app.state.provider_registry = provider_registry
     app.add_middleware(RequestContextMiddleware)
     if resolved_settings.cors_allowlist:
         app.add_middleware(
