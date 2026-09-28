@@ -35,7 +35,13 @@
   output thumbnail or deleted-content placeholder, block reason, updated time, tab-entry/resume refresh,
   stale-snapshot retention, and 401 re-authentication routing. Build, lint, JVM tests, and
   instrumentation compile pass.
-- Next action: Task 6 — replace the single screen with the durable three-step creation wizard
+- Task 6 — COMPLETE (2026-09-28): replaced the single try-on screen with the durable three-step wizard
+  (person, garment + category, settings + confirmation), reusing the asset library, filtering providers
+  by declared capability and availability, clamping candidate count to the provider limit, allowing
+  temporarily-offline creation while blocking permanent incompatibility, preserving one idempotency key
+  across ambiguous retries, and persisting asset/category/count/provider draft fields. Build, lint, JVM
+  tests, and instrumentation compile pass.
+- Next action: Task 7 — implement job detail, candidate control, recovery, and lineage
 
 ## Goal
 

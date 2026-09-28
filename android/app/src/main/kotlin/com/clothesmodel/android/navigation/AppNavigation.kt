@@ -26,6 +26,7 @@ import androidx.navigation.navArgument
 import com.clothesmodel.android.assets.AssetCenterRoute
 import com.clothesmodel.android.assets.AssetDetailRoute
 import com.clothesmodel.android.connection.ConnectionRoute
+import com.clothesmodel.android.create.CreateWizardRoute
 import com.clothesmodel.android.history.HistoryRoute
 import com.clothesmodel.android.home.HomeRoute
 import com.clothesmodel.android.ui.theme.AtelierShapes
@@ -169,6 +170,16 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
             CreateWizardRoute(
                 onBack = { navController.popBackStack() },
                 onCreated = { navController.navigate(Destinations.jobDetail(it)) },
+                onOpenAssets = {
+                    navController.navigate(Destinations.MAIN) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
+                onAuthenticationExpired = {
+                    navController.navigate(Destinations.connection(reauth = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
             )
         }
         composable(

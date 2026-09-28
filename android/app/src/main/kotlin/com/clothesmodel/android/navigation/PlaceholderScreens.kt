@@ -27,18 +27,6 @@ internal fun PlaceholderScreen(
 }
 
 @Composable
-fun CreateWizardRoute(
-    onBack: () -> Unit,
-    onCreated: (String) -> Unit,
-) {
-    PlaceholderScreen(
-        title = "精准换装",
-        message = "三步创建向导将在此显示。",
-        onBack = onBack,
-    )
-}
-
-@Composable
 fun JobDetailRoute(
     jobId: String,
     onBack: () -> Unit,
