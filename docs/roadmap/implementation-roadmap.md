@@ -6,12 +6,13 @@
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 3 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 4 — COMPLETE (real Volcengine Ark vertical slice verified 2026-09-27)
-- Phase 5 — IN PROGRESS (10 / 10 tasks implemented; deterministic gate passed 2026-09-28)
-- Next — record the credentialed AutoDL/Comfy operator acceptance, then plan Phase 6
+- Phase 5 — COMPLETE FOR IMPLEMENTATION (10 / 10 tasks; deterministic gate passed 2026-09-28)
+- Deferred release evidence — credentialed AutoDL/Comfy acceptance after a real Workflow/node exists
+- Next — plan Phase 6 Android V1 product experience
 
 ## Current Repository State
 
-当前状态是“Phase 1–4 已完成；Phase 5 正在实施，Task 1 已完成待审阅”：
+当前状态是“Phase 1–5 实现已完成；真实 Comfy 验收延期且不阻塞 Phase 6”：
 
 | 区域 | 当前状态 | 可复用程度 |
 |---|---|---|
@@ -579,4 +580,4 @@ Phase 4 之后可以并行：
 
 Phase 4 已完成并通过带凭据的人工验收（2026-09-27）：Web Admin 写入并验证真实 Ark Key、启用并设为默认，Android 上传两类素材并完成一条单候选任务，输出经固定后端私有持久化并在 Android 显示，后端重启后仍可恢复。实现依据见 [Phase 4 Plan](../plans/phase-4-minimum-v1-e2e.md)、[ADR-0008](../../docs/adr/0008-durable-job-execution.md) 与 [ADR-0009](../../docs/adr/0009-synchronous-provider-completion.md)。
 
-Phase 5 已进入实施，见 [Phase 5 Plan](../plans/phase-5-comfyui-workflow-recovery.md)。Task 1 已固化逻辑 Comfy Provider、可替换物理节点、锁定 Workflow 与外部执行安全边界；下一步审阅后实施 Task 2 的持久化与迁移。Mask Editor、结果放大/保存/分享、素材库与历史、结果网格等完整 Android 体验属于 Phase 6。
+Phase 5 的 10 个实现任务和确定性退出门禁已完成，见 [Phase 5 Plan](../plans/phase-5-comfyui-workflow-recovery.md)。由于真实 Workflow 与 AutoDL/Comfy 节点尚未准备，凭据化操作员验收按 2026-09-28 的产品负责人决定延期到下一版发布准备阶段；在该证据完成前不得声称 Comfy 生产就绪，但它不阻塞 Phase 6。当前推荐进入 Phase 6 规划：Mask Editor、结果放大/保存/分享、素材库与历史、结果网格等完整 Android V1 体验。

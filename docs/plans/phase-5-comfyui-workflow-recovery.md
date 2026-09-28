@@ -2,7 +2,7 @@
 
 ## Progress
 
-- Status: IN PROGRESS — Task 10 deterministic exit gate passed; credentialed operator acceptance pending
+- Status: COMPLETE FOR IMPLEMENTATION — deterministic exit gate passed; live acceptance deferred
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Task 1: COMPLETE (contract, ADR, generated clients, and boundary verification)
@@ -14,19 +14,23 @@
 - Task 7: COMPLETE (active Workflow locking, capability/category/mask rejection, and offline waiting)
 - Task 8: COMPLETE (storage admission/pause, restart requery, availability pre-check, no-resubmit resume)
 - Task 9: COMPLETE (redacted readiness diagnostics, CI Phase 5 gates, deployment script, proxy docs)
-- Task 10: DETERMINISTIC GATE PASS — credentialed AutoDL/Comfy operator acceptance not yet recorded
+- Task 10: COMPLETE FOR CURRENT SCOPE — deterministic gate passed; live acceptance deferred
 - Prerequisite: Phase 4 complete with credentialed real-Provider acceptance
 - Last verified: 2026-09-28 with contract/generated gates plus 100 Backend tests, Ruff, and Pyright;
   `infra/verify-phase5-deployment.ps1` deterministic gate passed (31 focused tests); migration
   upgrade/downgrade and Phase 5 persistence suites passed.
 - Task 8 deviation: in-process remote temp tracking is not persisted across restart; restart reconciles
-  known `prompt_id` results but cannot re-issue remote temporary-file cleanup. Track in Task 10.
+  known `prompt_id` results but cannot re-issue remote temporary-file cleanup. Track in the deferred
+  next-release acceptance/follow-up.
 - Task 9/10 note: the Phase 5 contract boundary script and Compose deployment smoke run in CI; this
   environment ran the deterministic backend and migration gates only.
-- Blocker for phase completion: one bounded operator acceptance against an authenticated AutoDL/Comfy
-  node (node config, Workflow validate/activate, real prompt, output persistence, compatible-node
-  resume) with sanitized evidence.
-- Next action: record the credentialed AutoDL/Comfy operator acceptance; only then mark Phase 5 complete
+- Scope decision (2026-09-28): the product owner has not prepared the real Comfy Workflow/node and
+  explicitly deferred credentialed AutoDL/Comfy acceptance to the next release. The implementation
+  phase may close on deterministic evidence; Comfy production readiness may not be claimed yet.
+- Deferred release gate: configure the authenticated node, validate/activate the real immutable
+  Workflow, execute/persist one real output, prove restart and compatible-node recovery, and retain
+  sanitized cleanup evidence before enabling Comfy for production use.
+- Next action: plan Phase 6; restore the deferred live gate when the real Workflow/node is available.
 
 ## Goal
 
@@ -429,7 +433,7 @@ Dependencies and parallelization:
 
 - Depends on Tasks 1–8 for final scripts; documentation/fixture scaffolding may begin after Task 1.
 
-### Task 10 — Run the integrated Phase 5 exit gate
+### Task 10 — Run the integrated Phase 5 exit gate — COMPLETE FOR CURRENT SCOPE
 
 Affected:
 
@@ -441,14 +445,18 @@ Affected:
 Work:
 
 - Run all contract, generation, Backend, migration, Provider, scheduler, deployment, restart, storage-pressure, security, and cleanup gates from a clean checkout/deployment.
-- Run one operator acceptance against the intended authenticated AutoDL/Comfy node with an immutable validated Workflow.
+- Deferred to the next release by the 2026-09-28 scope decision: run one operator acceptance against
+  the intended authenticated AutoDL/Comfy node with an immutable validated Workflow.
 - Replace the physical node configuration with a compatible endpoint or deterministic equivalent and prove the same locked waiting job can continue without snapshot mutation.
 - Capture only sanitized IDs, state transitions, hashes/sizes, timings, compatibility conclusions, and cleanup counts.
-- Mark Phase 5 complete only after private output persistence, restart-safe reconciliation, compatible-node recovery, and cleanup behavior are evidenced.
+- Close the current implementation phase after deterministic evidence; do not mark Comfy production
+  readiness until real private output persistence, restart-safe reconciliation, compatible-node
+  recovery, and cleanup behavior are evidenced.
 
 Verify:
 
-- Every Phase Exit Checklist item has automated evidence or a documented operator result.
+- Every current-scope Phase Exit Checklist item has automated evidence; explicitly deferred live
+  infrastructure items remain unchecked release-readiness requirements.
 - Phase 1–4 gates remain green.
 - README, Roadmap, and this plan agree on completion state and the next phase.
 
@@ -466,7 +474,8 @@ Dependencies and parallelization:
 - Migration upgrade/downgrade/re-upgrade and Phase 5 persistence suites passed.
 - Phase 5 contract generation, generated-client drift, Backend model typing, and Phase 5 boundary assertions are enforced by CI.
 - Deterministic scenarios covered: node configuration/redaction, immutable artifacts, structural + live validation, activation/retirement/rollback, Workflow locking at creation, category/mask/candidate rejection, offline waiting, storage pause/resume, blocked-completion no-resubmit, and restart requery.
-- Not yet recorded: one bounded operator acceptance against a real authenticated AutoDL/Comfy node and compatible-node replacement on real infrastructure.
+- Deferred release evidence: one bounded operator acceptance against a real authenticated
+  AutoDL/Comfy node and compatible-node replacement on real infrastructure.
 
 ### Contract and architecture
 
@@ -517,7 +526,8 @@ Dependencies and parallelization:
 - [ ] Compatible-node replacement is verified without mutating the locked job snapshot.
       (Locking and compatibility rejection verified deterministically; live node-swap requires operator infrastructure.)
 - [x] Logs, events, diagnostics, reports, and artifacts are free of secrets, Workflow bodies, prompts, and image payloads.
-- [ ] A bounded credentialed operator acceptance against the target AutoDL/Comfy environment is recorded.
+- [ ] DEFERRED TO NEXT RELEASE — bounded credentialed operator acceptance against the target
+      AutoDL/Comfy environment is recorded before claiming Comfy production readiness.
 
 ## Migration and Rollback
 
@@ -548,8 +558,13 @@ The confirmed Product Spec already resolves the material behavior: one physical 
 
 - Plan: `docs/plans/phase-5-comfyui-workflow-recovery.md`
 - Scope: Phase 5 only — logical Comfy Provider, singleton physical node, immutable Workflow versions, Comfy execution, recovery, storage pause, cleanup, and verification.
-- Continue with: Task 2 — Add Phase 5 persistence and migration.
-- Task 1 evidence: ADR-0010, additive OpenAPI changes, Phase 5 boundary assertions, generated-client drift check, Backend model type check, Web compile, and Android generated-client compile all pass.
-- Prerequisites for Task 2: review and accept Task 1, then commit its bounded change set before starting persistence work.
-- External prerequisite: a real authenticated AutoDL/Comfy environment is not needed until the opt-in live validation/exit evidence; deterministic work must use a local fixture.
-- Execution rule: recover progress from this plan and repository reality, implement one high-risk boundary at a time, record material deviations, preserve confirmed product/UI behavior, and do not enter Phase 6 or 7.
+- Continue with: Phase 6 planning — Android V1 Product Experience.
+- Phase 5 evidence: all 10 implementation tasks are committed; contract/generated gates, 100 Backend
+  tests, Ruff, Pyright, the 31-test deterministic deployment gate, migrations, restart/recovery, and
+  redaction checks pass.
+- Deferred prerequisite: prepare a real authenticated AutoDL/Comfy environment and immutable Workflow
+  before restoring the next-release production-readiness acceptance.
+- External prerequisite: a real authenticated AutoDL/Comfy environment is not needed during Phase 6;
+  it becomes mandatory when the deferred production-readiness gate resumes.
+- Execution rule: preserve the deterministic P5 gates while Phase 6 proceeds; do not enable Comfy in
+  production until the deferred credentialed acceptance is recorded.

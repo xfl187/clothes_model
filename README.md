@@ -2,7 +2,7 @@
 
 Private Android AI virtual try-on system with a fixed-server backend and a Web Admin control plane.
 
-The repository has completed **Phase 4 — Minimum V1 End-to-End Vertical Slice** for Volcengine Ark `doubao-seedream-4-5-251128`. A credentialed operator run on 2026-09-27 verified the real loop: Web Admin configured, validated, enabled, and defaulted the Provider; Android uploaded one person and one garment image and created one candidate; Ark executed it; and the private output was persisted, survived a Backend restart, and displayed in Android. Details and evidence are in the [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md). Phase 5 (ComfyUI, workflow versioning, recovery) is implemented on `main`: the deterministic exit gate passed on 2026-09-28 (logical Comfy Provider, singleton physical node, immutable Workflow versions with structural + live validation, job-level Workflow locking, storage-paused recovery without resubmission, and CI/deployment gates). The bounded credentialed AutoDL/Comfy operator acceptance is still pending, so Phase 5 is not yet marked complete. See the [Phase 5 Implementation Plan](docs/plans/phase-5-comfyui-workflow-recovery.md).
+The repository has completed **Phase 4 — Minimum V1 End-to-End Vertical Slice** for Volcengine Ark `doubao-seedream-4-5-251128`. A credentialed operator run on 2026-09-27 verified the real loop: Web Admin configured, validated, enabled, and defaulted the Provider; Android uploaded one person and one garment image and created one candidate; Ark executed it; and the private output was persisted, survived a Backend restart, and displayed in Android. Details and evidence are in the [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md). **Phase 5 — ComfyUI, Workflow Versioning and Recovery** is implementation-complete on `main`: its deterministic exit gate passed on 2026-09-28 (logical Comfy Provider, singleton physical node, immutable Workflow versions with structural + fixture-backed live validation, job-level Workflow locking, storage-paused recovery without resubmission, and CI/deployment gates). By product-owner decision, credentialed AutoDL/Comfy operator acceptance is deferred until a real Workflow and node are prepared for the next release; it is not a blocker for starting Phase 6, but remains mandatory before claiming production readiness for Comfy execution. See the [Phase 5 Implementation Plan](docs/plans/phase-5-comfyui-workflow-recovery.md).
 
 ## Current scope
 
@@ -22,7 +22,8 @@ Phase 4 added the production Seedream adapter, synchronous paid-call safety, exp
 - Confirmed behavior flows: [Product Flow](docs/product-flow.md)
 - Phase boundaries: [Implementation Roadmap](docs/roadmap/implementation-roadmap.md)
 - Completed implementation evidence: [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md)
-- Current implementation plan: [Phase 5 Implementation Plan](docs/plans/phase-5-comfyui-workflow-recovery.md)
+- Completed implementation plan: [Phase 5 Implementation Plan](docs/plans/phase-5-comfyui-workflow-recovery.md)
+- Next planning target: Phase 6 — Android V1 Product Experience
 - UI behavior: the Android and Web Admin UI Specs under `docs/superpowers/specs/`
 - Visual language: [DESIGN.md](DESIGN.md)
 - Long-lived technical decisions: [Architecture Decision Records](docs/adr/README.md)
