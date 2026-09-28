@@ -249,7 +249,7 @@ class SqlAlchemyAssetRepository:
                     )
                 )
             elif (
-                asset.kind == "generated_output"
+                asset.kind in {"generated_output", "mask"}
                 and asset.person is None
                 and asset.garment is None
             ):
@@ -564,9 +564,7 @@ class SqlAlchemyJobRepository:
 
     async def update_item(self, item: JobItem) -> None:
         await self._session.execute(
-            update(models.job_items)
-            .where(models.job_items.c.id == item.id)
-            .values(**asdict(item))
+            update(models.job_items).where(models.job_items.c.id == item.id).values(**asdict(item))
         )
 
     async def compare_and_set_item_state(
@@ -613,9 +611,7 @@ class SqlAlchemyJobRepository:
         result = await self._session.execute(statement)
         return [str(row[0]) for row in result.all()]
 
-    async def list_external_reconciliation_candidates(
-        self, *, limit: int = 20
-    ) -> list[JobItem]:
+    async def list_external_reconciliation_candidates(self, *, limit: int = 20) -> list[JobItem]:
         result = await self._session.execute(
             select(models.job_items)
             .where(

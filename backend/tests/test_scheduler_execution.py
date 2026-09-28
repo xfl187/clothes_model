@@ -70,6 +70,20 @@ class ImmediateImageEditAdapter(FakeImageEditAdapter):
         raise AssertionError((invocation, external_execution_id))
 
 
+class CapturingMaskAdapter(ImmediateImageEditAdapter):
+    adapter_type = "capturing_mask_edit"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.requests: list[ProviderRequest] = []
+
+    async def submit(
+        self, invocation: ProviderInvocation, request: ProviderRequest
+    ) -> ProviderSubmission:
+        self.requests.append(request)
+        return await super().submit(invocation, request)
+
+
 def _services(database_url: str, root: Path, clock=None, adapter=None):
     runtime = create_database_runtime(database_url, 5000)
     storage = LocalFileStorage(root)
@@ -94,12 +108,18 @@ async def _seed_job(
     *,
     state: str = "queued",
     adapter_type: str = "fake_image_edit",
+    with_mask: bool = False,
 ) -> dict[str, str]:
     person = storage.normalize_and_store(_png())
     garment = storage.normalize_and_store(_png())
+    mask = storage.normalize_and_store(_png()) if with_mask else None
     provider_id, revision_id = str(uuid4()), str(uuid4())
-    person_id, garment_id, job_id, item_id = (str(uuid4()) for _ in range(4))
-    person_object_id, garment_object_id = str(uuid4()), str(uuid4())
+    person_id, garment_id, mask_id, job_id, item_id = (str(uuid4()) for _ in range(5))
+    person_object_id, garment_object_id, mask_object_id = (
+        str(uuid4()),
+        str(uuid4()),
+        str(uuid4()),
+    )
     now = datetime(2026, 9, 27, 12, 0, tzinfo=UTC)
     async with SqlAlchemyUnitOfWork(runtime.sessions) as uow:
         await uow.stored_objects.add(
@@ -116,6 +136,21 @@ async def _seed_job(
                 created_at=now,
             )
         )
+        if mask is not None:
+            await uow.stored_objects.add(
+                StoredObject(
+                    id=mask_object_id,
+                    sha256=mask.sha256,
+                    relative_path=mask.relative_path,
+                    content_type="image/png",
+                    size_bytes=mask.size_bytes,
+                    width=mask.width,
+                    height=mask.height,
+                    state="available",
+                    asset_ref_count=0,
+                    created_at=now,
+                )
+            )
         await uow.stored_objects.add(
             StoredObject(
                 id=garment_object_id,
@@ -142,6 +177,18 @@ async def _seed_job(
                 person=PersonMetadata(asset_id=person_id),
             )
         )
+        if mask is not None:
+            await uow.assets.add(
+                Asset(
+                    id=mask_id,
+                    kind="mask",
+                    stored_object_id=mask_object_id,
+                    favorite=False,
+                    content_state="available",
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
         await uow.assets.add(
             Asset(
                 id=garment_id,
@@ -173,7 +220,7 @@ async def _seed_job(
                 endpoint="https://fake.local",
                 model="fake-model",
                 timeout_seconds=30,
-                capabilities_json=ProviderCapabilities().to_json(),
+                capabilities_json=ProviderCapabilities(manual_mask=with_mask).to_json(),
                 vendor_parameters_json='{"scenario":"' + scenario + '"}',
                 created_at=now,
             )
@@ -188,6 +235,7 @@ async def _seed_job(
                 provider_id=provider_id,
                 provider_revision_id=revision_id,
                 provider_snapshot_json="{}",
+                mask_asset_id=mask_id if with_mask else None,
                 created_at=now,
                 updated_at=now,
             )
@@ -210,6 +258,7 @@ async def _seed_job(
         "revision": revision_id,
         "person": person_id,
         "garment": garment_id,
+        "mask": mask_id,
         "job": job_id,
         "item": item_id,
     }
@@ -231,14 +280,14 @@ def test_scheduler_executes_item_and_persists_private_output(tmp_path: Path) -> 
                 job = await uow.jobs.get_job(ids["job"])
                 outputs = await uow.job_outputs.list_outputs(ids["item"])
                 generated = await uow.session.scalar(
-                    select(func.count()).select_from(db.assets).where(
-                        db.assets.c.kind == "generated_output"
-                    )
+                    select(func.count())
+                    .select_from(db.assets)
+                    .where(db.assets.c.kind == "generated_output")
                 )
                 references = await uow.session.scalar(
-                    select(func.count()).select_from(db.asset_references).where(
-                        db.asset_references.c.source_kind == "generated_output"
-                    )
+                    select(func.count())
+                    .select_from(db.asset_references)
+                    .where(db.asset_references.c.source_kind == "generated_output")
                 )
                 assert item is not None and item.state == "succeeded"
                 assert item.claimant_token is None
@@ -287,6 +336,34 @@ def test_scheduler_persists_immediate_completion_without_query(tmp_path: Path) -
                 assert item is not None and item.state == "succeeded"
                 assert item.external_execution_id is None
                 assert len(outputs) == 1
+        finally:
+            await runtime.close()
+
+    asyncio.run(run())
+
+
+def test_scheduler_passes_private_mask_bytes_to_provider(tmp_path: Path) -> None:
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'mask-exec.db').as_posix()}"
+    upgrade_database(database_url, tmp_path / "migration.lock")
+    adapter = CapturingMaskAdapter()
+    runtime, storage, _, _, execution = _services(
+        database_url, tmp_path / "storage", adapter=adapter
+    )
+
+    async def run() -> None:
+        try:
+            await _seed_job(
+                runtime,
+                storage,
+                "success",
+                adapter_type="capturing_mask_edit",
+                with_mask=True,
+            )
+            scheduler = JobScheduler(runtime.sessions, execution)
+            assert await scheduler.tick() == 1
+            assert len(adapter.requests) == 1
+            assert adapter.requests[0].mask_bytes is not None
+            assert len(adapter.requests[0].mask_bytes or b"") > 0
         finally:
             await runtime.close()
 

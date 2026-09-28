@@ -34,9 +34,20 @@ def _bootstrap_tokens(database_url: str) -> dict[str, str]:
     return asyncio.run(run())
 
 
-def _seed(database_url: str, provider_id: str, scenario: str, state: str) -> dict[str, str]:
-    person_id, garment_id = str(uuid4()), str(uuid4())
-    person_object_id, garment_object_id = str(uuid4()), str(uuid4())
+def _seed(
+    database_url: str,
+    provider_id: str,
+    scenario: str,
+    state: str,
+    *,
+    manual_mask: bool = True,
+) -> dict[str, str]:
+    person_id, garment_id, mask_id = str(uuid4()), str(uuid4()), str(uuid4())
+    person_object_id, garment_object_id, mask_object_id = (
+        str(uuid4()),
+        str(uuid4()),
+        str(uuid4()),
+    )
     provider_revision_id = str(uuid4())
 
     async def run() -> None:
@@ -50,6 +61,20 @@ def _seed(database_url: str, provider_id: str, scenario: str, state: str) -> dic
                         relative_path="objects/bb/person",
                         content_type="image/jpeg",
                         size_bytes=128,
+                        width=16,
+                        height=8,
+                        state="available",
+                        asset_ref_count=0,
+                        created_at=_now(),
+                    )
+                )
+                await uow.stored_objects.add(
+                    StoredObject(
+                        id=mask_object_id,
+                        sha256="d" * 64,
+                        relative_path="objects/dd/mask",
+                        content_type="image/png",
+                        size_bytes=64,
                         width=16,
                         height=8,
                         state="available",
@@ -81,6 +106,17 @@ def _seed(database_url: str, provider_id: str, scenario: str, state: str) -> dic
                         created_at=_now(),
                         updated_at=_now(),
                         person=PersonMetadata(asset_id=person_id),
+                    )
+                )
+                await uow.assets.add(
+                    Asset(
+                        id=mask_id,
+                        kind="mask",
+                        stored_object_id=mask_object_id,
+                        favorite=False,
+                        content_state="available",
+                        created_at=_now(),
+                        updated_at=_now(),
                     )
                 )
                 await uow.assets.add(
@@ -117,7 +153,7 @@ def _seed(database_url: str, provider_id: str, scenario: str, state: str) -> dic
                         model="fake-model",
                         timeout_seconds=30,
                         capabilities_json=ProviderCapabilities(
-                            manual_mask=True, region_mask=True
+                            manual_mask=manual_mask, region_mask=manual_mask
                         ).to_json(),
                         vendor_parameters_json='{"scenario":"' + scenario + '"}',
                         created_at=_now(),
@@ -128,7 +164,7 @@ def _seed(database_url: str, provider_id: str, scenario: str, state: str) -> dic
             await runtime.close()
 
     asyncio.run(run())
-    return {"person": person_id, "garment": garment_id}
+    return {"person": person_id, "garment": garment_id, "mask": mask_id}
 
 
 def _job_body(seeded: dict[str, str], provider_id: str, candidates: int = 2) -> dict[str, object]:
@@ -171,6 +207,30 @@ def test_job_creation_idempotency_queries_and_validation(tmp_path: Path) -> None
         assert job["provider_snapshot"]["capabilities"]["manual_mask"]["supported"] is True
         job_id = job["id"]
 
+        correction = client.post(
+            "/api/v1/jobs",
+            json={
+                **_job_body(seeded, provider_id, candidates=1),
+                "mask_asset_id": seeded["mask"],
+                "related_job_id": job_id,
+            },
+            headers={**headers, "Idempotency-Key": "job-mask-correction-0001"},
+        )
+        assert correction.status_code == 201, correction.text
+        assert correction.json()["mask_asset_id"] == seeded["mask"]
+        assert correction.json()["related_job_id"] == job_id
+
+        wrong_mask_kind = client.post(
+            "/api/v1/jobs",
+            json={
+                **_job_body(seeded, provider_id, candidates=1),
+                "mask_asset_id": seeded["person"],
+                "related_job_id": job_id,
+            },
+            headers={**headers, "Idempotency-Key": "job-mask-wrong-kind-0001"},
+        )
+        assert wrong_mask_kind.status_code == 422
+
         replay = client.post("/api/v1/jobs", json=_job_body(seeded, provider_id), headers=headers)
         assert replay.status_code == 201 and replay.json()["id"] == job_id
 
@@ -184,11 +244,12 @@ def test_job_creation_idempotency_queries_and_validation(tmp_path: Path) -> None
         )
         assert fetched.status_code == 200 and fetched.json()["id"] == job_id
 
-        page = client.get(
-            "/api/v1/jobs", headers={"Authorization": f"Bearer {tokens['app']}"}
-        )
+        page = client.get("/api/v1/jobs", headers={"Authorization": f"Bearer {tokens['app']}"})
         assert page.status_code == 200 and page.json()["has_more"] is False
-        assert [item["id"] for item in page.json()["items"]] == [job_id]
+        assert {item["id"] for item in page.json()["items"]} == {
+            job_id,
+            correction.json()["id"],
+        }
 
         item_id = job["items"][0]["id"]
         item = client.get(
@@ -212,6 +273,37 @@ def test_job_creation_idempotency_queries_and_validation(tmp_path: Path) -> None
             headers={**headers, "Idempotency-Key": "job-create-key-0003"},
         )
         assert unusable.status_code == 409
+
+
+def test_mask_job_requires_provider_capability(tmp_path: Path) -> None:
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'mask-capability.db').as_posix()}"
+    upgrade_database(database_url, tmp_path / "migration.lock")
+    tokens = _bootstrap_tokens(database_url)
+    provider_id = str(uuid4())
+    seeded = _seed(
+        database_url,
+        provider_id,
+        "success",
+        "active",
+        manual_mask=False,
+    )
+    body = {
+        **_job_body(seeded, provider_id, candidates=1),
+        "mask_asset_id": seeded["mask"],
+    }
+
+    with _client(database_url, tmp_path) as client:
+        response = client.post(
+            "/api/v1/jobs",
+            json=body,
+            headers={
+                "Authorization": f"Bearer {tokens['app']}",
+                "Idempotency-Key": "job-mask-unsupported-0001",
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "provider_not_usable"
 
 
 def test_offline_provider_creates_waiting_job(tmp_path: Path) -> None:

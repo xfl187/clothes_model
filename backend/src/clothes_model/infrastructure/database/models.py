@@ -194,7 +194,7 @@ assets = Table(
     Column("created_at", utc_timestamp(), nullable=False),
     Column("updated_at", utc_timestamp(), nullable=False),
     Column("deleted_at", utc_timestamp(), nullable=True),
-    CheckConstraint("kind IN ('person', 'garment', 'generated_output')", name="kind"),
+    CheckConstraint("kind IN ('person', 'garment', 'generated_output', 'mask')", name="kind"),
     CheckConstraint("content_state IN ('available', 'deleted')", name="content_state"),
     CheckConstraint(
         "(content_state = 'available' AND stored_object_id IS NOT NULL AND deleted_at IS NULL) OR "
@@ -256,7 +256,7 @@ upload_sessions = Table(
     Column("created_at", utc_timestamp(), nullable=False),
     Column("updated_at", utc_timestamp(), nullable=False),
     Column("expires_at", utc_timestamp(), nullable=False),
-    CheckConstraint("asset_kind IN ('person', 'garment')", name="asset_kind"),
+    CheckConstraint("asset_kind IN ('person', 'garment', 'mask')", name="asset_kind"),
     CheckConstraint(
         "state IN ('created', 'uploading', 'completed', 'failed', 'cancelled')", name="state"
     ),
@@ -266,7 +266,8 @@ upload_sessions = Table(
     ),
     CheckConstraint("expires_at > created_at", name="expiry"),
     CheckConstraint(
-        "(asset_kind = 'person' AND garment_category IS NULL AND garment_source IS NULL) OR "
+        "(asset_kind IN ('person', 'mask') AND garment_category IS NULL "
+        "AND garment_source IS NULL) OR "
         "(asset_kind = 'garment' AND garment_category IS NOT NULL AND garment_source IS NOT NULL)",
         name="subtype_metadata",
     ),
@@ -631,9 +632,7 @@ job_items = Table(
         "(claimant_token IS NOT NULL AND claimed_at IS NOT NULL AND lease_expires_at IS NOT NULL)",
         name="claim",
     ),
-    CheckConstraint(
-        "lease_expires_at IS NULL OR lease_expires_at > claimed_at", name="lease"
-    ),
+    CheckConstraint("lease_expires_at IS NULL OR lease_expires_at > claimed_at", name="lease"),
 )
 Index("ix_job_items_job_candidate", job_items.c.job_id, job_items.c.candidate_index)
 Index(

@@ -116,6 +116,49 @@ def test_resumable_upload_asset_catalog_private_content_and_delete(tmp_path: Pat
             downloaded.status_code == 200
             and downloaded.headers["cache-control"] == "private, no-store"
         )
+
+        invalid_mask_metadata = client.post(
+            "/api/v1/uploads",
+            headers={**headers, "Idempotency-Key": "create-mask-invalid-0001"},
+            json={
+                "asset_kind": "mask",
+                "filename": "mask.png",
+                "content_type": "image/png",
+                "size_bytes": len(content),
+                "garment_category": "upper_body",
+                "garment_source": "photo",
+            },
+        )
+        assert invalid_mask_metadata.status_code == 422
+
+        mask_created = client.post(
+            "/api/v1/uploads",
+            headers={**headers, "Idempotency-Key": "create-mask-0001"},
+            json={
+                "asset_kind": "mask",
+                "filename": "mask.png",
+                "content_type": "image/png",
+                "size_bytes": len(content),
+            },
+        )
+        assert mask_created.status_code == 201, mask_created.text
+        mask_upload_id = mask_created.json()["id"]
+        mask_appended = client.patch(
+            f"/api/v1/uploads/{mask_upload_id}/content",
+            headers={**headers, "Upload-Offset": "0"},
+            content=content,
+        )
+        assert mask_appended.status_code == 200
+        mask_completed = client.post(
+            f"/api/v1/uploads/{mask_upload_id}/complete",
+            headers={**headers, "Idempotency-Key": "complete-mask-0001"},
+            json={"sha256": hashlib.sha256(content).hexdigest()},
+        )
+        assert mask_completed.status_code == 201, mask_completed.text
+        assert mask_completed.json()["kind"] == "mask"
+        assert mask_completed.json()["garment_category"] is None
+        assert mask_completed.json()["garment_source"] is None
+
         deleted = client.delete(f"/api/v1/assets/{asset_id}/content", headers=headers)
         assert deleted.status_code == 200 and not deleted.json()["asset"]["content_available"]
         assert client.get(f"/api/v1/assets/{asset_id}/content", headers=headers).status_code == 404

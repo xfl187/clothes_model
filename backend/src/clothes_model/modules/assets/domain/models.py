@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
-AssetKind = Literal["person", "garment", "generated_output"]
+AssetKind = Literal["person", "garment", "generated_output", "mask"]
 ContentState = Literal["available", "deleted"]
 UploadState = Literal["created", "uploading", "completed", "failed", "cancelled"]
 IdempotencyState = Literal["processing", "completed", "failed"]

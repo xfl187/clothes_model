@@ -2,7 +2,7 @@
 
 ## Progress
 
-- Status: IN_PROGRESS — Task 1 complete
+- Status: IN_PROGRESS — Tasks 1–8 complete; Task 9 ready
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Scope: Android V1 product completion on the stable Phase 1–5 Backend/API
@@ -55,18 +55,15 @@
   “再次尝试”/“修正后重新生成” actions, and the Before/After comparison screen with slider plus
   show-original/show-result non-gesture alternatives. Build, lint, release build, release-boundary scan,
   JVM tests, and instrumentation compile pass.
-- Task 9 — BLOCKED (2026-09-28): the Backend still rejects the confirmed mask flow. `assets.kind` and
-  `upload_sessions.asset_kind` CHECK constraints exclude `mask` (`models.py:197`, `models.py:259`);
-  `create_upload` only accepts person/garment (`assets/http.py:124`); `complete_upload` inserts a
-  garment subtype for any non-person upload (`assets/http.py:377`); and `create_job` rejects any
-  `mask_asset_id` with 422 “Phase 3 尚不支持遮罩素材” (`jobs/http.py:195`). The contract already carries
-  `mask_asset_id`/`related_job_id`, but no Phase 6 plan task explicitly assigned enabling mask
-  persistence and mask-linked jobs. The minimum resolution is a Backend change: a forward migration
-  that relaxes those two CHECK constraints (SQLite requires table rebuild under `PRAGMA
-  foreign_keys=OFF` with trigger/index recreation), a mask subtype in `complete_upload`, and `create_job`
-  mask validation plus Provider `manual_mask` compatibility. This is deliberately not rushed because it
-  is a destructive schema migration on user data.
-- Next action: resolve the Backend mask-support gap, then implement Task 9 and Task 10
+- Backend mask prerequisite — COMPLETE (2026-09-28): added a forward SQLite migration that safely
+  rebuilds `assets` and `upload_sessions` with foreign keys disabled only for the migration window,
+  preserves rows/indexes/triggers, enables private `mask` uploads without a garment subtype, validates
+  mask availability and Provider `manual_mask` capability at job creation, persists mask/related-job
+  lineage and active references, and supplies private mask bytes to Provider execution. Focused mask and
+  migration coverage, the full Backend lint/type/test gate, and the Phase 6 contract boundary pass.
+- Task 9 — READY: Backend mask persistence and execution dependencies are satisfied; Android Mask
+  Editor work has not started.
+- Next action: implement Task 9, then Task 10
 
 ## Goal
 

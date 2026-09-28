@@ -112,7 +112,7 @@ class JobExecutionService:
             return
 
         try:
-            person_bytes, garment_bytes = await self._inputs(item, job)
+            person_bytes, garment_bytes, mask_bytes = await self._inputs(item, job)
         except FileNotFoundError:
             await self._fail(item_id, "input_unavailable", "输入素材不可用。")
             return
@@ -130,6 +130,7 @@ class JobExecutionService:
             seed=job.seed,
             person_bytes=person_bytes,
             garment_bytes=garment_bytes,
+            mask_bytes=mask_bytes,
         )
         # Persist the uncertain boundary before the first potentially billable network
         # side effect.  A crash after this point must reconcile to needs_attention rather
@@ -381,10 +382,14 @@ class JobExecutionService:
         width = normalized.width
         height = normalized.height
         object_row = (
-            await uow.session.execute(
-                select(db.stored_objects).where(db.stored_objects.c.sha256 == sha256)
+            (
+                await uow.session.execute(
+                    select(db.stored_objects).where(db.stored_objects.c.sha256 == sha256)
+                )
             )
-        ).mappings().one_or_none()
+            .mappings()
+            .one_or_none()
+        )
         object_id = object_row["id"] if object_row else str(uuid4())
         if object_row is None:
             await uow.session.execute(
@@ -440,11 +445,12 @@ class JobExecutionService:
             )
         )
 
-    async def _inputs(self, item: JobItem, job: Job) -> tuple[bytes, bytes]:
+    async def _inputs(self, item: JobItem, job: Job) -> tuple[bytes, bytes, bytes | None]:
         async with self._uow_factory() as uow:
             person = await self._read(uow, item.person_asset_id)
             garment = await self._read(uow, job.garment_asset_id)
-        return person, garment
+            mask = await self._read(uow, job.mask_asset_id) if job.mask_asset_id else None
+        return person, garment, mask
 
     async def _read(self, uow: SqlAlchemyUnitOfWork, asset_id: str) -> bytes:
         row = (

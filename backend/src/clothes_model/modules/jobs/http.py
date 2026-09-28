@@ -52,6 +52,10 @@ def _as_int(value: object, default: int) -> int:
     return value if isinstance(value, int) and not isinstance(value, bool) else default
 
 
+def _capability_supported(capabilities: Mapping[str, object], name: str) -> bool:
+    return _as_mapping(capabilities.get(name)).get("supported") is True
+
+
 def _provider_service(request: Request) -> ProviderConfigService:
     return ProviderConfigService(
         lambda: SqlAlchemyUnitOfWork(request.app.state.database.sessions),
@@ -86,9 +90,7 @@ def _encode_cursor(created_at: datetime, job_id: str) -> str:
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")
 
 
-async def _asset_available(
-    uow: SqlAlchemyUnitOfWork, asset_id: str, kind: str
-) -> bool:
+async def _asset_available(uow: SqlAlchemyUnitOfWork, asset_id: str, kind: str) -> bool:
     found = await uow.session.scalar(
         select(db.assets.c.id).where(
             db.assets.c.id == asset_id,
@@ -116,18 +118,16 @@ async def _lock_workflow(
     active = await uow.workflows.get_active("precise_try_on")
     if active is None:
         raise _problem(409, "workflow_not_active", "当前没有可用的换装 Workflow。")
-    locked_revision_workflow = _as_mapping(
-        json.loads(revision_vendor_parameters_json or "{}")
-    ).get("workflow_version_id")
+    locked_revision_workflow = _as_mapping(json.loads(revision_vendor_parameters_json or "{}")).get(
+        "workflow_version_id"
+    )
     if locked_revision_workflow != active.id:
         raise _problem(409, "workflow_incompatible", "Provider 配置与当前 Workflow 不一致。")
     manifest = _as_mapping(json.loads(active.manifest_json or "{}"))
     capabilities = _as_mapping(manifest.get("capabilities"))
     bindings = _as_mapping(manifest.get("bindings"))
     category = await uow.session.scalar(
-        select(db.garment_assets.c.category).where(
-            db.garment_assets.c.asset_id == garment_asset_id
-        )
+        select(db.garment_assets.c.category).where(db.garment_assets.c.asset_id == garment_asset_id)
     )
     allowed = _as_mapping(capabilities.get("garment_categories")).get("values")
     if isinstance(allowed, list) and allowed and category not in allowed:
@@ -169,11 +169,7 @@ async def list_jobs(
         if decoded:
             created, job_id = decoded
             boundary = datetime.fromisoformat(created)
-            jobs = [
-                job
-                for job in jobs
-                if (job.created_at, job.id) < (boundary, job_id)
-            ]
+            jobs = [job for job in jobs if (job.created_at, job.id) < (boundary, job_id)]
         page = jobs[:limit]
         items = [await job_payload(uow, job) for job in page]
         has_more = len(jobs) > limit
@@ -192,13 +188,12 @@ async def create_job(
 ) -> dict[str, object]:
     if body.mode.value != "precise_try_on":
         raise _problem(422, "validation_error", "Phase 3 仅支持精准换装模式。")
-    if body.mask_asset_id is not None:
-        raise _problem(422, "validation_error", "Phase 3 尚不支持遮罩素材。")
     request_digest = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
     key_digest = hashlib.sha256(idempotency_key.encode()).hexdigest()
     provider_id = str(body.provider_id.root)
     garment_asset_id = str(body.garment_asset_id.root)
     person_asset_ids = [str(asset.root) for asset in body.person_asset_ids]
+    mask_asset_id = str(body.mask_asset_id) if body.mask_asset_id is not None else None
     candidate_count = body.generation_options.candidate_count
 
     service = _provider_service(request)
@@ -226,8 +221,12 @@ async def create_job(
         )
         if candidate_count > max_candidates:
             raise _problem(409, "provider_not_usable", "所选 Provider 不支持该候选数量。")
+        if mask_asset_id is not None and not _capability_supported(capabilities, "manual_mask"):
+            raise _problem(409, "provider_not_usable", "所选 Provider 不支持手动遮罩。")
 
         checks = [(garment_asset_id, "garment"), *((pid, "person") for pid in person_asset_ids)]
+        if mask_asset_id is not None:
+            checks.append((mask_asset_id, "mask"))
         for asset_id, kind in checks:
             if not await _asset_available(uow, asset_id, kind):
                 raise _problem(422, "validation_error", "输入素材不存在或不可用。")
@@ -241,7 +240,7 @@ async def create_job(
             revision.adapter_type,
             revision.vendor_parameters_json,
             garment_asset_id,
-            str(body.mask_asset_id) if body.mask_asset_id is not None else None,
+            mask_asset_id,
             candidate_count,
         )
         workflow_version_id = workflow_lock[0] if workflow_lock is not None else None
@@ -278,6 +277,7 @@ async def create_job(
                 separators=(",", ":"),
                 sort_keys=True,
             ),
+            mask_asset_id=mask_asset_id,
             related_job_id=str(body.related_job_id) if body.related_job_id else None,
             workflow_version_id=workflow_version_id,
             workflow_snapshot_json=workflow_snapshot_json,
@@ -309,6 +309,8 @@ async def create_job(
                 )
             )
         reference_ids = [garment_asset_id, *person_asset_ids]
+        if mask_asset_id is not None:
+            reference_ids.append(mask_asset_id)
         for asset_id in reference_ids:
             await uow.asset_references.add(
                 AssetReference(
@@ -411,9 +413,7 @@ async def cancel_job_item(
     return {"job": await _job_response(request, job)}
 
 
-@router.post(
-    "/api/v1/job-items/{job_item_id}/retry", status_code=201, operation_id="retryJobItem"
-)
+@router.post("/api/v1/job-items/{job_item_id}/retry", status_code=201, operation_id="retryJobItem")
 async def retry_job_item(
     request: Request,
     job_item_id: str,

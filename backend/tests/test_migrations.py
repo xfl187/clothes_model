@@ -10,6 +10,7 @@ BASELINE_REVISION = "20260924_0001"
 PHASE_2_REVISION = "20260926_0002"
 PHASE_3_REVISION = "20260927_0003"
 PHASE_5_REVISION = "20260928_0004"
+PHASE_6_MASK_REVISION = "20260928_0005"
 PHASE_2_TABLES = {
     "access_tokens",
     "admin_sessions",
@@ -68,7 +69,7 @@ def test_empty_database_upgrade_is_repeatable_and_reversible(tmp_path: Path) -> 
 
     upgrade_database(database_url, lock_path)
     upgrade_database(database_url, lock_path)
-    assert current_revision(database_path) == PHASE_5_REVISION
+    assert current_revision(database_path) == PHASE_6_MASK_REVISION
     assert table_names(database_path) == PHASE_5_TABLES
 
     config = alembic_config(database_url)
@@ -77,7 +78,7 @@ def test_empty_database_upgrade_is_repeatable_and_reversible(tmp_path: Path) -> 
     assert table_names(database_path) == PHASE_3_TABLES
 
     command.upgrade(config, "head")
-    assert current_revision(database_path) == PHASE_5_REVISION
+    assert current_revision(database_path) == PHASE_6_MASK_REVISION
     assert table_names(database_path) == PHASE_5_TABLES
 
 
@@ -91,7 +92,7 @@ def test_phase_2_database_upgrades_to_phase_3_and_has_no_future_tables(
     assert current_revision(database_path) == PHASE_2_REVISION
     command.upgrade(config, "head")
 
-    assert current_revision(database_path) == PHASE_5_REVISION
+    assert current_revision(database_path) == PHASE_6_MASK_REVISION
     tables = table_names(database_path)
     assert tables == PHASE_5_TABLES
     assert not tables & {"outfit_sessions", "outfit_revisions", "outfit_layers"}
@@ -132,21 +133,17 @@ def test_phase_3_upgrade_preserves_phase_2_rows(tmp_path: Path) -> None:
         connection.commit()
 
     command.upgrade(config, "head")
-    assert current_revision(database_path) == PHASE_5_REVISION
+    assert current_revision(database_path) == PHASE_6_MASK_REVISION
 
     with sqlite3.connect(database_path) as connection:
         connection.execute("PRAGMA foreign_keys=ON")
         counts = {
-            "stored_objects": connection.execute(
-                "SELECT COUNT(*) FROM stored_objects"
-            ).fetchone()[0],
+            "stored_objects": connection.execute("SELECT COUNT(*) FROM stored_objects").fetchone()[
+                0
+            ],
             "assets": connection.execute("SELECT COUNT(*) FROM assets").fetchone()[0],
-            "person_assets": connection.execute(
-                "SELECT COUNT(*) FROM person_assets"
-            ).fetchone()[0],
-            "access_tokens": connection.execute(
-                "SELECT COUNT(*) FROM access_tokens"
-            ).fetchone()[0],
+            "person_assets": connection.execute("SELECT COUNT(*) FROM person_assets").fetchone()[0],
+            "access_tokens": connection.execute("SELECT COUNT(*) FROM access_tokens").fetchone()[0],
             "asset_references": connection.execute(
                 "SELECT COUNT(*) FROM asset_references"
             ).fetchone()[0],

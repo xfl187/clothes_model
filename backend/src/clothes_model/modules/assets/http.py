@@ -114,9 +114,7 @@ async def _reference_source_state(
     uow: SqlAlchemyUnitOfWork, source_kind: str, source_id: str
 ) -> str | None:
     if source_kind == "job":
-        return await uow.session.scalar(
-            select(db.jobs.c.state).where(db.jobs.c.id == source_id)
-        )
+        return await uow.session.scalar(select(db.jobs.c.state).where(db.jobs.c.id == source_id))
     if source_kind in {"job_item", "generated_output"}:
         return await uow.session.scalar(
             select(db.job_items.c.state).where(db.job_items.c.id == source_id)
@@ -124,9 +122,7 @@ async def _reference_source_state(
     return None
 
 
-async def _blocking_references(
-    uow: SqlAlchemyUnitOfWork, asset_id: str
-) -> list[RowMapping]:
+async def _blocking_references(uow: SqlAlchemyUnitOfWork, asset_id: str) -> list[RowMapping]:
     rows = (
         (
             await uow.session.execute(
@@ -174,8 +170,14 @@ async def create_upload(
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> dict[str, object]:
     kind = body.asset_kind.value
-    if kind not in {"person", "garment"}:
-        raise _problem(422, "validation_error", "Phase 2 仅支持人物和衣物素材。")
+    if kind not in {"person", "garment", "mask"}:
+        raise _problem(422, "validation_error", "当前上传类型不受支持。")
+    has_category = body.garment_category is not None
+    has_source = body.garment_source is not None
+    if kind == "garment" and not (has_category and has_source):
+        raise _problem(422, "validation_error", "衣物素材必须提供类别和来源。")
+    if kind != "garment" and (has_category or has_source):
+        raise _problem(422, "validation_error", "非衣物素材不能包含衣物元数据。")
     _capacity(request, body.size_bytes)
     request_digest = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
     key_digest = hashlib.sha256(idempotency_key.encode()).hexdigest()
@@ -426,19 +428,16 @@ async def complete_upload(
                 updated_at=now,
             )
         )
-        await uow.session.execute(
-            insert(db.person_assets if row["asset_kind"] == "person" else db.garment_assets).values(
-                **(
-                    {"asset_id": asset_id}
-                    if row["asset_kind"] == "person"
-                    else {
-                        "asset_id": asset_id,
-                        "category": row["garment_category"],
-                        "source": row["garment_source"],
-                    }
+        if row["asset_kind"] == "person":
+            await uow.session.execute(insert(db.person_assets).values(asset_id=asset_id))
+        elif row["asset_kind"] == "garment":
+            await uow.session.execute(
+                insert(db.garment_assets).values(
+                    asset_id=asset_id,
+                    category=row["garment_category"],
+                    source=row["garment_source"],
                 )
             )
-        )
         await uow.session.execute(
             update(db.upload_sessions)
             .where(db.upload_sessions.c.id == upload_id)
