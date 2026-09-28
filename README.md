@@ -23,7 +23,7 @@ Phase 4 added the production Seedream adapter, synchronous paid-call safety, exp
 - Phase boundaries: [Implementation Roadmap](docs/roadmap/implementation-roadmap.md)
 - Completed implementation evidence: [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md)
 - Completed implementation plan: [Phase 5 Implementation Plan](docs/plans/phase-5-comfyui-workflow-recovery.md)
-- Next planning target: Phase 6 — Android V1 Product Experience
+- Current implementation plan: [Phase 6 Android V1 Completion](docs/plans/phase-6-android-v1-completion.md)
 - UI behavior: the Android and Web Admin UI Specs under `docs/superpowers/specs/`
 - Visual language: [DESIGN.md](DESIGN.md)
 - Long-lived technical decisions: [Architecture Decision Records](docs/adr/README.md)

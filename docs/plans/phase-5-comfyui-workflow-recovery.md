@@ -30,7 +30,9 @@
 - Deferred release gate: configure the authenticated node, validate/activate the real immutable
   Workflow, execute/persist one real output, prove restart and compatible-node recovery, and retain
   sanitized cleanup evidence before enabling Comfy for production use.
-- Next action: plan Phase 6; restore the deferred live gate when the real Workflow/node is available.
+- Next action: implement Phase 6 Task 1 from
+  [the persisted Phase 6 plan](phase-6-android-v1-completion.md); restore the deferred live gate when
+  the real Workflow/node is available.
 
 ## Goal
 
@@ -558,7 +560,7 @@ The confirmed Product Spec already resolves the material behavior: one physical 
 
 - Plan: `docs/plans/phase-5-comfyui-workflow-recovery.md`
 - Scope: Phase 5 only — logical Comfy Provider, singleton physical node, immutable Workflow versions, Comfy execution, recovery, storage pause, cleanup, and verification.
-- Continue with: Phase 6 planning — Android V1 Product Experience.
+- Continue with: Phase 6 Task 1 — close Android V1 contract and Backend behavior gaps.
 - Phase 5 evidence: all 10 implementation tasks are committed; contract/generated gates, 100 Backend
   tests, Ruff, Pyright, the 31-test deterministic deployment gate, migrations, restart/recovery, and
   redaction checks pass.
