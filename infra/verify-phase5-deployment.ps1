@@ -3,6 +3,9 @@ param([switch]$Credentialed)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $backend = Join-Path $root 'backend'
+$phase5Temp = Join-Path ([System.IO.Path]::GetTempPath()) (
+    'clothes-model-phase5-' + [guid]::NewGuid().ToString('N')
+)
 
 Push-Location $backend
 try {
@@ -17,7 +20,7 @@ try {
         tests/test_comfyui_adapter.py `
         tests/test_job_workflow_locking.py `
         tests/test_scheduler_recovery.py `
-        -q --basetemp .pytest-tmp-phase5-verify -p no:cacheprovider
+        -q --basetemp $phase5Temp -p no:cacheprovider
     if ($LASTEXITCODE -ne 0) { throw 'Deterministic Phase 5 Comfy/Workflow tests failed.' }
     if ($Credentialed) {
         if ([string]::IsNullOrWhiteSpace($env:CLOTHES_MODEL_PHASE5_COMFY_ENDPOINT)) {
@@ -27,6 +30,9 @@ try {
     }
 } finally {
     Pop-Location
+    if (Test-Path -LiteralPath $phase5Temp) {
+        Remove-Item -LiteralPath $phase5Temp -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 $sensitivePatterns = @(
