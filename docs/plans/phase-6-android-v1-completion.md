@@ -55,7 +55,18 @@
   “再次尝试”/“修正后重新生成” actions, and the Before/After comparison screen with slider plus
   show-original/show-result non-gesture alternatives. Build, lint, release build, release-boundary scan,
   JVM tests, and instrumentation compile pass.
-- Next action: Task 9 — implement Mask Editor and related-job submission
+- Task 9 — BLOCKED (2026-09-28): the Backend still rejects the confirmed mask flow. `assets.kind` and
+  `upload_sessions.asset_kind` CHECK constraints exclude `mask` (`models.py:197`, `models.py:259`);
+  `create_upload` only accepts person/garment (`assets/http.py:124`); `complete_upload` inserts a
+  garment subtype for any non-person upload (`assets/http.py:377`); and `create_job` rejects any
+  `mask_asset_id` with 422 “Phase 3 尚不支持遮罩素材” (`jobs/http.py:195`). The contract already carries
+  `mask_asset_id`/`related_job_id`, but no Phase 6 plan task explicitly assigned enabling mask
+  persistence and mask-linked jobs. The minimum resolution is a Backend change: a forward migration
+  that relaxes those two CHECK constraints (SQLite requires table rebuild under `PRAGMA
+  foreign_keys=OFF` with trigger/index recreation), a mask subtype in `complete_upload`, and `create_job`
+  mask validation plus Provider `manual_mask` compatibility. This is deliberately not rushed because it
+  is a destructive schema migration on user data.
+- Next action: resolve the Backend mask-support gap, then implement Task 9 and Task 10
 
 ## Goal
 
