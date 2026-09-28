@@ -58,7 +58,7 @@ class PendingImportWorker(context: Context, parameters: WorkerParameters) : Coro
                     if (response.code() == 401) return authenticationExpired(connections)
                     response.body() ?: return Result.retry()
                 }
-                database.pendingImports().save(pending.copy(uploadId = upload.id.toString(), confirmedOffset = upload.uploadedBytes, state = "uploading"))
+                database.pendingImports().save(pending.copy(uploadId = upload.id.toString(), confirmedOffset = upload.uploadedBytes, state = "uploading", updatedAt = System.currentTimeMillis()))
                 if (upload.uploadedBytes < source.length()) {
                     val chunk = File.createTempFile("upload-", ".chunk", applicationContext.cacheDir)
                     try {
@@ -82,7 +82,7 @@ class PendingImportWorker(context: Context, parameters: WorkerParameters) : Coro
                 val completed = api.completeUploadSession(upload.id, "complete-${pending.id}", UploadCompleteRequest(checksum))
                 if (completed.code() == 401) return authenticationExpired(connections)
                 val asset = completed.body() ?: return Result.retry()
-                database.pendingImports().save(pending.copy(uploadId = upload.id.toString(), confirmedOffset = source.length(), state = "completed", assetId = asset.id.toString()))
+                database.pendingImports().save(pending.copy(uploadId = upload.id.toString(), confirmedOffset = source.length(), state = "completed", assetId = asset.id.toString(), updatedAt = System.currentTimeMillis()))
                 source.delete()
                 Result.success()
             }

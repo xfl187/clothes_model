@@ -29,9 +29,6 @@ class PendingImportMigrationTest {
                     VALUES ('one', '/private/one', 'one.png', 'image/png', 'person',
                             NULL, 0, 'staged', NULL)""".trimIndent(),
             )
-            database.query("SELECT id FROM pending_imports WHERE id = 'one'").use { cursor ->
-                assertTrue(cursor.moveToFirst())
-            }
         }
 
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
@@ -39,13 +36,20 @@ class PendingImportMigrationTest {
             context,
             PendingImportDatabase::class.java,
             "pending-import-migration-test",
-        ).addMigrations(PendingImportDatabase.MIGRATION_1_2).build()
+        )
+            .addMigrations(
+                PendingImportDatabase.MIGRATION_1_2,
+                PendingImportDatabase.MIGRATION_2_3,
+            )
+            .build()
         try {
             val recovered = runBlocking { reopened.pendingImports().get("one") }
             assertEquals("/private/one", recovered?.stagedPath)
             assertEquals("staged", recovered?.state)
             assertEquals(null, recovered?.garmentCategory)
             assertEquals(null, recovered?.garmentSource)
+            assertEquals(null, recovered?.lastError)
+            assertEquals(0L, recovered?.updatedAt)
         } finally {
             reopened.close()
             context.deleteDatabase("pending-import-migration-test")

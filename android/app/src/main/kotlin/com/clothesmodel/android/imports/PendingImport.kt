@@ -26,6 +26,8 @@ data class PendingImport(
     val assetId: String? = null,
     val garmentCategory: String? = null,
     val garmentSource: String? = null,
+    val lastError: String? = null,
+    val updatedAt: Long = 0,
 )
 
 @Dao
@@ -33,11 +35,13 @@ interface PendingImportDao {
     @Query("SELECT * FROM pending_imports WHERE id = :id") suspend fun get(id: String): PendingImport?
     @Query("SELECT * FROM pending_imports WHERE state != 'completed'") suspend fun recoverable(): List<PendingImport>
     @Query("SELECT * FROM pending_imports") suspend fun all(): List<PendingImport>
+    @Query("SELECT * FROM pending_imports WHERE assetKind = :kind ORDER BY updatedAt DESC")
+    suspend fun byKind(kind: String): List<PendingImport>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun save(value: PendingImport)
     @Query("DELETE FROM pending_imports WHERE id = :id") suspend fun delete(id: String)
 }
 
-@Database(entities = [PendingImport::class], version = 2, exportSchema = true)
+@Database(entities = [PendingImport::class], version = 3, exportSchema = true)
 abstract class PendingImportDatabase : RoomDatabase() {
     abstract fun pendingImports(): PendingImportDao
 
@@ -49,9 +53,18 @@ abstract class PendingImportDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE pending_imports ADD COLUMN lastError TEXT")
+                db.execSQL(
+                    "ALTER TABLE pending_imports ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
         fun build(context: Context): PendingImportDatabase =
             Room.databaseBuilder(context, PendingImportDatabase::class.java, "pending-imports.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }

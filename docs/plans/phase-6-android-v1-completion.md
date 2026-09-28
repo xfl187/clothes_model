@@ -24,7 +24,13 @@
   repositories, a private-content repository, a bounded memory/disk authenticated image loader keyed
   only by asset ID, and a lifecycle refresh policy; wired under Hilt. JVM tests, lint, and instrumentation
   compile pass.
-- Next action: Task 4 — complete reusable asset library and durable imports
+- Task 4 — COMPLETE (2026-09-28): implemented the segmented person/garment asset center with category
+  filters, adaptive one-column-safe grid, bounded authenticated image tiles, import-first flow with
+  garment metadata confirmation, upload progress/retry/cancel presentation, durable import recovery
+  (Room schema v3 with `lastError`/`updatedAt` migration), and asset detail with favorite, active-reference
+  blockers, destructive-delete confirmation, and retained deleted-content placeholder. Build, lint, JVM
+  tests, and instrumentation compile pass.
+- Next action: Task 5 — implement Home and authoritative job history
 
 ## Goal
 

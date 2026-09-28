@@ -23,6 +23,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.clothesmodel.android.assets.AssetCenterRoute
+import com.clothesmodel.android.assets.AssetDetailRoute
 import com.clothesmodel.android.connection.ConnectionRoute
 import com.clothesmodel.android.ui.theme.AtelierShapes
 import com.clothesmodel.android.ui.theme.LocalAtelierTokens
@@ -64,6 +66,7 @@ fun MainTabs(
     onCreate: () -> Unit,
     onOpenAsset: (String) -> Unit,
     onOpenJob: (String) -> Unit,
+    onAuthenticationExpired: () -> Unit = {},
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -97,6 +100,7 @@ fun MainTabs(
                 AssetCenterRoute(
                     onCreate = onCreate,
                     onOpenAsset = onOpenAsset,
+                    onAuthenticationExpired = onAuthenticationExpired,
                 )
             }
             composable(Destinations.HISTORY) {
@@ -134,6 +138,11 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
                 onCreate = { navController.navigate(Destinations.CREATE) },
                 onOpenAsset = { navController.navigate(Destinations.assetDetail(it)) },
                 onOpenJob = { navController.navigate(Destinations.jobDetail(it)) },
+                onAuthenticationExpired = {
+                    navController.navigate(Destinations.connection(reauth = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
             )
         }
         composable(
@@ -143,6 +152,11 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
             AssetDetailRoute(
                 assetId = entry.arguments?.getString(Destinations.ARG_ASSET_ID).orEmpty(),
                 onBack = { navController.popBackStack() },
+                onAuthenticationExpired = {
+                    navController.navigate(Destinations.connection(reauth = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
             )
         }
         composable(Destinations.CREATE) {

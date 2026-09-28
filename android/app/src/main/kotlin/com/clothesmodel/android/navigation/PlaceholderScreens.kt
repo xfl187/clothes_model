@@ -39,29 +39,6 @@ fun HomeRoute(
 }
 
 @Composable
-fun AssetCenterRoute(
-    onCreate: () -> Unit,
-    onOpenAsset: (String) -> Unit,
-) {
-    PlaceholderScreen(
-        title = "素材",
-        message = "人物与衣物素材库将在此显示。",
-    )
-}
-
-@Composable
-fun AssetDetailRoute(
-    assetId: String,
-    onBack: () -> Unit,
-) {
-    PlaceholderScreen(
-        title = "素材详情",
-        message = "素材 $assetId 的收藏、引用与删除将在此显示。",
-        onBack = onBack,
-    )
-}
-
-@Composable
 fun HistoryRoute(
     onOpenJob: (String) -> Unit,
 ) {
