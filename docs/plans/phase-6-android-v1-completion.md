@@ -61,9 +61,14 @@
   mask availability and Provider `manual_mask` capability at job creation, persists mask/related-job
   lineage and active references, and supplies private mask bytes to Provider execution. Focused mask and
   migration coverage, the full Backend lint/type/test gate, and the Phase 6 contract boundary pass.
-- Task 9 — READY: Backend mask persistence and execution dependencies are satisfied; Android Mask
-  Editor work has not started.
-- Next action: implement Task 9, then Task 10
+- Task 9 — COMPLETE (2026-09-28): implemented the Android Mask Editor — plum semi-transparent
+  draw/erase on a fit-locked source canvas, brush sizes, undo, clear, preview toggle, normalized
+  coordinates with pixel transform, bounded PNG export, unsent draft persistence (metadata + mask PNG +
+  stroke document) restored across process death, discard-on-back confirmation, explicit compatible
+  Provider selection when the locked Provider does not support manual mask, private `mask` upload, and
+  related-job creation with `mask_asset_id`/`related_job_id` that never overwrites the original. Build,
+  lint, JVM tests, and instrumentation compile pass.
+- Next action: Task 10 — run the integrated Phase 6 exit gate
 
 ## Goal
 

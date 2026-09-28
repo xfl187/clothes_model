@@ -29,6 +29,7 @@ fun AssetImage(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     deletedLabel: String = "素材已删除",
+    contentScale: ContentScale = ContentScale.Crop,
 ) {
     val result by produceState<ImageResult?>(initialValue = null, assetId) {
         value = loader.load(assetId)
@@ -49,7 +50,7 @@ fun AssetImage(
                 Image(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = contentDescription,
-                    contentScale = ContentScale.Crop,
+                    contentScale = contentScale,
                     modifier = modifier.fillMaxSize(),
                 )
             }

@@ -27,19 +27,6 @@ internal fun PlaceholderScreen(
 }
 
 @Composable
-fun MaskEditorRoute(
-    jobId: String,
-    candidateId: String,
-    onBack: () -> Unit,
-) {
-    PlaceholderScreen(
-        title = "遮罩修正",
-        message = "候选 $candidateId 的遮罩编辑将在此显示。",
-        onBack = onBack,
-    )
-}
-
-@Composable
 fun MissingTargetScreen(onBack: () -> Unit) {
     PlaceholderScreen(
         title = "未找到内容",

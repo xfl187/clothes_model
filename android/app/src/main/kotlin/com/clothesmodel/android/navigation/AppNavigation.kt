@@ -30,6 +30,7 @@ import com.clothesmodel.android.create.CreateWizardRoute
 import com.clothesmodel.android.history.HistoryRoute
 import com.clothesmodel.android.home.HomeRoute
 import com.clothesmodel.android.jobs.JobDetailRoute
+import com.clothesmodel.android.mask.MaskEditorRoute
 import com.clothesmodel.android.results.CompareRoute
 import com.clothesmodel.android.results.ResultRoute
 import com.clothesmodel.android.ui.theme.AtelierShapes
@@ -246,6 +247,16 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
                 jobId = entry.arguments?.getString(Destinations.ARG_JOB_ID).orEmpty(),
                 candidateId = entry.arguments?.getString(Destinations.ARG_CANDIDATE_ID).orEmpty(),
                 onBack = { navController.popBackStack() },
+                onCreated = { jobId ->
+                    navController.navigate(Destinations.jobDetail(jobId)) {
+                        popUpTo(Destinations.MAIN)
+                    }
+                },
+                onAuthenticationExpired = {
+                    navController.navigate(Destinations.connection(reauth = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
             )
         }
     }
