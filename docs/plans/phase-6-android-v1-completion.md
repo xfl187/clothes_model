@@ -18,7 +18,13 @@
   type, shape, spacing and reduced-motion tokens, and reusable scaffold/heading/entity/status/problem/
   empty/loading/deleted-content/confirmation components. Feature bodies remain placeholders until
   their Tasks. Debug/release builds, JVM tests, instrumentation compile, and lint pass.
-- Next action: Task 3 — add authenticated repositories, UI models, and image delivery
+- Task 3 — COMPLETE (2026-09-28): added the authenticated data boundary — connection-backed API
+  service factory, 401-to-re-authentication routing, problem parsing, app-owned domain models and
+  mappers that preserve unknown server values, paged asset/job/provider repositories, job command
+  repositories, a private-content repository, a bounded memory/disk authenticated image loader keyed
+  only by asset ID, and a lifecycle refresh policy; wired under Hilt. JVM tests, lint, and instrumentation
+  compile pass.
+- Next action: Task 4 — complete reusable asset library and durable imports
 
 ## Goal
 
