@@ -1,0 +1,146 @@
+package com.clothesmodel.android.navigation
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.Composable
+import com.clothesmodel.android.ui.components.AtelierScaffold
+import com.clothesmodel.android.ui.components.EmptyState
+import com.clothesmodel.android.ui.theme.AtelierSpacing
+
+@Composable
+internal fun PlaceholderScreen(
+    title: String,
+    message: String,
+    onBack: (() -> Unit)? = null,
+    action: Pair<String, () -> Unit>? = null,
+) {
+    AtelierScaffold(title = title, onBack = onBack) {
+        Column(verticalArrangement = Arrangement.spacedBy(AtelierSpacing.lg)) {
+            EmptyState(
+                title = title,
+                message = message,
+                actionLabel = action?.first,
+                onAction = action?.second,
+            )
+        }
+    }
+}
+
+@Composable
+fun HomeRoute(
+    onCreate: () -> Unit,
+    onOpenJob: (String) -> Unit,
+) {
+    PlaceholderScreen(
+        title = "首页",
+        message = "精准换装与最近结果将在此显示。",
+        action = "开始精准换装" to onCreate,
+    )
+}
+
+@Composable
+fun AssetCenterRoute(
+    onCreate: () -> Unit,
+    onOpenAsset: (String) -> Unit,
+) {
+    PlaceholderScreen(
+        title = "素材",
+        message = "人物与衣物素材库将在此显示。",
+    )
+}
+
+@Composable
+fun AssetDetailRoute(
+    assetId: String,
+    onBack: () -> Unit,
+) {
+    PlaceholderScreen(
+        title = "素材详情",
+        message = "素材 $assetId 的收藏、引用与删除将在此显示。",
+        onBack = onBack,
+    )
+}
+
+@Composable
+fun HistoryRoute(
+    onOpenJob: (String) -> Unit,
+) {
+    PlaceholderScreen(
+        title = "历史",
+        message = "全部任务状态将在此显示。",
+    )
+}
+
+@Composable
+fun CreateWizardRoute(
+    onBack: () -> Unit,
+    onCreated: (String) -> Unit,
+) {
+    PlaceholderScreen(
+        title = "精准换装",
+        message = "三步创建向导将在此显示。",
+        onBack = onBack,
+    )
+}
+
+@Composable
+fun JobDetailRoute(
+    jobId: String,
+    onBack: () -> Unit,
+    onOpenResults: (String) -> Unit,
+) {
+    PlaceholderScreen(
+        title = "任务详情",
+        message = "任务 $jobId 的候选与恢复操作将在此显示。",
+        onBack = onBack,
+    )
+}
+
+@Composable
+fun ResultRoute(
+    jobId: String,
+    onBack: () -> Unit,
+    onCompare: (String) -> Unit,
+    onMask: (String) -> Unit,
+) {
+    PlaceholderScreen(
+        title = "生成结果",
+        message = "任务 $jobId 的结果网格将在此显示。",
+        onBack = onBack,
+    )
+}
+
+@Composable
+fun CompareRoute(
+    jobId: String,
+    candidateId: String,
+    onBack: () -> Unit,
+) {
+    PlaceholderScreen(
+        title = "原图对比",
+        message = "候选 $candidateId 的原图与结果对比将在此显示。",
+        onBack = onBack,
+    )
+}
+
+@Composable
+fun MaskEditorRoute(
+    jobId: String,
+    candidateId: String,
+    onBack: () -> Unit,
+) {
+    PlaceholderScreen(
+        title = "遮罩修正",
+        message = "候选 $candidateId 的遮罩编辑将在此显示。",
+        onBack = onBack,
+    )
+}
+
+@Composable
+fun MissingTargetScreen(onBack: () -> Unit) {
+    PlaceholderScreen(
+        title = "未找到内容",
+        message = "目标不存在或已被删除。",
+        onBack = onBack,
+    )
+}

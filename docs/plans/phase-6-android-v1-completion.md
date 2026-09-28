@@ -13,7 +13,12 @@
   generated-output favorite consistency; terminal references no longer block content deletion while
   non-terminal sources return an inspectable `asset_referenced` conflict; lineage stays free of
   filesystem paths/secrets; added the Phase 6 boundary gate. No additive contract change was needed.
-- Next action: Task 2 — establish the Phase 6 Android foundation and navigation shell
+- Task 2 — COMPLETE (2026-09-28): replaced the connection→try-on shell with startup routing, the fixed
+  `首页 / 素材 / 历史` bottom navigation, typed full-screen destination routes, Quiet Atelier color,
+  type, shape, spacing and reduced-motion tokens, and reusable scaffold/heading/entity/status/problem/
+  empty/loading/deleted-content/confirmation components. Feature bodies remain placeholders until
+  their Tasks. Debug/release builds, JVM tests, instrumentation compile, and lint pass.
+- Next action: Task 3 — add authenticated repositories, UI models, and image delivery
 
 ## Goal
 
@@ -547,7 +552,7 @@ Dependencies and parallelization:
 ## Implementation Handoff
 
 - Plan: `docs/plans/phase-6-android-v1-completion.md`
-- Next executable task: Task 2 — establish the Phase 6 Android foundation and navigation shell.
+- Next executable task: Task 3 — add authenticated repositories, UI models, and image delivery.
 - Prerequisites: Phase 5 deterministic gates remain green; no real Comfy node or Workflow is required.
 - Execution scope: one Task → focused verification → regression gate proportional to risk → Git commit.
 - Task 1 completion evidence: generated drift and Kotlin/TypeScript compile pass, the Phase 6 boundary
