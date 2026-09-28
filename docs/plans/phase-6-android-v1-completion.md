@@ -48,7 +48,14 @@
   Provider cannot be reused, stable per-command idempotency keys with duplicate-tap disabling, and
   visibility-scoped polling that stops for terminal/`needs_attention` work. Build, lint, JVM tests, and
   instrumentation compile pass.
-- Next action: Task 8 — complete result gallery, comparison, favorite, download/share, and deletion
+- Task 8 — COMPLETE (2026-09-28): implemented the adaptive result gallery with successful outputs first
+  and failed/cancelled candidates retained below, selected-result large view, authoritative favorite
+  reconciliation, `MediaStore` download, `FileProvider` short-lived share URI, deletion with
+  reference-conflict explanation and cache eviction, deleted-content placeholders, distinct
+  “再次尝试”/“修正后重新生成” actions, and the Before/After comparison screen with slider plus
+  show-original/show-result non-gesture alternatives. Build, lint, release build, release-boundary scan,
+  JVM tests, and instrumentation compile pass.
+- Next action: Task 9 — implement Mask Editor and related-job submission
 
 ## Goal
 

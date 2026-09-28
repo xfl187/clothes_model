@@ -239,6 +239,7 @@ data class JobModel(
     val providerLabel: String,
     val lockedProviderId: UUID? = null,
     val garmentAssetId: UUID? = null,
+    val personAssetIds: List<UUID> = emptyList(),
     val maskAssetId: UUID?,
     val relatedJobId: UUID?,
     val workflowLabel: String?,

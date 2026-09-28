@@ -27,33 +27,6 @@ internal fun PlaceholderScreen(
 }
 
 @Composable
-fun ResultRoute(
-    jobId: String,
-    onBack: () -> Unit,
-    onCompare: (String) -> Unit,
-    onMask: (String) -> Unit,
-) {
-    PlaceholderScreen(
-        title = "生成结果",
-        message = "任务 $jobId 的结果网格将在此显示。",
-        onBack = onBack,
-    )
-}
-
-@Composable
-fun CompareRoute(
-    jobId: String,
-    candidateId: String,
-    onBack: () -> Unit,
-) {
-    PlaceholderScreen(
-        title = "原图对比",
-        message = "候选 $candidateId 的原图与结果对比将在此显示。",
-        onBack = onBack,
-    )
-}
-
-@Composable
 fun MaskEditorRoute(
     jobId: String,
     candidateId: String,

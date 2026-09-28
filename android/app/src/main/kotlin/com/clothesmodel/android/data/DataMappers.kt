@@ -91,6 +91,7 @@ fun TryOnJob.toModel(): JobModel = JobModel(
     providerLabel = providerSnapshot.label,
     lockedProviderId = providerConfigRef.providerId,
     garmentAssetId = garmentAssetId,
+    personAssetIds = personAssetIds,
     maskAssetId = maskAssetId,
     relatedJobId = relatedJobId,
     workflowLabel = workflowSnapshot?.label,

@@ -30,6 +30,8 @@ import com.clothesmodel.android.create.CreateWizardRoute
 import com.clothesmodel.android.history.HistoryRoute
 import com.clothesmodel.android.home.HomeRoute
 import com.clothesmodel.android.jobs.JobDetailRoute
+import com.clothesmodel.android.results.CompareRoute
+import com.clothesmodel.android.results.ResultRoute
 import com.clothesmodel.android.ui.theme.AtelierShapes
 import com.clothesmodel.android.ui.theme.LocalAtelierTokens
 
@@ -208,6 +210,11 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
                 onBack = { navController.popBackStack() },
                 onCompare = { navController.navigate(Destinations.compare(jobId, it)) },
                 onMask = { navController.navigate(Destinations.mask(jobId, it)) },
+                onAuthenticationExpired = {
+                    navController.navigate(Destinations.connection(reauth = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
             )
         }
         composable(
@@ -221,6 +228,11 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
                 jobId = entry.arguments?.getString(Destinations.ARG_JOB_ID).orEmpty(),
                 candidateId = entry.arguments?.getString(Destinations.ARG_CANDIDATE_ID).orEmpty(),
                 onBack = { navController.popBackStack() },
+                onAuthenticationExpired = {
+                    navController.navigate(Destinations.connection(reauth = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
             )
         }
         composable(
