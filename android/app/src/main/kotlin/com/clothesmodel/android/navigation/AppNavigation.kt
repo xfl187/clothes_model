@@ -26,6 +26,8 @@ import androidx.navigation.navArgument
 import com.clothesmodel.android.assets.AssetCenterRoute
 import com.clothesmodel.android.assets.AssetDetailRoute
 import com.clothesmodel.android.connection.ConnectionRoute
+import com.clothesmodel.android.history.HistoryRoute
+import com.clothesmodel.android.home.HomeRoute
 import com.clothesmodel.android.ui.theme.AtelierShapes
 import com.clothesmodel.android.ui.theme.LocalAtelierTokens
 
@@ -94,6 +96,7 @@ fun MainTabs(
                 HomeRoute(
                     onCreate = onCreate,
                     onOpenJob = onOpenJob,
+                    onAuthenticationExpired = onAuthenticationExpired,
                 )
             }
             composable(Destinations.ASSETS) {
@@ -104,7 +107,10 @@ fun MainTabs(
                 )
             }
             composable(Destinations.HISTORY) {
-                HistoryRoute(onOpenJob = onOpenJob)
+                HistoryRoute(
+                    onOpenJob = onOpenJob,
+                    onAuthenticationExpired = onAuthenticationExpired,
+                )
             }
         }
     }

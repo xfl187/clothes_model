@@ -30,7 +30,12 @@
   (Room schema v3 with `lastError`/`updatedAt` migration), and asset detail with favorite, active-reference
   blockers, destructive-delete confirmation, and retained deleted-content placeholder. Build, lint, JVM
   tests, and instrumentation compile pass.
-- Next action: Task 5 — implement Home and authoritative job history
+- Task 5 — COMPLETE (2026-09-28): implemented Home (primary precise-try-on entry, recent high-value jobs,
+  low-emphasis coming-soon cards) and the paged authoritative job history with per-state presentation,
+  output thumbnail or deleted-content placeholder, block reason, updated time, tab-entry/resume refresh,
+  stale-snapshot retention, and 401 re-authentication routing. Build, lint, JVM tests, and
+  instrumentation compile pass.
+- Next action: Task 6 — replace the single screen with the durable three-step creation wizard
 
 ## Goal
 

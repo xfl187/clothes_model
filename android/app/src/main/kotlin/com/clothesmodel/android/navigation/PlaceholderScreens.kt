@@ -27,28 +27,6 @@ internal fun PlaceholderScreen(
 }
 
 @Composable
-fun HomeRoute(
-    onCreate: () -> Unit,
-    onOpenJob: (String) -> Unit,
-) {
-    PlaceholderScreen(
-        title = "首页",
-        message = "精准换装与最近结果将在此显示。",
-        action = "开始精准换装" to onCreate,
-    )
-}
-
-@Composable
-fun HistoryRoute(
-    onOpenJob: (String) -> Unit,
-) {
-    PlaceholderScreen(
-        title = "历史",
-        message = "全部任务状态将在此显示。",
-    )
-}
-
-@Composable
 fun CreateWizardRoute(
     onBack: () -> Unit,
     onCreated: (String) -> Unit,
