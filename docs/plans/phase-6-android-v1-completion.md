@@ -2,14 +2,18 @@
 
 ## Progress
 
-- Status: PLANNED — ready for Task 1 implementation
+- Status: IN_PROGRESS — Task 1 complete
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Scope: Android V1 product completion on the stable Phase 1–5 Backend/API
 - Deferred external gate: real credentialed AutoDL/Comfy acceptance remains a later release-readiness
   requirement and is not part of the Phase 6 exit gate
 - Execution rule: complete, verify, and Git-commit every Task before starting the next Task
-- Next action: Task 1 — close Android V1 contract and Backend behavior gaps
+- Task 1 — COMPLETE (2026-09-28): audited Android V1 asset/job/provider routes; repaired
+  generated-output favorite consistency; terminal references no longer block content deletion while
+  non-terminal sources return an inspectable `asset_referenced` conflict; lineage stays free of
+  filesystem paths/secrets; added the Phase 6 boundary gate. No additive contract change was needed.
+- Next action: Task 2 — establish the Phase 6 Android foundation and navigation shell
 
 ## Goal
 
@@ -543,9 +547,9 @@ Dependencies and parallelization:
 ## Implementation Handoff
 
 - Plan: `docs/plans/phase-6-android-v1-completion.md`
-- First executable task: Task 1 — audit and close Android-required contract/Backend behavior gaps.
+- Next executable task: Task 2 — establish the Phase 6 Android foundation and navigation shell.
 - Prerequisites: Phase 5 deterministic gates remain green; no real Comfy node or Workflow is required.
 - Execution scope: one Task → focused verification → regression gate proportional to risk → Git commit.
-- Task 1 completion evidence: generated clients compile, Phase 6 boundary assertions pass, and focused
-  Backend favorite/deletion/lineage/mask behavior tests pass.
+- Task 1 completion evidence: generated drift and Kotlin/TypeScript compile pass, the Phase 6 boundary
+  gate passes, and focused Backend favorite/deletion/lineage behavior tests pass.
 - Resume phrase: `继续`.

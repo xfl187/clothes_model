@@ -25,8 +25,8 @@ async def output_payload(
             await uow.session.execute(
                 select(
                     db.generated_outputs,
-                    db.assets.c.favorite,
-                    db.assets.c.content_state,
+                    db.assets.c.favorite.label("asset_favorite"),
+                    db.assets.c.content_state.label("asset_content_state"),
                 )
                 .select_from(
                     db.generated_outputs.join(
@@ -45,8 +45,8 @@ async def output_payload(
         "id": row["id"],
         "job_item_id": row["job_item_id"],
         "asset_id": row["asset_id"],
-        "favorite": bool(row["favorite"]),
-        "content_available": row["content_state"] == "available",
+        "favorite": bool(row["asset_favorite"]),
+        "content_available": row["asset_content_state"] == "available",
         "seed": row["seed"],
         "actual_parameters": json.loads(row["actual_parameters_json"] or "{}"),
         "quality_warnings": json.loads(row["quality_warnings_json"] or "[]"),

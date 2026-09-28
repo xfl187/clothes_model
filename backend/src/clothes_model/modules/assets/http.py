@@ -13,7 +13,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import FileResponse
-from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.engine import RowMapping
 
 from clothes_model.core.problems import AppProblem
@@ -31,10 +31,24 @@ from clothes_model.modules.auth.http import require_app
 router = APIRouter(tags=["Assets", "Uploads"])
 AppIdentity = Annotated[VerifiedCredential, Depends(require_app)]
 _locks: dict[str, asyncio.Lock] = {}
+_TERMINAL_JOB_STATES = ("succeeded", "partially_succeeded", "failed", "cancelled")
 
 
-def _problem(status: int, code: str, detail: str) -> AppProblem:
-    return AppProblem(status, code, "请求无法完成", detail, retryable=status in {429, 507})
+def _problem(
+    status: int,
+    code: str,
+    detail: str,
+    *,
+    context: dict[str, object] | None = None,
+) -> AppProblem:
+    return AppProblem(
+        status,
+        code,
+        "请求无法完成",
+        detail,
+        retryable=status in {429, 507},
+        context=context or {},
+    )
 
 
 def _upload_dict(row: Mapping[Any, Any]) -> dict[str, object]:
@@ -94,6 +108,45 @@ async def _asset_dict(uow: SqlAlchemyUnitOfWork, asset_id: str) -> dict[str, obj
         "garment_category": row["category"],
         "garment_source": row["source"],
     }
+
+
+async def _reference_source_state(
+    uow: SqlAlchemyUnitOfWork, source_kind: str, source_id: str
+) -> str | None:
+    if source_kind == "job":
+        return await uow.session.scalar(
+            select(db.jobs.c.state).where(db.jobs.c.id == source_id)
+        )
+    if source_kind in {"job_item", "generated_output"}:
+        return await uow.session.scalar(
+            select(db.job_items.c.state).where(db.job_items.c.id == source_id)
+        )
+    return None
+
+
+async def _blocking_references(
+    uow: SqlAlchemyUnitOfWork, asset_id: str
+) -> list[RowMapping]:
+    rows = (
+        (
+            await uow.session.execute(
+                select(db.asset_references)
+                .where(
+                    db.asset_references.c.asset_id == asset_id,
+                    db.asset_references.c.active.is_(True),
+                )
+                .order_by(db.asset_references.c.created_at, db.asset_references.c.id)
+            )
+        )
+        .mappings()
+        .all()
+    )
+    blocking: list[RowMapping] = []
+    for row in rows:
+        state = await _reference_source_state(uow, row["source_kind"], row["source_id"])
+        if state is None or state not in _TERMINAL_JOB_STATES:
+            blocking.append(row)
+    return blocking
 
 
 def _temp(request: Request, name: str) -> Path:
@@ -525,20 +578,7 @@ async def content(request: Request, asset_id: str, identity: AppIdentity) -> Fil
 async def references(request: Request, asset_id: str, identity: AppIdentity) -> dict[str, object]:
     del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
-        rows = (
-            (
-                await uow.session.execute(
-                    select(db.asset_references)
-                    .where(
-                        db.asset_references.c.asset_id == asset_id,
-                        db.asset_references.c.active.is_(True),
-                    )
-                    .order_by(db.asset_references.c.created_at, db.asset_references.c.id)
-                )
-            )
-            .mappings()
-            .all()
-        )
+        rows = await _blocking_references(uow, asset_id)
         return {
             "items": [
                 {
@@ -565,15 +605,14 @@ async def delete_content(
 ) -> dict[str, object]:
     del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
-        blockers = await uow.session.scalar(
-            select(func.count())
-            .select_from(db.asset_references)
-            .where(
-                db.asset_references.c.asset_id == asset_id, db.asset_references.c.active.is_(True)
-            )
-        )
+        blockers = await _blocking_references(uow, asset_id)
         if blockers:
-            raise _problem(409, "asset_referenced", "素材仍被引用，不能删除内容。")
+            raise _problem(
+                409,
+                "asset_referenced",
+                "素材仍被引用，不能删除内容。",
+                context={"reference_count": len(blockers)},
+            )
         asset = (
             (await uow.session.execute(select(db.assets).where(db.assets.c.id == asset_id)))
             .mappings()
