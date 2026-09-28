@@ -2,7 +2,8 @@
 
 Private Android AI virtual try-on system with a fixed-server backend and a Web Admin control plane.
 
-The repository has completed **Phase 4 — Minimum V1 End-to-End Vertical Slice** for Volcengine Ark `doubao-seedream-4-5-251128`. A credentialed operator run on 2026-09-27 verified the real loop: Web Admin configured, validated, enabled, and defaulted the Provider; Android uploaded one person and one garment image and created one candidate; Ark executed it; and the private output was persisted, survived a Backend restart, and displayed in Android. Details and evidence are in the [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md). **Phase 5 — ComfyUI, Workflow Versioning and Recovery** is implementation-complete on `main`: its deterministic exit gate passed on 2026-09-28 (logical Comfy Provider, singleton physical node, immutable Workflow versions with structural + fixture-backed live validation, job-level Workflow locking, storage-paused recovery without resubmission, and CI/deployment gates). By product-owner decision, credentialed AutoDL/Comfy operator acceptance is deferred until a real Workflow and node are prepared for the next release; it is not a blocker for starting Phase 6, but remains mandatory before claiming production readiness for Comfy execution. See the [Phase 5 Implementation Plan](docs/plans/phase-5-comfyui-workflow-recovery.md).
+The repository has completed Phase 1–6. **Phase 4 — Minimum V1 End-to-End Vertical Slice** was verified by a credentialed operator run on 2026-09-27 against Volcengine Ark `doubao-seedream-4-5-251128` (Web Admin configured, validated, enabled and defaulted the Provider; Android uploaded one person and one garment and created one candidate; Ark executed it; the private output was persisted, survived a Backend restart, and displayed in Android). **Phase 5 — ComfyUI, Workflow Versioning and Recovery** is implementation-complete: logical Comfy Provider, singleton physical node, immutable Workflow versions, job-level Workflow locking, storage-paused recovery without resubmission, and CI/deployment gates; its deterministic exit gate passed 2026-09-28. **Phase 6 — Android V1 Completion** is complete: fixed `首页 / 素材 / 历史` navigation, reusable person/garment libraries with durable import recovery, the three-step precise-try-on wizard, truthful job/candidate/recovery/lineage states, the result gallery with comparison/favorite/download/share and deletion placeholders, and mask correction as a related new job, backed by a forward migration that enables private `mask` assets and mask-linked jobs. The deterministic exit gate is `android/verify-phase6.ps1`. By product-owner decision, real credentialed AutoDL/Comfy operator acceptance remains deferred until a real Workflow and node are prepared, and is mandatory before claiming Comfy production readiness. **Phase 7 — Web Admin and Operations Completion** is next and has no implementation plan yet, so it must return to `$planning`. See the [Phase 4](docs/plans/phase-4-minimum-v1-e2e.md), [Phase 5](docs/plans/phase-5-comfyui-workflow-recovery.md), and [Phase 6](docs/plans/phase-6-android-v1-completion.md) plans.
+
 
 ## Current scope
 
@@ -14,7 +15,7 @@ The completed foundation includes:
 - minimal Android connection/import recovery and Web Admin session foundations;
 - the enforced V1 single-instance runtime constraint.
 
-Phase 4 added the production Seedream adapter, synchronous paid-call safety, explicit paid validation, the minimum Admin Provider workflow, and the Android select/upload/create/poll/recover/result flow. Ordinary verification uses injected transports and never spends Provider credits. Result zoom/save/share, the materials library and history, and the results grid remain Phase 6.
+Phase 4 added the production Seedream adapter, synchronous paid-call safety, explicit paid validation, the minimum Admin Provider workflow, and the Android select/upload/create/poll/recover/result flow. Ordinary verification uses injected transports and never spends Provider credits. Result zoom/save/share, the materials library and history, the results grid, and mask correction were delivered in Phase 6.
 
 ## Sources of truth
 
@@ -22,8 +23,8 @@ Phase 4 added the production Seedream adapter, synchronous paid-call safety, exp
 - Confirmed behavior flows: [Product Flow](docs/product-flow.md)
 - Phase boundaries: [Implementation Roadmap](docs/roadmap/implementation-roadmap.md)
 - Completed implementation evidence: [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md)
-- Completed implementation plan: [Phase 5 Implementation Plan](docs/plans/phase-5-comfyui-workflow-recovery.md)
-- Current implementation plan: [Phase 6 Android V1 Completion](docs/plans/phase-6-android-v1-completion.md)
+- Completed implementation plans: [Phase 5](docs/plans/phase-5-comfyui-workflow-recovery.md), [Phase 6 Android V1 Completion](docs/plans/phase-6-android-v1-completion.md)
+- Current implementation plan: none — return to `$planning` for Phase 7 (Web Admin and Operations Completion)
 - UI behavior: the Android and Web Admin UI Specs under `docs/superpowers/specs/`
 - Visual language: [DESIGN.md](DESIGN.md)
 - Long-lived technical decisions: [Architecture Decision Records](docs/adr/README.md)
@@ -43,7 +44,7 @@ When these artifacts differ, use the authority order recorded in the Phase Plan;
 | `.github/workflows/` | CI quality gates | Task 9 |
 | `docs/`, `prototypes/`, `DESIGN.md` | Confirmed product, design, planning, and prototype inputs | Preserved project memory |
 
-Phase 1–3 are complete and the Phase 4 deterministic implementation is verified. Jobs, the Seedream Provider, the minimum Android try-on flow, and the minimum Web Admin Provider flow are real behavior; Workflows, Cleanup, ComfyNode, Retention, and storage-scan routes remain contract-shaped stubs. Full Android and Web Admin product surfaces remain in later roadmap phases.
+Phases 1–6 are complete. Jobs, the Seedream Provider, Comfy/Workflow persistence, the full Android V1 product surface, and the minimum Web Admin Provider flow are real behavior; Cleanup, Retention, storage-scan routes, and the full Web Admin product surface remain contract-shaped stubs for Phase 7.
 
 ## Repository policies
 

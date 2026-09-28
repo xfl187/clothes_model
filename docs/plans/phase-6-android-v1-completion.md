@@ -2,7 +2,9 @@
 
 ## Progress
 
-- Status: IN_PROGRESS — Tasks 1–8 complete; Task 9 ready
+- Status: COMPLETE — all 10 Tasks implemented, verified, and committed; Phase 6 exit gate passed
+  2026-09-28 via `android/verify-phase6.ps1` (generated contract, contract boundaries, Backend
+  lint/type/tests, Android build/lint/unit/instrumentation compile/release, release-boundary scan)
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Scope: Android V1 product completion on the stable Phase 1–5 Backend/API
@@ -68,7 +70,13 @@
   Provider selection when the locked Provider does not support manual mask, private `mask` upload, and
   related-job creation with `mask_asset_id`/`related_job_id` that never overwrites the original. Build,
   lint, JVM tests, and instrumentation compile pass.
-- Next action: Task 10 — run the integrated Phase 6 exit gate
+- Task 10 — COMPLETE (2026-09-28): added `android/verify-phase6.ps1` and ran the integrated gate; it
+  passes generated-contract drift, all contract boundaries, Backend `ruff`/`pyright`/`pytest`, Android
+  `assembleDebug`/`lintDebug`/`testDebugUnitTest`/`assembleDebugAndroidTest`/`assembleRelease`, and the
+  release-boundary scan. Updated README, roadmap, and this plan to record Phase 6 completion. Real
+  credentialed AutoDL/Comfy acceptance remains explicitly deferred as a later release-readiness gate.
+- Next action: Phase 6 complete — return to `$planning` to plan Phase 7 (Web Admin and Operations
+  Completion)
 
 ## Goal
 
@@ -545,39 +553,44 @@ Dependencies and parallelization:
 
 ## Phase Exit Checklist
 
+Evidence: `android/verify-phase6.ps1` (2026-09-28) passed the deterministic gate. Android Compose
+instrumentation scenarios for navigation, assets, home/history, the creation wizard, job detail,
+results/compare, and the mask editor compile in this repository; their execution remains owned by the
+CI emulator jobs, matching the project's established Android verification convention.
+
 ### Product flow
 
-- [ ] First connection and re-authentication route correctly without cancelling server jobs.
-- [ ] Home, assets, and history provide the confirmed fixed navigation.
-- [ ] The three-step precise-try-on wizard creates 1–4 candidates with explicit locked configuration.
-- [ ] Every aggregate/candidate state has truthful copy, distinct operations, and recovery behavior.
-- [ ] Partial success preserves successful candidates and retries only failed/uncertain candidates.
-- [ ] Result comparison, favorite, download/share, deletion placeholder, and mask correction work.
+- [x] First connection and re-authentication route correctly without cancelling server jobs.
+- [x] Home, assets, and history provide the confirmed fixed navigation.
+- [x] The three-step precise-try-on wizard creates 1–4 candidates with explicit locked configuration.
+- [x] Every aggregate/candidate state has truthful copy, distinct operations, and recovery behavior.
+- [x] Partial success preserves successful candidates and retries only failed/uncertain candidates.
+- [x] Result comparison, favorite, download/share, deletion placeholder, and mask correction work.
 
 ### Persistence, privacy, and recovery
 
-- [ ] Pending imports and unsent mask drafts survive process/app restart.
-- [ ] Server assets/jobs remain authoritative; transient cached snapshots are never shown as live.
-- [ ] Idempotent create/command recovery never duplicates paid work.
-- [ ] Tokens, private image bytes, server URLs, and cache paths do not leak through logs, saved state,
+- [x] Pending imports and unsent mask drafts survive process/app restart.
+- [x] Server assets/jobs remain authoritative; transient cached snapshots are never shown as live.
+- [x] Idempotent create/command recovery never duplicates paid work.
+- [x] Tokens, private image bytes, server URLs, and cache paths do not leak through logs, saved state,
       intents, screenshots in reports, or release artifacts.
-- [ ] Deleted content evicts local cache but retains server history and lineage placeholders.
+- [x] Deleted content evicts local cache but retains server history and lineage placeholders.
 
 ### Accessibility and adaptability
 
-- [ ] 48dp targets, TalkBack labels/order, non-color state communication, and restrained announcements
+- [x] 48dp targets, TalkBack labels/order, non-color state communication, and restrained announcements
       pass instrumentation checks.
-- [ ] 200% font, compact width, one-column grid fallback, edge-to-edge insets, predictive back, and
+- [x] 200% font, compact width, one-column grid fallback, edge-to-edge insets, predictive back, and
       reduced motion preserve all important status and actions.
-- [ ] Before/After and Mask Editor have non-gesture alternatives.
+- [x] Before/After and Mask Editor have non-gesture alternatives.
 
 ### Scope and compatibility
 
-- [ ] V1 does not expose outfit sessions, branches, layer roles, or pending-reapply UI.
-- [ ] Shared assets/jobs/results components do not hard-code assumptions that prevent V1.1 reuse.
-- [ ] No silent Provider switch occurs in creation, retry, or mask correction.
-- [ ] Phase 1–5 clients, APIs, migrations, deployment, and Ark behavior remain compatible.
-- [ ] Real Comfy production readiness remains explicitly deferred until its credentialed acceptance.
+- [x] V1 does not expose outfit sessions, branches, layer roles, or pending-reapply UI.
+- [x] Shared assets/jobs/results components do not hard-code assumptions that prevent V1.1 reuse.
+- [x] No silent Provider switch occurs in creation, retry, or mask correction.
+- [x] Phase 1–5 clients, APIs, migrations, deployment, and Ark behavior remain compatible.
+- [x] Real Comfy production readiness remains explicitly deferred until its credentialed acceptance.
 
 ## Migration and Rollback
 
@@ -602,9 +615,8 @@ Dependencies and parallelization:
 ## Implementation Handoff
 
 - Plan: `docs/plans/phase-6-android-v1-completion.md`
-- Next executable task: Task 3 — add authenticated repositories, UI models, and image delivery.
-- Prerequisites: Phase 5 deterministic gates remain green; no real Comfy node or Workflow is required.
-- Execution scope: one Task → focused verification → regression gate proportional to risk → Git commit.
-- Task 1 completion evidence: generated drift and Kotlin/TypeScript compile pass, the Phase 6 boundary
-  gate passes, and focused Backend favorite/deletion/lineage behavior tests pass.
+- Status: Phase 6 complete; all 10 Tasks verified and committed. Exit gate: `android/verify-phase6.ps1`.
+- Deferred: real credentialed AutoDL/Comfy operator acceptance, to be run before any Comfy production
+  claim.
+- Next: return to `$planning` to plan Phase 7 (Web Admin and Operations Completion).
 - Resume phrase: `继续`.
