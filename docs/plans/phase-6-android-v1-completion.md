@@ -41,7 +41,14 @@
   temporarily-offline creation while blocking permanent incompatibility, preserving one idempotency key
   across ambiguous retries, and persisting asset/category/count/provider draft fields. Build, lint, JVM
   tests, and instrumentation compile pass.
-- Next action: Task 7 — implement job detail, candidate control, recovery, and lineage
+- Task 7 — COMPLETE (2026-09-28): implemented job detail with aggregate and candidate state, block
+  reason/detail, elapsed timing, successful outputs or deleted placeholders, locked Provider/Workflow
+  summary, expandable lineage, whole-job and per-candidate cancellation with terminal guards, the exact
+  `needs_attention` requery/retry/finish-failed actions, provider-change confirmation when the locked
+  Provider cannot be reused, stable per-command idempotency keys with duplicate-tap disabling, and
+  visibility-scoped polling that stops for terminal/`needs_attention` work. Build, lint, JVM tests, and
+  instrumentation compile pass.
+- Next action: Task 8 — complete result gallery, comparison, favorite, download/share, and deletion
 
 ## Goal
 

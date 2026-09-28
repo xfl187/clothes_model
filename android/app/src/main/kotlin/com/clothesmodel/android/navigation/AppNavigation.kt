@@ -29,6 +29,7 @@ import com.clothesmodel.android.connection.ConnectionRoute
 import com.clothesmodel.android.create.CreateWizardRoute
 import com.clothesmodel.android.history.HistoryRoute
 import com.clothesmodel.android.home.HomeRoute
+import com.clothesmodel.android.jobs.JobDetailRoute
 import com.clothesmodel.android.ui.theme.AtelierShapes
 import com.clothesmodel.android.ui.theme.LocalAtelierTokens
 
@@ -190,6 +191,11 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
                 jobId = entry.arguments?.getString(Destinations.ARG_JOB_ID).orEmpty(),
                 onBack = { navController.popBackStack() },
                 onOpenResults = { navController.navigate(Destinations.results(it)) },
+                onAuthenticationExpired = {
+                    navController.navigate(Destinations.connection(reauth = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
             )
         }
         composable(

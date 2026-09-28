@@ -237,6 +237,8 @@ data class JobModel(
     val blockedDetail: String?,
     val nextAttemptAt: OffsetDateTime?,
     val providerLabel: String,
+    val lockedProviderId: UUID? = null,
+    val garmentAssetId: UUID? = null,
     val maskAssetId: UUID?,
     val relatedJobId: UUID?,
     val workflowLabel: String?,

@@ -27,19 +27,6 @@ internal fun PlaceholderScreen(
 }
 
 @Composable
-fun JobDetailRoute(
-    jobId: String,
-    onBack: () -> Unit,
-    onOpenResults: (String) -> Unit,
-) {
-    PlaceholderScreen(
-        title = "任务详情",
-        message = "任务 $jobId 的候选与恢复操作将在此显示。",
-        onBack = onBack,
-    )
-}
-
-@Composable
 fun ResultRoute(
     jobId: String,
     onBack: () -> Unit,
