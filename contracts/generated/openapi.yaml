@@ -274,7 +274,7 @@ paths:
       tags:
         - Uploads
       operationId: completeUploadSession
-      summary: Validate an uploaded file and create its Asset
+      summary: Validate uploaded content and create or rehydrate its logical Asset
       security:
         - AppBearer: []
       parameters:
@@ -287,7 +287,7 @@ paths:
               $ref: '#/components/schemas/UploadCompleteRequest'
       responses:
         '201':
-          description: Upload completed and Asset created.
+          description: Upload completed and a new or rehydrated Asset returned.
           content:
             application/json:
               schema:
@@ -474,6 +474,42 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/assets/{asset_id}/local-copy:
+    parameters:
+      - name: asset_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    put:
+      tags:
+        - Assets
+      operationId: confirmAssetLocalCopy
+      summary: Confirm a durable full Android copy of an owned person or garment
+      description: Safe to repeat with the same client material identifier and digest. The acknowledgement permits later reference-aware input-content cleanup but does not itself delete content or start a grace period.
+      security:
+        - AppBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetLocalCopyAcknowledgement'
+      responses:
+        '200':
+          description: Durable local copy acknowledged; current asset state returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
           $ref: '#/components/responses/Problem'
   /api/v1/jobs:
     get:
@@ -1678,6 +1714,16 @@ components:
         token_id:
           type: string
           description: Non-secret token identifier; never the token value.
+        server_instance_id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Stable opaque identity for this Backend installation. Local clients use it only as a partition key and must not derive trust from its value.
+        owner_scope_id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Stable opaque material-owner scope associated with the App credential. It is independent of token rotation and reserves future account isolation.
         server_time:
           $ref: '#/components/schemas/Timestamp'
     AdminSession:
@@ -1736,6 +1782,10 @@ components:
         - product_image
         - experimental
         - unknown
+    Identifier:
+      type: string
+      format: uuid
+      description: Server-issued UUIDv7 represented as a canonical UUID string.
     UploadCreateRequest:
       type: object
       additionalProperties: false
@@ -1761,10 +1811,10 @@ components:
           $ref: '#/components/schemas/GarmentCategory'
         garment_source:
           $ref: '#/components/schemas/GarmentSource'
-    Identifier:
-      type: string
-      format: uuid
-      description: Server-issued UUIDv7 represented as a canonical UUID string.
+        target_asset_id:
+          allOf:
+            - $ref: '#/components/schemas/Identifier'
+          description: Existing owned person or garment logical asset whose absent input content will be rehydrated. Omit when creating a new logical asset.
     UploadState:
       type: string
       enum:
@@ -1882,6 +1932,21 @@ components:
           $ref: '#/components/schemas/Timestamp'
         content_available:
           type: boolean
+        content_sha256:
+          type: string
+          pattern: ^[A-Fa-f0-9]{64}$
+          readOnly: true
+          description: Digest of currently available private content, when present.
+        durable_client_copy_confirmed:
+          type: boolean
+          readOnly: true
+          description: Whether an authenticated client has acknowledged a durable full local copy that permits automatic cleanup after reference protection and grace time.
+        cleanup_after:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+          description: Earliest scheduled input-content cleanup time, if one is eligible.
         quality_warnings:
           type: array
           items:
@@ -1986,6 +2051,21 @@ components:
           nullable: true
         has_more:
           type: boolean
+    AssetLocalCopyAcknowledgement:
+      type: object
+      additionalProperties: false
+      required:
+        - client_asset_id
+        - sha256
+      properties:
+        client_asset_id:
+          type: string
+          format: uuid
+          description: Opaque Android-local material identifier used for idempotent acknowledgement.
+        sha256:
+          type: string
+          pattern: ^[A-Fa-f0-9]{64}$
+          description: Digest verified from the durable Android private copy.
     JobState:
       type: string
       enum:

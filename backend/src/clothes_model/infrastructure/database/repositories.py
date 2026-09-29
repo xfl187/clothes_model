@@ -226,12 +226,19 @@ class SqlAlchemyAssetRepository:
         self._session = session
 
     async def add(self, asset: Asset) -> None:
+        owner_scope_id = asset.owner_scope_id
+        if owner_scope_id is None:
+            owner_scope_id = await self._session.scalar(select(models.owner_scopes.c.id).limit(1))
         values = {
             "id": asset.id,
             "kind": asset.kind,
+            "owner_scope_id": owner_scope_id,
             "stored_object_id": asset.stored_object_id,
             "favorite": asset.favorite,
             "content_state": asset.content_state,
+            "durable_client_copy_confirmed": asset.durable_client_copy_confirmed,
+            "client_asset_id": asset.client_asset_id,
+            "cleanup_after": asset.cleanup_after,
             "created_at": asset.created_at,
             "updated_at": asset.updated_at,
             "deleted_at": asset.deleted_at,
@@ -306,6 +313,34 @@ class SqlAlchemySecurityAuditRepository:
 
     async def add(self, event: SecurityAuditEvent) -> None:
         await _insert(self._session, models.security_audit_events, asdict(event))
+
+
+class SqlAlchemyOwnerScopeRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get_or_create(self, default_id: str, created_at: datetime) -> str:
+        existing = await self._session.scalar(select(models.owner_scopes.c.id).limit(1))
+        if existing is not None:
+            return str(existing)
+        await self._session.execute(
+            insert(models.owner_scopes).values(id=default_id, created_at=created_at)
+        )
+        return default_id
+
+
+class SqlAlchemyServerIdentityRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get_or_create(self, default_id: str, created_at: datetime) -> str:
+        existing = await self._session.scalar(select(models.server_identity.c.id).limit(1))
+        if existing is not None:
+            return str(existing)
+        await self._session.execute(
+            insert(models.server_identity).values(id=default_id, created_at=created_at)
+        )
+        return default_id
 
 
 class SqlAlchemyProviderConfigRepository:
@@ -483,17 +518,32 @@ class SqlAlchemyJobRepository:
         self._session = session
 
     async def add_job(self, job: Job) -> None:
-        await _insert(self._session, models.jobs, asdict(job))
+        values = asdict(job)
+        if values["owner_scope_id"] is None:
+            values["owner_scope_id"] = await self._session.scalar(
+                select(models.assets.c.owner_scope_id).where(
+                    models.assets.c.id == job.garment_asset_id
+                )
+            )
+        await _insert(self._session, models.jobs, values)
 
-    async def get_job(self, job_id: str) -> Job | None:
+    async def get_job(self, job_id: str, owner_scope_id: str | None = None) -> Job | None:
+        statement = select(models.jobs).where(models.jobs.c.id == job_id)
+        if owner_scope_id is not None:
+            statement = statement.where(models.jobs.c.owner_scope_id == owner_scope_id)
         row = await _one_mapping(
             self._session,
-            select(models.jobs).where(models.jobs.c.id == job_id),
+            statement,
         )
         return None if row is None else Job(**dict(row))
 
-    async def list_jobs(self, *, state: str | None = None, limit: int = 50) -> list[Job]:
+    async def list_jobs(
+        self, *, state: str | None = None, limit: int = 50,
+        owner_scope_id: str | None = None,
+    ) -> list[Job]:
         statement = select(models.jobs)
+        if owner_scope_id is not None:
+            statement = statement.where(models.jobs.c.owner_scope_id == owner_scope_id)
         if state is not None:
             statement = statement.where(models.jobs.c.state == state)
         statement = statement.order_by(

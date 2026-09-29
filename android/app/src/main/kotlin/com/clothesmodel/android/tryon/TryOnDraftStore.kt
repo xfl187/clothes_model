@@ -45,9 +45,21 @@ class TryOnDraftStore(private val context: Context) {
         }
     }
 
+    suspend fun clearImport(kind: String) {
+        context.tryOnDataStore.edit { values ->
+            values.remove(if (kind == "person") PERSON_IMPORT else GARMENT_IMPORT)
+        }
+    }
+
     suspend fun selectAsset(kind: String, assetId: String) {
         context.tryOnDataStore.edit { values ->
             values[if (kind == "person") PERSON_ASSET else GARMENT_ASSET] = assetId
+        }
+    }
+
+    suspend fun clearAsset(kind: String) {
+        context.tryOnDataStore.edit { values ->
+            values.remove(if (kind == "person") PERSON_ASSET else GARMENT_ASSET)
         }
     }
 

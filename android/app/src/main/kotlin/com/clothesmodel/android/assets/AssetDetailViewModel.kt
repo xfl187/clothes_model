@@ -1,5 +1,6 @@
 package com.clothesmodel.android.assets
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +11,13 @@ import com.clothesmodel.android.data.AuthenticatedImageLoader
 import com.clothesmodel.android.data.Outcome
 import com.clothesmodel.android.data.ProblemModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.clothesmodel.android.imports.PendingImport
+import com.clothesmodel.android.imports.PendingImportDatabase
+import com.clothesmodel.android.tryon.TryOnDraftStore
+import java.io.File
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,9 +38,12 @@ data class AssetDetailUiState(
 @HiltViewModel
 class AssetDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    @param:ApplicationContext private val context: Context,
     private val assets: AssetRepository,
     val imageLoader: AuthenticatedImageLoader,
 ) : ViewModel() {
+    private val database = PendingImportDatabase.build(context)
+    private val drafts = TryOnDraftStore(context)
     private val assetId: String = savedStateHandle.get<String>("assetId").orEmpty()
     private val mutableState = MutableStateFlow(AssetDetailUiState())
     val state: StateFlow<AssetDetailUiState> = mutableState.asStateFlow()
@@ -49,6 +60,29 @@ class AssetDetailViewModel @Inject constructor(
                 mutableState.value = mutableState.value.copy(
                     loading = false,
                     error = ProblemModel("invalid_id", "素材不存在。", 404, false),
+                )
+                return@launch
+            }
+            val local = database.pendingImports().get(assetId)
+            if (local != null) {
+                val draft = drafts.snapshot()
+                val referenced = draft.personAssetId == assetId || draft.garmentAssetId == assetId
+                mutableState.value = mutableState.value.copy(
+                    asset = local.toAssetModel(),
+                    references = if (referenced) {
+                        listOf(
+                            AssetReferenceModel(
+                                id = id,
+                                assetId = id,
+                                sourceKind = "draft",
+                                sourceId = id,
+                                label = "当前试穿草稿",
+                                active = true,
+                                createdAt = Instant.now().atOffset(ZoneOffset.UTC),
+                            ),
+                        )
+                    } else emptyList(),
+                    loading = false,
                 )
                 return@launch
             }
@@ -87,6 +121,18 @@ class AssetDetailViewModel @Inject constructor(
     fun toggleFavorite() {
         val asset = mutableState.value.asset ?: return
         viewModelScope.launch {
+            val local = database.pendingImports().get(asset.id.toString())
+            if (local != null) {
+                database.pendingImports().setFavorite(
+                    local.id,
+                    !local.favorite,
+                    System.currentTimeMillis(),
+                )
+                mutableState.value = mutableState.value.copy(
+                    asset = asset.copy(favorite = !asset.favorite),
+                )
+                return@launch
+            }
             when (val outcome = assets.setFavorite(asset.id, !asset.favorite)) {
                 is Outcome.Success -> mutableState.value = mutableState.value.copy(
                     asset = outcome.value,
@@ -107,6 +153,30 @@ class AssetDetailViewModel @Inject constructor(
         val asset = mutableState.value.asset ?: return
         viewModelScope.launch {
             mutableState.value = mutableState.value.copy(busy = true, conflict = null, error = null)
+            val local = database.pendingImports().get(asset.id.toString())
+            if (local != null) {
+                if (mutableState.value.references.isNotEmpty()) {
+                    mutableState.value = mutableState.value.copy(
+                        busy = false,
+                        conflict = ProblemModel(
+                            "asset_referenced",
+                            "素材仍被草稿使用，请先替换或移除。",
+                            409,
+                            false,
+                            mutableState.value.references.size,
+                        ),
+                    )
+                    return@launch
+                }
+                File(local.stagedPath).delete()
+                database.pendingImports().delete(local.id)
+                imageLoader.evict(asset.id)
+                mutableState.value = mutableState.value.copy(
+                    asset = asset.copy(contentAvailable = false, localPath = null),
+                    busy = false,
+                )
+                return@launch
+            }
             when (val outcome = assets.deleteContent(asset.id)) {
                 is Outcome.Success -> {
                     imageLoader.evict(asset.id)
@@ -142,4 +212,26 @@ class AssetDetailViewModel @Inject constructor(
     fun dismissConflict() {
         mutableState.value = mutableState.value.copy(conflict = null)
     }
+
+    override fun onCleared() {
+        database.close()
+        super.onCleared()
+    }
 }
+
+private fun PendingImport.toAssetModel(): AssetModel = AssetModel(
+    id = UUID.fromString(id),
+    kind = assetKind,
+    favorite = favorite,
+    lifecycle = com.clothesmodel.android.data.AssetLifecycle.ACTIVE,
+    contentAvailable = File(stagedPath).isFile,
+    width = 1,
+    height = 1,
+    createdAt = Instant.ofEpochMilli(updatedAt).atOffset(ZoneOffset.UTC),
+    garmentCategory = garmentCategory?.let(com.clothesmodel.android.data.GarmentCategory::fromWire),
+    garmentSource = garmentSource?.let(com.clothesmodel.android.data.GarmentSource::fromWire),
+    qualityWarnings = emptyList(),
+    backendAssetId = assetId?.let(UUID::fromString),
+    localPath = stagedPath,
+    syncState = state,
+)

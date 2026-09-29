@@ -53,6 +53,7 @@ class Job:
     provider_snapshot_json: str
     created_at: datetime
     updated_at: datetime
+    owner_scope_id: str | None = None
     block_reason: JobBlockReason | None = None
     blocked_detail: str | None = None
     seed: int | None = None

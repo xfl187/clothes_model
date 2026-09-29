@@ -30,8 +30,9 @@ services:
       CLOTHES_MODEL_DATABASE_URL: sqlite+aiosqlite:////var/lib/clothes-model/db/clothes-model.db
       CLOTHES_MODEL_STORAGE_ROOT: /var/lib/clothes-model/storage
       CLOTHES_MODEL_CORS_ALLOWLIST: '["http://localhost:5173","http://127.0.0.1:5173"]'
-      CLOTHES_MODEL_SCHEDULER_ENABLED: "false"
+      CLOTHES_MODEL_SCHEDULER_ENABLED: "${CLOTHES_MODEL_SCHEDULER_ENABLED:-false}"
       CLOTHES_MODEL_INSTANCE_LOCK_PATH: /var/lib/clothes-model/runtime/instance.lock
+      CLOTHES_MODEL_ENCRYPTION_MASTER_KEY_FILE: /run/secrets/encryption_master_key
       CLOTHES_MODEL_ADMIN_SESSION_COOKIE_SECURE: "false"
       CLOTHES_MODEL_WEB_STATIC_ROOT: /app/web
     ports:
@@ -40,6 +41,8 @@ services:
       - backend_dev_db:/var/lib/clothes-model/db
       - backend_dev_storage:/var/lib/clothes-model/storage
       - backend_dev_runtime:/var/lib/clothes-model/runtime
+    secrets:
+      - encryption_master_key
     healthcheck: &backend-healthcheck
       test:
         - CMD

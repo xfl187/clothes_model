@@ -109,7 +109,18 @@ class AuthenticatedImageLoader(
     private val memoryCache: ImageCache = BoundedMemoryImageCache(16L * 1024 * 1024),
     private val diskCache: ImageCache? = null,
 ) {
-    suspend fun load(assetId: UUID): ImageResult {
+    suspend fun load(assetId: UUID, localPath: String? = null): ImageResult {
+        if (localPath != null) {
+            val local = File(localPath)
+            if (local.isFile) {
+                return runCatching { ImageResult.Loaded(local.readBytes()) }
+                    .getOrElse {
+                        ImageResult.Unavailable(
+                            ProblemModel("local_file_unreadable", "无法读取本地图片。", 0, false),
+                        )
+                    }
+            }
+        }
         memoryCache.get(assetId)?.let { return ImageResult.Loaded(it) }
         diskCache?.get(assetId)?.let {
             memoryCache.put(assetId, it)

@@ -1,11 +1,15 @@
 package com.clothesmodel.android.create
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -17,8 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,13 +45,15 @@ import com.clothesmodel.android.ui.theme.AtelierSpacing
 fun CreateWizardRoute(
     onBack: () -> Unit,
     onCreated: (String) -> Unit,
-    onOpenAssets: () -> Unit,
     onAuthenticationExpired: () -> Unit = {},
     viewModel: CreateWizardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.authenticationExpired) {
         if (state.authenticationExpired) onAuthenticationExpired()
+    }
+    val picker = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
+        uri?.let(viewModel::import)
     }
     CreateWizardScreen(
         state = state,
@@ -59,7 +67,9 @@ fun CreateWizardRoute(
         onSelectProvider = viewModel::selectProvider,
         onCandidateCount = viewModel::setCandidateCount,
         onSubmit = { viewModel.submit(onCreated) },
-        onOpenAssets = onOpenAssets,
+        onImport = { picker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
+        onRetryImport = viewModel::retryImport,
+        onCancelImport = viewModel::cancelImport,
     )
 }
 
@@ -76,7 +86,9 @@ fun CreateWizardScreen(
     onSelectProvider: (ProviderModel) -> Unit,
     onCandidateCount: (Int) -> Unit,
     onSubmit: () -> Unit,
-    onOpenAssets: () -> Unit,
+    onImport: () -> Unit,
+    onRetryImport: (String) -> Unit,
+    onCancelImport: (String) -> Unit,
 ) {
     AtelierScaffold(title = "精准换装", onBack = onBack) {
         Column(verticalArrangement = Arrangement.spacedBy(AtelierSpacing.lg)) {
@@ -91,7 +103,10 @@ fun CreateWizardScreen(
                     imageLoader = imageLoader,
                     selectedId = state.personAsset?.id,
                     onSelect = onSelectPerson,
-                    onOpenAssets = onOpenAssets,
+                    onImport = onImport,
+                    onRetryImport = onRetryImport,
+                    onCancelImport = onCancelImport,
+                    importLabel = "从相册导入人物",
                 )
 
                 WizardStep.GARMENT -> {
@@ -114,7 +129,10 @@ fun CreateWizardScreen(
                         imageLoader = imageLoader,
                         selectedId = state.garmentAsset?.id,
                         onSelect = onSelectGarment,
-                        onOpenAssets = onOpenAssets,
+                        onImport = onImport,
+                        onRetryImport = onRetryImport,
+                        onCancelImport = onCancelImport,
+                        importLabel = "从相册导入衣物",
                     )
                 }
 
@@ -170,19 +188,53 @@ private fun AssetStep(
     imageLoader: com.clothesmodel.android.data.AuthenticatedImageLoader,
     selectedId: java.util.UUID?,
     onSelect: (AssetModel) -> Unit,
-    onOpenAssets: () -> Unit,
+    onImport: () -> Unit,
+    onRetryImport: (String) -> Unit,
+    onCancelImport: (String) -> Unit,
+    importLabel: String,
 ) {
+    OutlinedButton(
+        onClick = onImport,
+        modifier = Modifier
+            .fillMaxWidth()
+            .sizeIn(minHeight = AtelierSpacing.minTouchTarget),
+    ) {
+        Text(importLabel)
+    }
+    state.currentImport?.let { pending ->
+        Text(
+            text = if (pending.failed) {
+                pending.error ?: "上传失败，可重试或取消。"
+            } else {
+                "图片已保存在本机，正在后台上传。"
+            },
+            color = if (pending.failed) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
+            if (pending.failed) {
+                OutlinedButton(onClick = { onRetryImport(pending.id) }) { Text("重试") }
+            }
+            OutlinedButton(onClick = { onCancelImport(pending.id) }) { Text("取消上传") }
+        }
+    }
     when {
         state.assetsLoading -> LoadingState(label = "正在读取素材")
         state.assetError != null -> InlineProblem(message = state.assetError.detail)
         state.assets.isEmpty() -> EmptyState(
             title = "还没有可用素材",
-            message = "先导入一张图片，然后回到向导继续。",
-            actionLabel = "去素材库导入",
-            onAction = onOpenAssets,
+            message = "可直接从相册导入，上传完成后会自动选中。",
         )
 
-        else -> state.assets.forEach { asset ->
+        state.visibleAssets.isEmpty() -> EmptyState(
+            title = "当前分类还没有衣物",
+            message = "切换分类，或直接从相册导入当前类别的衣物。",
+        )
+
+        else -> state.visibleAssets.forEach { asset ->
             Surface(
                 onClick = { onSelect(asset) },
                 shape = AtelierShapes.Thumbnail,
@@ -198,16 +250,14 @@ private fun AssetStep(
                         .fillMaxWidth()
                         .padding(AtelierSpacing.sm),
                     horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     com.clothesmodel.android.assets.AssetImage(
                         assetId = asset.id,
                         loader = imageLoader,
+                        localPath = asset.localPath,
                         contentDescription = "素材缩略图",
-                        modifier = Modifier
-                            .sizeIn(
-                                minWidth = AtelierSpacing.minTouchTarget,
-                                minHeight = AtelierSpacing.minTouchTarget,
-                            ),
+                        modifier = Modifier.size(96.dp),
                     )
                     Text(
                         text = if (asset.id == selectedId) {
@@ -215,6 +265,9 @@ private fun AssetStep(
                         } else {
                             "素材 ${asset.id.toString().take(8)}"
                         },
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }

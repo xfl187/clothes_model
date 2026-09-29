@@ -42,6 +42,7 @@ class VerifiedCredential:
     token_id: str
     public_id: str
     scope: TokenScope
+    owner_scope_id: str | None
 
 
 class TokenService:
@@ -58,10 +59,14 @@ class TokenService:
     async def bootstrap(self) -> list[IssuedCredential]:
         issued: list[IssuedCredential] = []
         async with self._uow_factory() as uow:
+            owner_scope_id = await self._ensure_default_owner(uow)
+            await self._ensure_server_identity(uow)
             for scope in ("app", "admin"):
                 if await uow.access_tokens.list_active(scope):
                     continue
-                generated, record = self._new_token(scope)
+                generated, record = self._new_token(
+                    scope, owner_scope_id=owner_scope_id if scope == "app" else None
+                )
                 await uow.access_tokens.add(record)
                 await self._audit(uow, f"token.{scope}.bootstrap", record.id)
                 issued.append(self._issued(generated))
@@ -86,8 +91,13 @@ class TokenService:
             active = list(await uow.access_tokens.list_active("app"))
             for current in active:
                 await uow.access_tokens.replace(replace(current, status="revoked", revoked_at=now))
+            owner_scope_id = (
+                active[-1].owner_scope_id if active else await self._ensure_default_owner(uow)
+            )
             generated, record = self._new_token(
-                "app", rotated_from_id=active[-1].id if active else None
+                "app",
+                rotated_from_id=active[-1].id if active else None,
+                owner_scope_id=owner_scope_id,
             )
             await uow.access_tokens.add(record)
             await self._audit(uow, "token.app.rotate", record.id)
@@ -131,10 +141,15 @@ class TokenService:
                 replace(record, secret_hash=secret_hash, last_used_at=now)
             )
             await uow.commit()
-            return VerifiedCredential(record.id, record.public_id, record.scope)
+            return VerifiedCredential(
+                record.id, record.public_id, record.scope, record.owner_scope_id
+            )
 
     def _new_token(
-        self, scope: TokenScope, rotated_from_id: str | None = None
+        self,
+        scope: TokenScope,
+        rotated_from_id: str | None = None,
+        owner_scope_id: str | None = None,
     ) -> tuple[GeneratedToken, AccessToken]:
         generated = generate_token(scope)
         return generated, AccessToken(
@@ -142,10 +157,17 @@ class TokenService:
             public_id=generated.public_id,
             secret_hash=self._hasher.hash(generated.secret),
             scope=scope,
+            owner_scope_id=owner_scope_id,
             status="active",
             created_at=self._clock(),
             rotated_from_id=rotated_from_id,
         )
+
+    async def _ensure_default_owner(self, uow: AuthUnitOfWork) -> str:
+        return await uow.owner_scopes.get_or_create(str(uuid4()), self._clock())
+
+    async def _ensure_server_identity(self, uow: AuthUnitOfWork) -> str:
+        return await uow.server_identity.get_or_create(str(uuid4()), self._clock())
 
     @staticmethod
     def _issued(generated: GeneratedToken) -> IssuedCredential:

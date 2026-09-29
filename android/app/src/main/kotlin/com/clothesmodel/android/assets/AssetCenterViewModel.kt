@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkManager
 import com.clothesmodel.android.data.AssetKindFilter
 import com.clothesmodel.android.data.AssetModel
 import com.clothesmodel.android.data.AssetRepository
@@ -21,11 +22,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.util.UUID
+import java.time.Instant
+import java.time.ZoneOffset
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -78,6 +84,7 @@ class AssetCenterViewModel @Inject constructor(
     val state: StateFlow<AssetCenterUiState> = mutableState.asStateFlow()
 
     init {
+        observeCompletedImports()
         refresh()
     }
 
@@ -102,75 +109,39 @@ class AssetCenterViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             mutableState.value = mutableState.value.copy(loading = true, error = null)
-            loadImports()
-            when (val outcome = assets.list(kind = mutableState.value.segment.toFilter(), limit = 50)) {
-                is Outcome.Success -> mutableState.value = mutableState.value.copy(
-                    assets = outcome.value.items,
-                    nextCursor = outcome.value.nextCursor,
-                    hasMore = outcome.value.hasMore,
-                    loading = false,
-                    stale = false,
-                    error = null,
-                )
-
-                is Outcome.Problem -> mutableState.value = mutableState.value.copy(
-                    loading = false,
-                    stale = mutableState.value.assets.isNotEmpty(),
-                    error = outcome.problem,
-                )
-
-                Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
-                    loading = false,
-                    authenticationExpired = true,
-                )
-            }
+            val connection = com.clothesmodel.android.connection.ConnectionStore(
+                context,
+                com.clothesmodel.android.connection.TokenVault(context),
+            ).snapshot()
+            val rows = database.pendingImports().byKindForOwner(
+                mutableState.value.segment.wire,
+                connection.serverInstanceId,
+                connection.ownerScopeId,
+            )
+            mutableState.value = mutableState.value.copy(
+                assets = rows.filter { File(it.stagedPath).isFile }.map { it.toAssetModel() },
+                imports = emptyList(),
+                nextCursor = null,
+                hasMore = false,
+                loading = false,
+                stale = false,
+                error = null,
+            )
         }
     }
 
     fun loadMore() {
-        val current = mutableState.value
-        val cursor = current.nextCursor ?: return
-        if (current.loadingMore || !current.hasMore) return
-        viewModelScope.launch {
-            mutableState.value = current.copy(loadingMore = true)
-            when (val outcome = assets.list(kind = current.segment.toFilter(), cursor = cursor)) {
-                is Outcome.Success -> mutableState.value = mutableState.value.copy(
-                    assets = mutableState.value.assets + outcome.value.items,
-                    nextCursor = outcome.value.nextCursor,
-                    hasMore = outcome.value.hasMore,
-                    loadingMore = false,
-                )
-
-                is Outcome.Problem -> mutableState.value = mutableState.value.copy(
-                    loadingMore = false,
-                    error = outcome.problem,
-                )
-
-                Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
-                    loadingMore = false,
-                    authenticationExpired = true,
-                )
-            }
-        }
+        // The owner-scoped local library is loaded in one Room query.
     }
 
     fun toggleFavorite(asset: AssetModel) {
         viewModelScope.launch {
-            when (val outcome = assets.setFavorite(asset.id, !asset.favorite)) {
-                is Outcome.Success -> mutableState.value = mutableState.value.copy(
-                    assets = mutableState.value.assets.map {
-                        if (it.id == asset.id) outcome.value else it
-                    },
-                )
-
-                is Outcome.Problem -> mutableState.value = mutableState.value.copy(
-                    error = outcome.problem,
-                )
-
-                Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
-                    authenticationExpired = true,
-                )
-            }
+            database.pendingImports().setFavorite(
+                asset.id.toString(),
+                !asset.favorite,
+                System.currentTimeMillis(),
+            )
+            refresh()
         }
     }
 
@@ -196,13 +167,14 @@ class AssetCenterViewModel @Inject constructor(
                             garmentCategory = if (isGarment) category.wire else null,
                             garmentSource = if (isGarment) source.wire else null,
                             state = "staged",
+                            sha256 = staged.sha256,
+                            sizeBytes = staged.sizeBytes,
                             updatedAt = System.currentTimeMillis(),
                         ),
                     )
-                    scheduler.enqueue(id)
                 }
             }.onSuccess {
-                loadImports()
+                refresh()
             }.onFailure {
                 mutableState.value = mutableState.value.copy(
                     error = ProblemModel("import_stage_failed", "无法保存所选图片。", 0, true),
@@ -241,6 +213,17 @@ class AssetCenterViewModel @Inject constructor(
         )
     }
 
+    private fun observeCompletedImports() {
+        viewModelScope.launch {
+            WorkManager.getInstance(context)
+                .getWorkInfosByTagFlow(PendingImportScheduler.AUTHENTICATED_UPLOAD_TAG)
+                .map { work -> work.filter { it.state.isFinished }.map { it.id }.toSet() }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { refresh() }
+        }
+    }
+
     private fun PendingImport.toUi(): PendingImportUi {
         val total = runCatching { File(stagedPath).length() }.getOrDefault(0L)
         return PendingImportUi(
@@ -253,6 +236,23 @@ class AssetCenterViewModel @Inject constructor(
             assetId = assetId,
         )
     }
+
+    private fun PendingImport.toAssetModel(): AssetModel = AssetModel(
+        id = UUID.fromString(id),
+        kind = assetKind,
+        favorite = favorite,
+        lifecycle = com.clothesmodel.android.data.AssetLifecycle.ACTIVE,
+        contentAvailable = File(stagedPath).isFile,
+        width = 1,
+        height = 1,
+        createdAt = Instant.ofEpochMilli(updatedAt).atOffset(ZoneOffset.UTC),
+        garmentCategory = garmentCategory?.let(GarmentCategory::fromWire),
+        garmentSource = garmentSource?.let(GarmentSource::fromWire),
+        qualityWarnings = emptyList(),
+        backendAssetId = assetId?.let(UUID::fromString),
+        localPath = stagedPath,
+        syncState = state,
+    )
 
     override fun onCleared() {
         database.close()

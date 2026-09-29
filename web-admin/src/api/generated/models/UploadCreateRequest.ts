@@ -65,6 +65,10 @@ export interface UploadCreateRequest {
      * 
      */
     garmentSource?: GarmentSource;
+    /**
+     * Existing owned person or garment logical asset whose absent input content will be rehydrated. Omit when creating a new logical asset.
+     */
+    targetAssetId?: string;
 }
 
 
@@ -96,6 +100,7 @@ export function UploadCreateRequestFromJSONTyped(json: any, ignoreDiscriminator:
         'sizeBytes': json['size_bytes'],
         'garmentCategory': json['garment_category'] == null ? undefined : GarmentCategoryFromJSON(json['garment_category']),
         'garmentSource': json['garment_source'] == null ? undefined : GarmentSourceFromJSON(json['garment_source']),
+        'targetAssetId': json['target_asset_id'] == null ? undefined : json['target_asset_id'],
     };
 }
 
@@ -116,6 +121,7 @@ export function UploadCreateRequestToJSONTyped(value?: UploadCreateRequest | nul
         'size_bytes': value['sizeBytes'],
         'garment_category': GarmentCategoryToJSON(value['garmentCategory']),
         'garment_source': GarmentSourceToJSON(value['garmentSource']),
+        'target_asset_id': value['targetAssetId'],
     };
 }
 

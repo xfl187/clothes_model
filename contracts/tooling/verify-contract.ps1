@@ -67,6 +67,10 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Phase 6 boundary verification failed with exit code $LASTEXITCODE."
     }
+    & (Join-Path $PSScriptRoot 'verify-local-first-boundaries.ps1') -Current $bundle
+    if ($LASTEXITCODE -ne 0) {
+        throw "Local-first boundary verification failed with exit code $LASTEXITCODE."
+    }
 
     $requiredContractTokens = @(
         'UploadSession',

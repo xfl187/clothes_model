@@ -28,6 +28,14 @@ export interface AppAuthStatus {
      */
     tokenId: string;
     /**
+     * Stable opaque identity for this Backend installation. Local clients use it only as a partition key and must not derive trust from its value.
+     */
+    readonly serverInstanceId?: string;
+    /**
+     * Stable opaque material-owner scope associated with the App credential. It is independent of token rotation and reserves future account isolation.
+     */
+    readonly ownerScopeId?: string;
+    /**
      * UTC RFC 3339 timestamp.
      */
     serverTime: Date;
@@ -55,6 +63,8 @@ export function AppAuthStatusFromJSONTyped(json: any, ignoreDiscriminator: boole
         
         'authenticated': json['authenticated'],
         'tokenId': json['token_id'],
+        'serverInstanceId': json['server_instance_id'] == null ? undefined : json['server_instance_id'],
+        'ownerScopeId': json['owner_scope_id'] == null ? undefined : json['owner_scope_id'],
         'serverTime': (json['server_time'] == null ? json['server_time'] : parseDateTime(json['server_time'])),
     };
 }
@@ -63,7 +73,7 @@ export function AppAuthStatusToJSON(json: any): AppAuthStatus {
     return AppAuthStatusToJSONTyped(json, false);
 }
 
-export function AppAuthStatusToJSONTyped(value?: AppAuthStatus | null, ignoreDiscriminator: boolean = false): any {
+export function AppAuthStatusToJSONTyped(value?: Omit<AppAuthStatus, 'serverInstanceId'|'ownerScopeId'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

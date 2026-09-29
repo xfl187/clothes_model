@@ -290,6 +290,7 @@ private fun AssetTile(
                 AssetImage(
                     assetId = asset.id,
                     loader = imageLoader,
+                    localPath = asset.localPath,
                     contentDescription = if (asset.favorite) "已收藏素材" else "素材",
                 )
                 if (asset.isDeletedContent) {

@@ -8,16 +8,17 @@ import shutil
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import FileResponse
 from sqlalchemy import delete, insert, select, update
-from sqlalchemy.engine import RowMapping
+from sqlalchemy.engine import CursorResult, RowMapping
 
 from clothes_model.core.problems import AppProblem
 from clothes_model.generated.models import (
+    AssetLocalCopyAcknowledgement,
     AssetUpdateRequest,
     UploadCompleteRequest,
     UploadCreateRequest,
@@ -32,6 +33,12 @@ router = APIRouter(tags=["Assets", "Uploads"])
 AppIdentity = Annotated[VerifiedCredential, Depends(require_app)]
 _locks: dict[str, asyncio.Lock] = {}
 _TERMINAL_JOB_STATES = ("succeeded", "partially_succeeded", "failed", "cancelled")
+
+
+def _owner(identity: VerifiedCredential) -> str:
+    if identity.owner_scope_id is None:
+        raise _problem(401, "unauthorized", "App 凭据没有素材所有者。")
+    return identity.owner_scope_id
 
 
 def _problem(
@@ -68,7 +75,9 @@ def _upload_dict(row: Mapping[Any, Any]) -> dict[str, object]:
     }
 
 
-async def _asset_dict(uow: SqlAlchemyUnitOfWork, asset_id: str) -> dict[str, object] | None:
+async def _asset_dict(
+    uow: SqlAlchemyUnitOfWork, asset_id: str, owner_scope_id: str | None = None
+) -> dict[str, object] | None:
     joined = db.assets.outerjoin(
         db.stored_objects, db.assets.c.stored_object_id == db.stored_objects.c.id
     ).outerjoin(db.garment_assets, db.assets.c.id == db.garment_assets.c.asset_id)
@@ -77,6 +86,7 @@ async def _asset_dict(uow: SqlAlchemyUnitOfWork, asset_id: str) -> dict[str, obj
             await uow.session.execute(
                 select(
                     db.assets,
+                    db.stored_objects.c.sha256,
                     db.stored_objects.c.content_type,
                     db.stored_objects.c.size_bytes,
                     db.stored_objects.c.width,
@@ -85,7 +95,14 @@ async def _asset_dict(uow: SqlAlchemyUnitOfWork, asset_id: str) -> dict[str, obj
                     db.garment_assets.c.source,
                 )
                 .select_from(joined)
-                .where(db.assets.c.id == asset_id)
+                .where(
+                    db.assets.c.id == asset_id,
+                    *(
+                        [db.assets.c.owner_scope_id == owner_scope_id]
+                        if owner_scope_id is not None
+                        else []
+                    ),
+                )
             )
         )
         .mappings()
@@ -104,6 +121,9 @@ async def _asset_dict(uow: SqlAlchemyUnitOfWork, asset_id: str) -> dict[str, obj
         "lifecycle": "active" if row["content_state"] == "available" else "deleted_content",
         "created_at": row["created_at"],
         "content_available": row["content_state"] == "available",
+        "content_sha256": row["sha256"],
+        "durable_client_copy_confirmed": row["durable_client_copy_confirmed"],
+        "cleanup_after": row["cleanup_after"],
         "quality_warnings": [],
         "garment_category": row["category"],
         "garment_source": row["source"],
@@ -179,10 +199,29 @@ async def create_upload(
     if kind != "garment" and (has_category or has_source):
         raise _problem(422, "validation_error", "非衣物素材不能包含衣物元数据。")
     _capacity(request, body.size_bytes)
+    owner_scope_id = _owner(identity)
+    target_asset_id = str(body.target_asset_id.root) if body.target_asset_id is not None else None
     request_digest = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
     key_digest = hashlib.sha256(idempotency_key.encode()).hexdigest()
     now, upload_id = datetime.now(UTC), str(uuid4())
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        if target_asset_id is not None:
+            target = (
+                (
+                    await uow.session.execute(
+                        select(db.assets).where(
+                            db.assets.c.id == target_asset_id,
+                            db.assets.c.owner_scope_id == owner_scope_id,
+                            db.assets.c.kind == kind,
+                            db.assets.c.kind.in_(["person", "garment"]),
+                        )
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if target is None or target["content_state"] == "available":
+                raise _problem(404, "not_found", "可恢复的目标素材不存在。")
         existing = await uow.idempotency.get_bound(
             "app", identity.token_id, "upload.create", key_digest
         )
@@ -206,6 +245,8 @@ async def create_upload(
         values = {
             "id": upload_id,
             "actor_token_id": identity.token_id,
+            "owner_scope_id": owner_scope_id,
+            "target_asset_id": target_asset_id,
             "asset_kind": kind,
             "filename": body.filename,
             "content_type": body.content_type,
@@ -249,7 +290,7 @@ async def _owned_upload(
             await uow.session.execute(
                 select(db.upload_sessions).where(
                     db.upload_sessions.c.id == upload_id,
-                    db.upload_sessions.c.actor_token_id == identity.token_id,
+                    db.upload_sessions.c.owner_scope_id == _owner(identity),
                 )
             )
         )
@@ -353,12 +394,12 @@ async def complete_upload(
                 raise _problem(409, "idempotency_key_reused", "幂等键已绑定到不同请求。")
             if existing.resource_id is None:
                 raise _problem(409, "idempotency_result_missing", "幂等结果不可用。")
-            result = await _asset_dict(uow, existing.resource_id)
+            result = await _asset_dict(uow, existing.resource_id, _owner(identity))
             if result is None:
                 raise _problem(409, "idempotency_result_missing", "幂等结果不可用。")
             return result
         if row["state"] == "completed":
-            result = await _asset_dict(uow, row["completed_asset_id"])
+            result = await _asset_dict(uow, row["completed_asset_id"], _owner(identity))
             assert result is not None
             now = datetime.now(UTC)
             await uow.session.execute(
@@ -400,7 +441,7 @@ async def complete_upload(
         )
         object_id = object_row["id"] if object_row else str(uuid4())
         now = datetime.now(UTC)
-        asset_id = str(uuid4())
+        asset_id = row["target_asset_id"] or str(uuid4())
         if object_row is None:
             await uow.session.execute(
                 insert(db.stored_objects).values(
@@ -417,27 +458,45 @@ async def complete_upload(
                     verified_at=now,
                 )
             )
-        await uow.session.execute(
-            insert(db.assets).values(
-                id=asset_id,
-                kind=row["asset_kind"],
-                stored_object_id=object_id,
-                favorite=False,
-                content_state="available",
-                created_at=now,
-                updated_at=now,
-            )
-        )
-        if row["asset_kind"] == "person":
-            await uow.session.execute(insert(db.person_assets).values(asset_id=asset_id))
-        elif row["asset_kind"] == "garment":
+        if row["target_asset_id"]:
             await uow.session.execute(
-                insert(db.garment_assets).values(
-                    asset_id=asset_id,
-                    category=row["garment_category"],
-                    source=row["garment_source"],
+                update(db.assets)
+                .where(
+                    db.assets.c.id == asset_id,
+                    db.assets.c.owner_scope_id == _owner(identity),
+                )
+                .values(
+                    stored_object_id=object_id,
+                    content_state="available",
+                    deleted_at=None,
+                    cleanup_after=None,
+                    updated_at=now,
                 )
             )
+        else:
+            await uow.session.execute(
+                insert(db.assets).values(
+                    id=asset_id,
+                    owner_scope_id=_owner(identity),
+                    kind=row["asset_kind"],
+                    stored_object_id=object_id,
+                    favorite=False,
+                    content_state="available",
+                    durable_client_copy_confirmed=False,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            if row["asset_kind"] == "person":
+                await uow.session.execute(insert(db.person_assets).values(asset_id=asset_id))
+            elif row["asset_kind"] == "garment":
+                await uow.session.execute(
+                    insert(db.garment_assets).values(
+                        asset_id=asset_id,
+                        category=row["garment_category"],
+                        source=row["garment_source"],
+                    )
+                )
         await uow.session.execute(
             update(db.upload_sessions)
             .where(db.upload_sessions.c.id == upload_id)
@@ -460,7 +519,7 @@ async def complete_upload(
         )
         await uow.commit()
         path.unlink(missing_ok=True)
-        result = await _asset_dict(uow, asset_id)
+        result = await _asset_dict(uow, asset_id, _owner(identity))
         assert result is not None
         return result
     finally:
@@ -485,10 +544,11 @@ async def list_assets(
     limit: int = Query(50, ge=1, le=100),
     kind: str | None = None,
 ) -> dict[str, object]:
-    del identity
+    owner_scope_id = _owner(identity)
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
         statement = (
             select(db.assets)
+            .where(db.assets.c.owner_scope_id == owner_scope_id)
             .order_by(db.assets.c.created_at.desc(), db.assets.c.id.desc())
             .limit(limit + 1)
         )
@@ -506,7 +566,7 @@ async def list_assets(
             )
         rows = (await uow.session.execute(statement)).mappings().all()
         page = rows[:limit]
-        items = [await _asset_dict(uow, row["id"]) for row in page]
+        items = [await _asset_dict(uow, row["id"], owner_scope_id) for row in page]
         next_cursor = ""
         if len(rows) > limit and page:
             next_cursor = (
@@ -521,9 +581,8 @@ async def list_assets(
 
 @router.get("/api/v1/assets/{asset_id}", operation_id="getAsset")
 async def get_asset(request: Request, asset_id: str, identity: AppIdentity) -> dict[str, object]:
-    del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
-        result = await _asset_dict(uow, asset_id)
+        result = await _asset_dict(uow, asset_id, _owner(identity))
         if result is None:
             raise _problem(404, "not_found", "素材不存在。")
         return result
@@ -533,30 +592,40 @@ async def get_asset(request: Request, asset_id: str, identity: AppIdentity) -> d
 async def update_asset(
     request: Request, asset_id: str, body: AssetUpdateRequest, identity: AppIdentity
 ) -> dict[str, object]:
-    del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
-        await uow.session.execute(
-            update(db.assets)
-            .where(db.assets.c.id == asset_id)
-            .values(favorite=body.favorite, updated_at=datetime.now(UTC))
+        result = cast(
+            CursorResult[Any],
+            await uow.session.execute(
+                update(db.assets)
+                .where(
+                    db.assets.c.id == asset_id,
+                    db.assets.c.owner_scope_id == _owner(identity),
+                )
+                .values(favorite=body.favorite, updated_at=datetime.now(UTC))
+            ),
         )
-        await uow.commit()
-        result = await _asset_dict(uow, asset_id)
-        if result is None:
+        if result.rowcount == 0:
             raise _problem(404, "not_found", "素材不存在。")
-        return result
+        await uow.commit()
+        payload = await _asset_dict(uow, asset_id, _owner(identity))
+        if payload is None:
+            raise _problem(404, "not_found", "素材不存在。")
+        return payload
 
 
 @router.get("/api/v1/assets/{asset_id}/content", operation_id="downloadAssetContent")
 async def content(request: Request, asset_id: str, identity: AppIdentity) -> FileResponse:
-    del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
         row = (
             (
                 await uow.session.execute(
                     select(db.stored_objects)
                     .select_from(db.assets.join(db.stored_objects))
-                    .where(db.assets.c.id == asset_id, db.assets.c.content_state == "available")
+                    .where(
+                        db.assets.c.id == asset_id,
+                        db.assets.c.owner_scope_id == _owner(identity),
+                        db.assets.c.content_state == "available",
+                    )
                 )
             )
             .mappings()
@@ -575,8 +644,15 @@ async def content(request: Request, asset_id: str, identity: AppIdentity) -> Fil
 
 @router.get("/api/v1/assets/{asset_id}/references", operation_id="listAssetReferences")
 async def references(request: Request, asset_id: str, identity: AppIdentity) -> dict[str, object]:
-    del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        owned = await uow.session.scalar(
+            select(db.assets.c.id).where(
+                db.assets.c.id == asset_id,
+                db.assets.c.owner_scope_id == _owner(identity),
+            )
+        )
+        if owned is None:
+            raise _problem(404, "not_found", "素材不存在。")
         rows = await _blocking_references(uow, asset_id)
         return {
             "items": [
@@ -602,8 +678,15 @@ async def references(request: Request, asset_id: str, identity: AppIdentity) -> 
 async def delete_content(
     request: Request, asset_id: str, identity: AppIdentity
 ) -> dict[str, object]:
-    del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        owned = await uow.session.scalar(
+            select(db.assets.c.id).where(
+                db.assets.c.id == asset_id,
+                db.assets.c.owner_scope_id == _owner(identity),
+            )
+        )
+        if owned is None:
+            raise _problem(404, "not_found", "素材不存在。")
         blockers = await _blocking_references(uow, asset_id)
         if blockers:
             raise _problem(
@@ -647,6 +730,52 @@ async def delete_content(
                     delete(db.stored_objects).where(db.stored_objects.c.id == object_id)
                 )
                 await uow.commit()
-        result = await _asset_dict(uow, asset_id)
+        result = await _asset_dict(uow, asset_id, _owner(identity))
         assert result is not None
         return {"outcome": outcome, "asset": result}
+
+
+@router.put("/api/v1/assets/{asset_id}/local-copy", operation_id="confirmAssetLocalCopy")
+async def confirm_local_copy(
+    request: Request,
+    asset_id: str,
+    body: AssetLocalCopyAcknowledgement,
+    identity: AppIdentity,
+) -> dict[str, object]:
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        row = (
+            (
+                await uow.session.execute(
+                    select(db.assets, db.stored_objects.c.sha256)
+                    .select_from(db.assets.outerjoin(db.stored_objects))
+                    .where(
+                        db.assets.c.id == asset_id,
+                        db.assets.c.owner_scope_id == _owner(identity),
+                        db.assets.c.kind.in_(["person", "garment"]),
+                    )
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None:
+            raise _problem(404, "not_found", "素材不存在。")
+        if row["sha256"] is None or row["sha256"].lower() != body.sha256.lower():
+            raise _problem(409, "content_hash_mismatch", "本地副本校验和与服务端素材不一致。")
+        cleanup_after = None
+        if not await _blocking_references(uow, asset_id):
+            cleanup_after = datetime.now(UTC) + timedelta(hours=24)
+        await uow.session.execute(
+            update(db.assets)
+            .where(db.assets.c.id == asset_id)
+            .values(
+                durable_client_copy_confirmed=True,
+                client_asset_id=str(body.client_asset_id),
+                cleanup_after=cleanup_after,
+                updated_at=datetime.now(UTC),
+            )
+        )
+        await uow.commit()
+        result = await _asset_dict(uow, asset_id, _owner(identity))
+        assert result is not None
+        return result

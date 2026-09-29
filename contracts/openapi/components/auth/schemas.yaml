@@ -39,5 +39,19 @@ AppAuthStatus:
     token_id:
       type: string
       description: Non-secret token identifier; never the token value.
+    server_instance_id:
+      type: string
+      format: uuid
+      readOnly: true
+      description: >-
+        Stable opaque identity for this Backend installation. Local clients use it
+        only as a partition key and must not derive trust from its value.
+    owner_scope_id:
+      type: string
+      format: uuid
+      readOnly: true
+      description: >-
+        Stable opaque material-owner scope associated with the App credential.
+        It is independent of token rotation and reserves future account isolation.
     server_time:
       $ref: ../common/schemas.yaml#/Timestamp

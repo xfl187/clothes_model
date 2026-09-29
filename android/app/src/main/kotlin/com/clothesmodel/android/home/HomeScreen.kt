@@ -31,6 +31,7 @@ fun HomeRoute(
     onCreate: () -> Unit,
     onOpenJob: (String) -> Unit,
     onAuthenticationExpired: () -> Unit = {},
+    onConfigureConnection: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -43,6 +44,7 @@ fun HomeRoute(
         onCreate = onCreate,
         onOpenJob = onOpenJob,
         onRefresh = viewModel::refresh,
+        onConfigureConnection = onConfigureConnection,
     )
 }
 
@@ -53,6 +55,7 @@ fun HomeScreen(
     onCreate: () -> Unit,
     onOpenJob: (String) -> Unit,
     onRefresh: () -> Unit,
+    onConfigureConnection: () -> Unit = {},
 ) {
     AtelierScaffold(title = "首页") {
         Column(verticalArrangement = Arrangement.spacedBy(AtelierSpacing.xxl)) {
@@ -81,6 +84,13 @@ fun HomeScreen(
                 text = "最近任务",
                 supporting = "离开页面不会取消服务端任务。",
             )
+            if (state.authenticationExpired) {
+                InlineProblem(
+                    message = "后端未连接。本地素材仍可浏览和编辑草稿，生成时再连接即可。",
+                    retryLabel = "配置后端",
+                    onRetry = onConfigureConnection,
+                )
+            }
             when {
                 state.loading && state.recentJobs.isEmpty() -> LoadingState(label = "正在读取最近任务")
                 state.error != null && state.recentJobs.isEmpty() -> InlineProblem(

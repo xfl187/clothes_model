@@ -11,12 +11,31 @@ import kotlinx.serialization.Serializable
 import com.clothesmodel.contract.model.Asset
 import com.clothesmodel.contract.model.AssetContentDeletionResult
 import com.clothesmodel.contract.model.AssetKind
+import com.clothesmodel.contract.model.AssetLocalCopyAcknowledgement
 import com.clothesmodel.contract.model.AssetPage
 import com.clothesmodel.contract.model.AssetReferencePage
 import com.clothesmodel.contract.model.AssetUpdateRequest
 import com.clothesmodel.contract.model.ProblemDetails
 
 interface AssetsApi {
+    /**
+     * PUT api/v1/assets/{asset_id}/local-copy
+     * Confirm a durable full Android copy of an owned person or garment
+     * Safe to repeat with the same client material identifier and digest. The acknowledgement permits later reference-aware input-content cleanup but does not itself delete content or start a grace period.
+     * Responses:
+     *  - 200: Durable local copy acknowledged; current asset state returned.
+     *  - 401: Authentication is missing or invalid.
+     *  - 404: Request failed with a stable machine-readable error code.
+     *  - 409: Request failed with a stable machine-readable error code.
+     *  - 422: Request failed with a stable machine-readable error code.
+     *
+     * @param assetId 
+     * @param assetLocalCopyAcknowledgement 
+     * @return [Asset]
+     */
+    @PUT("api/v1/assets/{asset_id}/local-copy")
+    suspend fun confirmAssetLocalCopy(@Path("asset_id") assetId: java.util.UUID, @Body assetLocalCopyAcknowledgement: AssetLocalCopyAcknowledgement): Response<Asset>
+
     /**
      * DELETE api/v1/assets/{asset_id}/content
      * Remove private asset content while retaining a metadata placeholder

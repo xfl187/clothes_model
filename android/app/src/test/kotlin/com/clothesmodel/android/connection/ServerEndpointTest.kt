@@ -24,7 +24,7 @@ class ServerEndpointTest {
     }
 
     @Test fun classifiesAuthenticationAndAvailabilityFailures() {
-        assertEquals(ConnectionResult.Connected, classifyConnectionStatus(200))
+        assertEquals(ConnectionResult.Connected(null, null), classifyConnectionStatus(200))
         assertEquals(ConnectionResult.InvalidToken, classifyConnectionStatus(401))
         assertEquals(ConnectionResult.WrongScope, classifyConnectionStatus(403))
         assertEquals(ConnectionResult.Unavailable, classifyConnectionStatus(503))

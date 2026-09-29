@@ -4,12 +4,15 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.clothesmodel.android.data.AuthenticatedImageLoader
+import com.clothesmodel.android.data.AssetLifecycle
+import com.clothesmodel.android.data.AssetModel
 import com.clothesmodel.android.data.ContentFetcher
 import com.clothesmodel.android.data.Outcome
 import com.clothesmodel.android.data.ProblemModel
 import com.clothesmodel.android.data.ProviderAvailabilityDomain
 import com.clothesmodel.android.data.ProviderModel
 import com.clothesmodel.android.ui.theme.ClothesModelTheme
+import java.time.OffsetDateTime
 import java.util.UUID
 import org.junit.Rule
 import org.junit.Test
@@ -37,7 +40,9 @@ class CreateWizardScreenTest {
                     onSelectProvider = {},
                     onCandidateCount = {},
                     onSubmit = {},
-                    onOpenAssets = {},
+                    onImport = {},
+                    onRetryImport = {},
+                    onCancelImport = {},
                 )
             }
         }
@@ -47,6 +52,7 @@ class CreateWizardScreenTest {
     fun personStepExplainsMissingAssets() {
         render(CreateWizardUiState(step = WizardStep.PERSON, assetsLoading = false))
         rule.onNodeWithText("第 1 步：选择人物").assertIsDisplayed()
+        rule.onNodeWithText("从相册导入人物").assertIsDisplayed()
         rule.onNodeWithText("还没有可用素材").assertIsDisplayed()
     }
 
@@ -74,5 +80,41 @@ class CreateWizardScreenTest {
         )
         rule.onNodeWithText("Ark Seedream").assertIsDisplayed()
         rule.onNodeWithText("1 张").assertIsDisplayed()
+    }
+
+    @Test
+    fun selectedAssetKeepsPrimaryActionVisible() {
+        val asset = AssetModel(
+            id = UUID.fromString("497f6eca-6276-4993-bfeb-53cbbbba6f08"),
+            kind = "person",
+            favorite = false,
+            lifecycle = AssetLifecycle.ACTIVE,
+            contentAvailable = true,
+            width = 1024,
+            height = 1536,
+            createdAt = OffsetDateTime.parse("2019-08-24T14:15:22Z"),
+            garmentCategory = null,
+            garmentSource = null,
+            qualityWarnings = emptyList(),
+        )
+        render(
+            CreateWizardUiState(
+                step = WizardStep.PERSON,
+                personAsset = asset,
+                assets = listOf(asset),
+                assetsLoading = false,
+            ),
+        )
+
+        rule.onNodeWithText("已选择 ·", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("下一步").assertIsDisplayed()
+    }
+
+    @Test
+    fun garmentStepOffersInlineImport() {
+        render(CreateWizardUiState(step = WizardStep.GARMENT, assetsLoading = false))
+
+        rule.onNodeWithText("第 2 步：选择衣物").assertIsDisplayed()
+        rule.onNodeWithText("从相册导入衣物").assertIsDisplayed()
     }
 }

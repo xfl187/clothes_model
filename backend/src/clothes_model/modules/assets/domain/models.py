@@ -46,6 +46,10 @@ class Asset:
     content_state: ContentState
     created_at: datetime
     updated_at: datetime
+    owner_scope_id: str | None = None
+    durable_client_copy_confirmed: bool = False
+    client_asset_id: str | None = None
+    cleanup_after: datetime | None = None
     deleted_at: datetime | None = None
     person: PersonMetadata | None = None
     garment: GarmentMetadata | None = None
@@ -64,6 +68,8 @@ class UploadSession:
     state: UploadState
     created_at: datetime
     expires_at: datetime
+    owner_scope_id: str | None = None
+    target_asset_id: str | None = None
     garment_category: str | None = None
     garment_source: str | None = None
     client_sha256: str | None = None

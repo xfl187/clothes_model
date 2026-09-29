@@ -28,6 +28,11 @@ data class PendingImport(
     val garmentSource: String? = null,
     val lastError: String? = null,
     val updatedAt: Long = 0,
+    val sha256: String? = null,
+    val sizeBytes: Long = 0,
+    val serverInstanceId: String? = null,
+    val ownerScopeId: String? = null,
+    val favorite: Boolean = false,
 )
 
 @Dao
@@ -37,11 +42,22 @@ interface PendingImportDao {
     @Query("SELECT * FROM pending_imports") suspend fun all(): List<PendingImport>
     @Query("SELECT * FROM pending_imports WHERE assetKind = :kind ORDER BY updatedAt DESC")
     suspend fun byKind(kind: String): List<PendingImport>
+    @Query(
+        "SELECT * FROM pending_imports WHERE assetKind = :kind AND " +
+            "(:serverId IS NULL OR serverInstanceId IS NULL OR serverInstanceId = :serverId) AND " +
+            "(:ownerId IS NULL OR ownerScopeId IS NULL OR ownerScopeId = :ownerId) " +
+            "ORDER BY updatedAt DESC",
+    )
+    suspend fun byKindForOwner(kind: String, serverId: String?, ownerId: String?): List<PendingImport>
+    @Query("SELECT * FROM pending_imports WHERE assetId = :assetId LIMIT 1")
+    suspend fun byServerAssetId(assetId: String): PendingImport?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun save(value: PendingImport)
     @Query("DELETE FROM pending_imports WHERE id = :id") suspend fun delete(id: String)
+    @Query("UPDATE pending_imports SET favorite = :favorite, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setFavorite(id: String, favorite: Boolean, updatedAt: Long)
 }
 
-@Database(entities = [PendingImport::class], version = 3, exportSchema = true)
+@Database(entities = [PendingImport::class], version = 5, exportSchema = true)
 abstract class PendingImportDatabase : RoomDatabase() {
     abstract fun pendingImports(): PendingImportDao
 
@@ -62,9 +78,24 @@ abstract class PendingImportDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE pending_imports ADD COLUMN sha256 TEXT")
+                db.execSQL("ALTER TABLE pending_imports ADD COLUMN sizeBytes INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE pending_imports ADD COLUMN serverInstanceId TEXT")
+                db.execSQL("ALTER TABLE pending_imports ADD COLUMN ownerScopeId TEXT")
+            }
+        }
+
+        val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE pending_imports ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun build(context: Context): PendingImportDatabase =
             Room.databaseBuilder(context, PendingImportDatabase::class.java, "pending-imports.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
     }
 }

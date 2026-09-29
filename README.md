@@ -23,7 +23,7 @@ Phase 4 added the production Seedream adapter, synchronous paid-call safety, exp
 - Confirmed behavior flows: [Product Flow](docs/product-flow.md)
 - Phase boundaries: [Implementation Roadmap](docs/roadmap/implementation-roadmap.md)
 - Completed implementation evidence: [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md)
-- Completed implementation plans: [Phase 5](docs/plans/phase-5-comfyui-workflow-recovery.md), [Phase 6 Android V1 Completion](docs/plans/phase-6-android-v1-completion.md)
+- Completed implementation plans: [Phase 5](docs/plans/phase-5-comfyui-workflow-recovery.md), [Phase 6 Android V1 Completion](docs/plans/phase-6-android-v1-completion.md), and the cross-cutting [Local-first Asset Library](docs/plans/local-first-asset-library.md) (Backend migration `20260929_0006`, owner scopes, and opt-in 24-hour input-binary cleanup; follow its rollout order and keep cleanup disabled until migrated content is acknowledged on device)
 - Current implementation plan: none — return to `$planning` for Phase 7 (Web Admin and Operations Completion)
 - UI behavior: the Android and Web Admin UI Specs under `docs/superpowers/specs/`
 - Visual language: [DESIGN.md](DESIGN.md)
@@ -63,7 +63,7 @@ Use Docker Desktop with Linux containers for the contract mock, containerized Ba
 | Surface | Command | Host endpoint | Purpose |
 |---|---|---|---|
 | Contract mock | `docker compose -f infra/compose.yaml --profile contract up --build contract-mock` | `http://localhost:4010` | Shared OpenAPI mock for Web and Android skeletons |
-| Backend | `docker compose -f infra/compose.yaml --profile development up --build backend` | `http://localhost:8000` | Containerized Backend with an explicit `http://localhost:5173` CORS allowlist |
+| Backend | `./infra/start-development.ps1` | `http://localhost:18000` | Containerized Backend with the local ignored `.env`, encrypted Provider secrets, and one explicitly owned scheduler |
 | Web Admin | `corepack pnpm --filter @clothes-model/web-admin dev` | `http://localhost:5173` | Vite shell; `/api` is proxied to the contract mock on port 4010 |
 | Android emulator | `android\gradlew.bat -p android :app:installDebug` | mock base URL `http://10.0.2.2:4010` | Installs the Android engineering shell against the host mock |
 | Production shape | `$env:CLOTHES_MODEL_ENCRYPTION_MASTER_KEY='<local-secret>'; docker compose -f infra/compose.yaml --profile production up --build` | `https://localhost:8443` | Caddy TLS proxy in front of one application deployment unit |

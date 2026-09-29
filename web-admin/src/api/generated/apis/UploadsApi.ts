@@ -168,7 +168,7 @@ export interface UploadsApiInterface {
 
     /**
      * 
-     * @summary Validate an uploaded file and create its Asset
+     * @summary Validate uploaded content and create or rehydrate its logical Asset
      * @param {string} uploadId 
      * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
      * @param {UploadCompleteRequest} uploadCompleteRequest 
@@ -179,7 +179,7 @@ export interface UploadsApiInterface {
     completeUploadSessionRaw(requestParameters: CompleteUploadSessionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Asset>>;
 
     /**
-     * Validate an uploaded file and create its Asset
+     * Validate uploaded content and create or rehydrate its logical Asset
      */
     completeUploadSession(requestParameters: CompleteUploadSessionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Asset>;
 
@@ -422,7 +422,7 @@ export class UploadsApi extends runtime.BaseAPI implements UploadsApiInterface {
     }
 
     /**
-     * Validate an uploaded file and create its Asset
+     * Validate uploaded content and create or rehydrate its logical Asset
      */
     async completeUploadSessionRaw(requestParameters: CompleteUploadSessionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Asset>> {
         const requestOptions = await this.completeUploadSessionRequestOpts(requestParameters);
@@ -432,7 +432,7 @@ export class UploadsApi extends runtime.BaseAPI implements UploadsApiInterface {
     }
 
     /**
-     * Validate an uploaded file and create its Asset
+     * Validate uploaded content and create or rehydrate its logical Asset
      */
     async completeUploadSession(requestParameters: CompleteUploadSessionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Asset> {
         const response = await this.completeUploadSessionRaw(requestParameters, initOverrides);

@@ -52,10 +52,10 @@ interface UploadsApi {
 
     /**
      * POST api/v1/uploads/{upload_id}/complete
-     * Validate an uploaded file and create its Asset
+     * Validate uploaded content and create or rehydrate its logical Asset
      * 
      * Responses:
-     *  - 201: Upload completed and Asset created.
+     *  - 201: Upload completed and a new or rehydrated Asset returned.
      *  - 401: Authentication is missing or invalid.
      *  - 409: The idempotency key was already bound to a different request.
      *  - 422: Uploaded bytes do not satisfy the private image boundary.

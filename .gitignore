@@ -39,6 +39,7 @@ playwright-report/
 test-results/
 reports/
 artifacts/
+.artifacts/
 *.tsbuildinfo
 
 # Android and Gradle

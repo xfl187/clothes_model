@@ -39,6 +39,8 @@ import kotlinx.serialization.encoding.Encoder
  * @param authenticated 
  * @param tokenId Non-secret token identifier; never the token value.
  * @param serverTime UTC RFC 3339 timestamp.
+ * @param serverInstanceId Stable opaque identity for this Backend installation. Local clients use it only as a partition key and must not derive trust from its value.
+ * @param ownerScopeId Stable opaque material-owner scope associated with the App credential. It is independent of token rotation and reserves future account isolation.
  */
 @Serializable
 
@@ -53,7 +55,15 @@ data class AppAuthStatus (
 
     /* UTC RFC 3339 timestamp. */
     @Contextual @SerialName(value = "server_time")
-    val serverTime: java.time.OffsetDateTime
+    val serverTime: java.time.OffsetDateTime,
+
+    /* Stable opaque identity for this Backend installation. Local clients use it only as a partition key and must not derive trust from its value. */
+    @Contextual @SerialName(value = "server_instance_id")
+    val serverInstanceId: java.util.UUID? = null,
+
+    /* Stable opaque material-owner scope associated with the App credential. It is independent of token rotation and reserves future account isolation. */
+    @Contextual @SerialName(value = "owner_scope_id")
+    val ownerScopeId: java.util.UUID? = null
 
 ) {
 

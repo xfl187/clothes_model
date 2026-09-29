@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.clothesmodel.android.BuildConfig
 import com.clothesmodel.android.imports.PendingImportRecovery
+import com.clothesmodel.android.imports.LegacyAssetMigrationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -78,9 +79,16 @@ class ConnectionViewModel @Inject constructor(
 
     private suspend fun applyResult(url: String, token: String, result: ConnectionResult) {
         when (result) {
-            ConnectionResult.Connected -> {
-                store.connected(url, token)
+            is ConnectionResult.Connected -> {
+                store.connected(url, token, result.serverInstanceId, result.ownerScopeId)
                 PendingImportRecovery.resume(context)
+                if (result.serverInstanceId != null && result.ownerScopeId != null) {
+                    LegacyAssetMigrationWorker.enqueue(
+                        context,
+                        result.serverInstanceId,
+                        result.ownerScopeId,
+                    )
+                }
                 mutableState.value = ConnectionUiState(
                     serverUrl = url,
                     connected = true,

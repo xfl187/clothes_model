@@ -59,6 +59,8 @@ paths:
     $ref: ./paths/assets.yaml#/Content
   /api/v1/assets/{asset_id}/references:
     $ref: ./paths/assets.yaml#/References
+  /api/v1/assets/{asset_id}/local-copy:
+    $ref: ./paths/assets.yaml#/LocalCopy
   /api/v1/jobs:
     $ref: ./paths/jobs.yaml#/Collection
   /api/v1/jobs/{job_id}:

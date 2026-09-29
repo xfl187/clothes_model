@@ -12,6 +12,43 @@ Docker Compose is the fixed Linux deployment model for V1. This directory owns l
 
 Profiles are independent. Starting `production` never starts the mock server.
 
+Both `development` and `production` require the same host-side encryption
+master-key file boundary before Provider or ComfyUI credentials can be saved.
+For a development-only instance, create and preserve a separate 32-byte key
+outside the repository, set `CLOTHES_MODEL_ENCRYPTION_MASTER_KEY_FILE_SOURCE`
+to that file, and then start the profile. Recreating this key makes credentials
+already encrypted in the development database unreadable.
+
+The development scheduler stays disabled by default so an API-only instance
+cannot accidentally compete with another worker. To execute real queued jobs in
+a single development Backend, set `CLOTHES_MODEL_SCHEDULER_ENABLED=true` before
+starting that one instance. Never enable it on more than one instance sharing
+the same database.
+
+## Development startup
+
+Keep the local port, scheduler opt-in, and host key-file path in the ignored
+repository-root `.env`; the key itself remains outside the repository. Then use
+the checked-in startup command from the repository root:
+
+```powershell
+./infra/start-development.ps1
+```
+
+Pass `-Build` after changing Backend or Web Admin build inputs. The script fails
+early when required settings or the key file are missing, starts only the one
+development Backend, and waits until health reports scheduler ownership.
+
+Stop only the development Backend with:
+
+```powershell
+./infra/stop-development.ps1
+```
+
+Stopping is non-destructive: the container is retained and the SQLite,
+private-storage, and runtime volumes remain intact. Do not add `down --volumes`
+to the normal development shutdown flow.
+
 ## Production-shaped startup
 
 PowerShell:

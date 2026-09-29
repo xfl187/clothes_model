@@ -11,6 +11,7 @@ PHASE_2_REVISION = "20260926_0002"
 PHASE_3_REVISION = "20260927_0003"
 PHASE_5_REVISION = "20260928_0004"
 PHASE_6_MASK_REVISION = "20260928_0005"
+LOCAL_FIRST_REVISION = "20260929_0006"
 PHASE_2_TABLES = {
     "access_tokens",
     "admin_sessions",
@@ -40,6 +41,7 @@ PHASE_5_TABLES = PHASE_3_TABLES | {
     "workflow_validation_runs",
     "workflow_versions",
 }
+LOCAL_FIRST_TABLES = PHASE_5_TABLES | {"owner_scopes", "server_identity"}
 
 
 def sqlite_url(path: Path) -> str:
@@ -69,8 +71,8 @@ def test_empty_database_upgrade_is_repeatable_and_reversible(tmp_path: Path) -> 
 
     upgrade_database(database_url, lock_path)
     upgrade_database(database_url, lock_path)
-    assert current_revision(database_path) == PHASE_6_MASK_REVISION
-    assert table_names(database_path) == PHASE_5_TABLES
+    assert current_revision(database_path) == LOCAL_FIRST_REVISION
+    assert table_names(database_path) == LOCAL_FIRST_TABLES
 
     config = alembic_config(database_url)
     command.downgrade(config, PHASE_3_REVISION)
@@ -78,8 +80,8 @@ def test_empty_database_upgrade_is_repeatable_and_reversible(tmp_path: Path) -> 
     assert table_names(database_path) == PHASE_3_TABLES
 
     command.upgrade(config, "head")
-    assert current_revision(database_path) == PHASE_6_MASK_REVISION
-    assert table_names(database_path) == PHASE_5_TABLES
+    assert current_revision(database_path) == LOCAL_FIRST_REVISION
+    assert table_names(database_path) == LOCAL_FIRST_TABLES
 
 
 def test_phase_2_database_upgrades_to_phase_3_and_has_no_future_tables(
@@ -92,9 +94,9 @@ def test_phase_2_database_upgrades_to_phase_3_and_has_no_future_tables(
     assert current_revision(database_path) == PHASE_2_REVISION
     command.upgrade(config, "head")
 
-    assert current_revision(database_path) == PHASE_6_MASK_REVISION
+    assert current_revision(database_path) == LOCAL_FIRST_REVISION
     tables = table_names(database_path)
-    assert tables == PHASE_5_TABLES
+    assert tables == LOCAL_FIRST_TABLES
     assert not tables & {"outfit_sessions", "outfit_revisions", "outfit_layers"}
     command.check(config)
 
@@ -133,7 +135,7 @@ def test_phase_3_upgrade_preserves_phase_2_rows(tmp_path: Path) -> None:
         connection.commit()
 
     command.upgrade(config, "head")
-    assert current_revision(database_path) == PHASE_6_MASK_REVISION
+    assert current_revision(database_path) == LOCAL_FIRST_REVISION
 
     with sqlite3.connect(database_path) as connection:
         connection.execute("PRAGMA foreign_keys=ON")

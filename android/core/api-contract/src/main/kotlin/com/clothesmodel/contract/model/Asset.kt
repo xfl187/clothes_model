@@ -49,6 +49,9 @@ import kotlinx.serialization.encoding.Encoder
  * @param lifecycle 
  * @param createdAt UTC RFC 3339 timestamp.
  * @param contentAvailable 
+ * @param contentSha256 Digest of currently available private content, when present.
+ * @param durableClientCopyConfirmed Whether an authenticated client has acknowledged a durable full local copy that permits automatic cleanup after reference protection and grace time.
+ * @param cleanupAfter Earliest scheduled input-content cleanup time, if one is eligible.
  * @param qualityWarnings 
  * @param garmentCategory 
  * @param garmentSource 
@@ -88,6 +91,18 @@ data class Asset (
 
     @SerialName(value = "content_available")
     val contentAvailable: kotlin.Boolean,
+
+    /* Digest of currently available private content, when present. */
+    @SerialName(value = "content_sha256")
+    val contentSha256: kotlin.String? = null,
+
+    /* Whether an authenticated client has acknowledged a durable full local copy that permits automatic cleanup after reference protection and grace time. */
+    @SerialName(value = "durable_client_copy_confirmed")
+    val durableClientCopyConfirmed: kotlin.Boolean? = null,
+
+    /* Earliest scheduled input-content cleanup time, if one is eligible. */
+    @Contextual @SerialName(value = "cleanup_after")
+    val cleanupAfter: java.time.OffsetDateTime? = null,
 
     @SerialName(value = "quality_warnings")
     val qualityWarnings: kotlin.collections.List<kotlin.String>? = null,

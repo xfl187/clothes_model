@@ -78,6 +78,7 @@ fun AssetDetailScreen(
                         AssetImage(
                             assetId = asset.id,
                             loader = imageLoader,
+                            localPath = asset.localPath,
                             contentDescription = "素材图片",
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -92,7 +93,7 @@ fun AssetDetailScreen(
                         )
                     }
                     if (!asset.contentAvailable) {
-                        Text("图片内容已删除，任务参数、错误和执行谱系仍然保留。")
+                        Text("本地图片已删除；历史任务仍保留，但下次生成前需要重新选择素材。")
                     }
                     if (asset.qualityWarnings.isNotEmpty()) {
                         InlineProblem(message = asset.qualityWarnings.joinToString("；"))
@@ -108,7 +109,7 @@ fun AssetDetailScreen(
 
                     SectionHeading(
                         text = "引用",
-                        supporting = "活跃任务引用的素材不能删除内容。",
+                        supporting = "被试穿草稿或穿搭引用的素材不能删除。",
                     )
                     if (state.references.isEmpty()) {
                         Text("当前没有阻止删除的引用。")
@@ -148,7 +149,7 @@ fun AssetDetailScreen(
     if (confirmDelete) {
         ConfirmationDialog(
             title = "删除图片？",
-            message = "只会删除图片内容，任务参数、状态、错误和执行谱系会继续保留。删除后显示“素材已删除”占位。",
+            message = "将删除本机素材。后端不会作为永久备份；历史任务仍会保留。",
             confirmLabel = "删除图片",
             destructive = true,
             onConfirm = {

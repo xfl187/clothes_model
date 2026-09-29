@@ -74,6 +74,14 @@ class AppAuthStatus(BaseModel):
     token_id: str = Field(
         ..., description='Non-secret token identifier; never the token value.'
     )
+    server_instance_id: UUID | None = Field(
+        None,
+        description='Stable opaque identity for this Backend installation. Local clients use it only as a partition key and must not derive trust from its value.',
+    )
+    owner_scope_id: UUID | None = Field(
+        None,
+        description='Stable opaque material-owner scope associated with the App credential. It is independent of token rotation and reserves future account isolation.',
+    )
     server_time: Timestamp
 
 
@@ -122,6 +130,12 @@ class GarmentSource(Enum):
     unknown = 'unknown'
 
 
+class Identifier(RootModel[UUID]):
+    root: UUID = Field(
+        ..., description='Server-issued UUIDv7 represented as a canonical UUID string.'
+    )
+
+
 class UploadCreateRequest(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -132,11 +146,9 @@ class UploadCreateRequest(BaseModel):
     size_bytes: int = Field(..., ge=1)
     garment_category: GarmentCategory | None = None
     garment_source: GarmentSource | None = None
-
-
-class Identifier(RootModel[UUID]):
-    root: UUID = Field(
-        ..., description='Server-issued UUIDv7 represented as a canonical UUID string.'
+    target_asset_id: Identifier | None = Field(
+        None,
+        description='Existing owned person or garment logical asset whose absent input content will be rehydrated. Omit when creating a new logical asset.',
     )
 
 
@@ -203,6 +215,19 @@ class Asset(BaseModel):
     lifecycle: Lifecycle
     created_at: Timestamp
     content_available: bool
+    content_sha256: str | None = Field(
+        None,
+        description='Digest of currently available private content, when present.',
+        pattern='^[A-Fa-f0-9]{64}$',
+    )
+    durable_client_copy_confirmed: bool | None = Field(
+        None,
+        description='Whether an authenticated client has acknowledged a durable full local copy that permits automatic cleanup after reference protection and grace time.',
+    )
+    cleanup_after: AwareDatetime | None = Field(
+        None,
+        description='Earliest scheduled input-content cleanup time, if one is eligible.',
+    )
     quality_warnings: list[str] | None = None
     garment_category: GarmentCategory | None = None
     garment_source: GarmentSource | None = None
@@ -274,6 +299,21 @@ class AssetReferencePage(BaseModel):
     items: list[AssetReference]
     next_cursor: str
     has_more: bool
+
+
+class AssetLocalCopyAcknowledgement(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    client_asset_id: UUID = Field(
+        ...,
+        description='Opaque Android-local material identifier used for idempotent acknowledgement.',
+    )
+    sha256: str = Field(
+        ...,
+        description='Digest verified from the durable Android private copy.',
+        pattern='^[A-Fa-f0-9]{64}$',
+    )
 
 
 class JobState(Enum):

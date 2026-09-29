@@ -49,11 +49,25 @@ class SecurityAuditRepository(Protocol):
     async def add(self, event: SecurityAuditEvent) -> None: ...
 
 
+class OwnerScopeRepository(Protocol):
+    async def get_or_create(self, default_id: str, created_at: datetime) -> str: ...
+
+
+class ServerIdentityRepository(Protocol):
+    async def get_or_create(self, default_id: str, created_at: datetime) -> str: ...
+
+
 class AuthUnitOfWork(UnitOfWork, Protocol):
     """Auth repositories sharing the service-wide transaction boundary."""
 
     @property
     def access_tokens(self) -> AccessTokenRepository: ...
+
+    @property
+    def owner_scopes(self) -> OwnerScopeRepository: ...
+
+    @property
+    def server_identity(self) -> ServerIdentityRepository: ...
 
     @property
     def admin_sessions(self) -> AdminSessionRepository: ...

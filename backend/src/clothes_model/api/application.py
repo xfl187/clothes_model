@@ -28,6 +28,7 @@ from clothes_model.infrastructure.storage import (
     WorkflowArtifactStorage,
     reconcile_upload_sessions,
 )
+from clothes_model.modules.cleanup.service import run_local_first_cleanup
 from clothes_model.modules.jobs.infrastructure.execution import JobExecutionService
 from clothes_model.modules.providers.application.ports import ProviderAdapter
 from clothes_model.modules.providers.application.services import ProviderConfigService
@@ -108,15 +109,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             except Exception:
                 logger.exception("upload_maintenance_failed")
 
+    async def maintain_local_first_assets() -> None:
+        while True:
+            await asyncio.sleep(resolved_settings.local_first_cleanup_interval_seconds)
+            try:
+                await run_local_first_cleanup(database.sessions, storage)
+            except Exception:
+                logger.exception("local_first_cleanup_failed")
+
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
         maintenance_task: asyncio.Task[None] | None = None
+        cleanup_task: asyncio.Task[None] | None = None
         try:
             await reconcile_upload_sessions(database.sessions, storage)
             await scheduler.start()
             maintenance_task = asyncio.create_task(
                 maintain_uploads(), name="upload-session-maintenance"
             )
+            if resolved_settings.local_first_cleanup_enabled:
+                cleanup_task = asyncio.create_task(
+                    maintain_local_first_assets(), name="local-first-asset-cleanup"
+                )
             logger.info(
                 "application_started",
                 extra={
@@ -132,6 +146,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 maintenance_task.cancel()
                 try:
                     await maintenance_task
+                except asyncio.CancelledError:
+                    pass
+            if cleanup_task is not None:
+                cleanup_task.cancel()
+                try:
+                    await cleanup_task
                 except asyncio.CancelledError:
                     pass
             await scheduler.stop()

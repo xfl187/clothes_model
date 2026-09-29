@@ -17,8 +17,10 @@ from clothes_model.infrastructure.database.repositories import (
     SqlAlchemyIdempotencyRepository,
     SqlAlchemyJobExecutionEventRepository,
     SqlAlchemyJobRepository,
+    SqlAlchemyOwnerScopeRepository,
     SqlAlchemyProviderConfigRepository,
     SqlAlchemySecurityAuditRepository,
+    SqlAlchemyServerIdentityRepository,
     SqlAlchemyStoredObjectRepository,
     SqlAlchemyUploadRepository,
     SqlAlchemyWorkflowRepository,
@@ -71,6 +73,14 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     @property
     def security_audit(self) -> SqlAlchemySecurityAuditRepository:
         return SqlAlchemySecurityAuditRepository(self.session)
+
+    @property
+    def owner_scopes(self) -> SqlAlchemyOwnerScopeRepository:
+        return SqlAlchemyOwnerScopeRepository(self.session)
+
+    @property
+    def server_identity(self) -> SqlAlchemyServerIdentityRepository:
+        return SqlAlchemyServerIdentityRepository(self.session)
 
     @property
     def provider_configs(self) -> SqlAlchemyProviderConfigRepository:

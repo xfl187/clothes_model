@@ -90,11 +90,20 @@ def _encode_cursor(created_at: datetime, job_id: str) -> str:
     return base64.urlsafe_b64encode(raw).decode().rstrip("=")
 
 
-async def _asset_available(uow: SqlAlchemyUnitOfWork, asset_id: str, kind: str) -> bool:
+def _owner(identity: VerifiedCredential) -> str:
+    if identity.owner_scope_id is None:
+        raise _problem(401, "unauthorized", "App 凭据没有素材所有者。")
+    return identity.owner_scope_id
+
+
+async def _asset_available(
+    uow: SqlAlchemyUnitOfWork, asset_id: str, kind: str, owner_scope_id: str
+) -> bool:
     found = await uow.session.scalar(
         select(db.assets.c.id).where(
             db.assets.c.id == asset_id,
             db.assets.c.kind == kind,
+            db.assets.c.owner_scope_id == owner_scope_id,
             db.assets.c.content_state == "available",
         )
     )
@@ -162,9 +171,10 @@ async def list_jobs(
     limit: int = Query(50, ge=1, le=100),
     state: str | None = None,
 ) -> dict[str, object]:
-    del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
-        jobs = await uow.jobs.list_jobs(state=state, limit=limit + 1)
+        jobs = await uow.jobs.list_jobs(
+            state=state, limit=limit + 1, owner_scope_id=_owner(identity)
+        )
         decoded = _cursor(cursor)
         if decoded:
             created, job_id = decoded
@@ -228,11 +238,11 @@ async def create_job(
         if mask_asset_id is not None:
             checks.append((mask_asset_id, "mask"))
         for asset_id, kind in checks:
-            if not await _asset_available(uow, asset_id, kind):
+            if not await _asset_available(uow, asset_id, kind, _owner(identity)):
                 raise _problem(422, "validation_error", "输入素材不存在或不可用。")
         if body.related_job_id is not None:
             related = await uow.jobs.get_job(str(body.related_job_id))
-            if related is None:
+            if related is None or related.owner_scope_id != _owner(identity):
                 raise _problem(422, "validation_error", "关联任务不存在。")
 
         workflow_lock = await _lock_workflow(
@@ -262,6 +272,7 @@ async def create_job(
         }
         job = Job(
             id=job_id,
+            owner_scope_id=_owner(identity),
             mode="precise_try_on",
             state="waiting_provider" if waiting else "queued",
             candidate_count=candidate_count,
@@ -312,6 +323,9 @@ async def create_job(
         if mask_asset_id is not None:
             reference_ids.append(mask_asset_id)
         for asset_id in reference_ids:
+            await uow.session.execute(
+                db.assets.update().where(db.assets.c.id == asset_id).values(cleanup_after=None)
+            )
             await uow.asset_references.add(
                 AssetReference(
                     id=str(uuid4()),
@@ -344,9 +358,8 @@ async def create_job(
 
 @router.get("/api/v1/jobs/{job_id}", operation_id="getJob")
 async def get_job(request: Request, job_id: str, identity: AppIdentity) -> dict[str, object]:
-    del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
-        job = await uow.jobs.get_job(job_id)
+        job = await uow.jobs.get_job(job_id, owner_scope_id=_owner(identity))
         if job is None:
             raise _problem(404, "not_found", "任务不存在。")
         return await job_payload(uow, job)
@@ -356,10 +369,12 @@ async def get_job(request: Request, job_id: str, identity: AppIdentity) -> dict[
 async def get_job_item(
     request: Request, job_item_id: str, identity: AppIdentity
 ) -> dict[str, object]:
-    del identity
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
         item = await uow.jobs.get_item(job_item_id)
-        if item is None:
+        job = None if item is None else await uow.jobs.get_job(
+            item.job_id, owner_scope_id=_owner(identity)
+        )
+        if item is None or job is None:
             raise _problem(404, "not_found", "候选任务不存在。")
         return await item_payload(uow, item)
 
@@ -372,6 +387,21 @@ def _command_service(request: Request) -> JobCommandService:
         request.app.state.provider_registry,
         request.app.state.job_execution,
     )
+
+
+async def _require_owned_job(
+    request: Request, identity: VerifiedCredential, *, job_id: str | None = None,
+    item_id: str | None = None,
+) -> None:
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        if item_id is not None:
+            item = await uow.jobs.get_item(item_id)
+            job_id = None if item is None else item.job_id
+        job = None if job_id is None else await uow.jobs.get_job(
+            job_id, owner_scope_id=_owner(identity)
+        )
+        if job is None:
+            raise _problem(404, "not_found", "任务不存在。")
 
 
 async def _job_response(request: Request, job: Job) -> dict[str, object]:
@@ -390,7 +420,8 @@ async def cancel_job(
     identity: AppIdentity,
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> dict[str, object]:
-    del identity, idempotency_key
+    del idempotency_key
+    await _require_owned_job(request, identity, job_id=job_id)
     try:
         job = await _command_service(request).cancel_job(job_id)
     except JobCommandError as error:
@@ -405,7 +436,8 @@ async def cancel_job_item(
     identity: AppIdentity,
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> dict[str, object]:
-    del identity, idempotency_key
+    del idempotency_key
+    await _require_owned_job(request, identity, item_id=job_item_id)
     try:
         job = await _command_service(request).cancel_item(job_item_id)
     except JobCommandError as error:
@@ -421,7 +453,8 @@ async def retry_job_item(
     body: RetryJobItemBody | None = None,
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> dict[str, object]:
-    del identity, idempotency_key
+    del idempotency_key
+    await _require_owned_job(request, identity, item_id=job_item_id)
     reason = body.reason if body is not None else None
     provider_id = body.provider_id if body is not None else None
     try:
@@ -440,7 +473,8 @@ async def requery_job_item(
     identity: AppIdentity,
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> dict[str, object]:
-    del identity, idempotency_key
+    del idempotency_key
+    await _require_owned_job(request, identity, item_id=job_item_id)
     try:
         job = await _command_service(request).requery_item(job_item_id)
     except JobCommandError as error:
@@ -459,7 +493,8 @@ async def finish_failed_job_item(
     identity: AppIdentity,
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> dict[str, object]:
-    del identity, idempotency_key
+    del idempotency_key
+    await _require_owned_job(request, identity, item_id=job_item_id)
     try:
         job = await _command_service(request).finish_failed(job_item_id, body.reason)
     except JobCommandError as error:

@@ -35,6 +35,12 @@ UploadCreateRequest:
       $ref: '#/GarmentCategory'
     garment_source:
       $ref: '#/GarmentSource'
+    target_asset_id:
+      allOf:
+        - $ref: ../common/schemas.yaml#/Identifier
+      description: >-
+        Existing owned person or garment logical asset whose absent input content
+        will be rehydrated. Omit when creating a new logical asset.
 
 UploadSession:
   type: object
@@ -147,6 +153,23 @@ Asset:
       $ref: ../common/schemas.yaml#/Timestamp
     content_available:
       type: boolean
+    content_sha256:
+      type: string
+      pattern: ^[A-Fa-f0-9]{64}$
+      readOnly: true
+      description: Digest of currently available private content, when present.
+    durable_client_copy_confirmed:
+      type: boolean
+      readOnly: true
+      description: >-
+        Whether an authenticated client has acknowledged a durable full local copy
+        that permits automatic cleanup after reference protection and grace time.
+    cleanup_after:
+      type: string
+      format: date-time
+      nullable: true
+      readOnly: true
+      description: Earliest scheduled input-content cleanup time, if one is eligible.
     quality_warnings:
       type: array
       items:
@@ -155,6 +178,20 @@ Asset:
       $ref: '#/GarmentCategory'
     garment_source:
       $ref: '#/GarmentSource'
+
+AssetLocalCopyAcknowledgement:
+  type: object
+  additionalProperties: false
+  required: [client_asset_id, sha256]
+  properties:
+    client_asset_id:
+      type: string
+      format: uuid
+      description: Opaque Android-local material identifier used for idempotent acknowledgement.
+    sha256:
+      type: string
+      pattern: ^[A-Fa-f0-9]{64}$
+      description: Digest verified from the durable Android private copy.
 
 AssetPage:
   type: object

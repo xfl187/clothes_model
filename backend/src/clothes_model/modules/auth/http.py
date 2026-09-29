@@ -8,9 +8,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Depends, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
 
 from clothes_model.core.problems import AppProblem
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
+from clothes_model.infrastructure.database import models as db
 from clothes_model.modules.auth.application.services import TokenService, VerifiedCredential
 from clothes_model.modules.auth.application.sessions import AdminSessionService, digest
 
@@ -93,9 +95,18 @@ router = APIRouter(tags=["Authentication"])
 
 @router.get("/api/v1/auth/status", operation_id="getAppAuthStatus")
 async def app_status(
+    request: Request,
     identity: Annotated[VerifiedCredential, Depends(require_app)],
 ) -> dict[str, object]:
-    return {"authenticated": True, "token_id": identity.public_id, "server_time": datetime.now(UTC)}
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        server_instance_id = await uow.session.scalar(select(db.server_identity.c.id).limit(1))
+    return {
+        "authenticated": True,
+        "token_id": identity.public_id,
+        "server_time": datetime.now(UTC),
+        "server_instance_id": server_instance_id,
+        "owner_scope_id": identity.owner_scope_id,
+    }
 
 
 @router.post("/api/v1/admin/auth/session", status_code=201, operation_id="createAdminSession")

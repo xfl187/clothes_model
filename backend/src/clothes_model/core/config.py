@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     storage_max_upload_bytes: int = Field(default=20_000_000, ge=1024)
     storage_reserve_bytes: int = Field(default=100_000_000, ge=0)
     upload_maintenance_interval_seconds: int = Field(default=300, ge=30, le=86400)
+    local_first_cleanup_enabled: bool = False
+    local_first_cleanup_interval_seconds: int = Field(default=900, ge=30, le=86400)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     cors_allowlist: list[str] = Field(default_factory=list)
     scheduler_enabled: bool = False

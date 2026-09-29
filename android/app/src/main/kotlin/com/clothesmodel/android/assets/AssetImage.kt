@@ -28,11 +28,12 @@ fun AssetImage(
     loader: AuthenticatedImageLoader,
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    localPath: String? = null,
     deletedLabel: String = "素材已删除",
     contentScale: ContentScale = ContentScale.Crop,
 ) {
-    val result by produceState<ImageResult?>(initialValue = null, assetId) {
-        value = loader.load(assetId)
+    val result by produceState<ImageResult?>(initialValue = null, assetId, localPath) {
+        value = loader.load(assetId, localPath)
     }
     val loaded = result
     when (loaded) {

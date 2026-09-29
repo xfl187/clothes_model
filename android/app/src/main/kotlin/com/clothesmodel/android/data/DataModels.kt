@@ -66,6 +66,9 @@ data class AssetModel(
     val garmentCategory: GarmentCategory?,
     val garmentSource: GarmentSource?,
     val qualityWarnings: List<String>,
+    val backendAssetId: UUID? = id,
+    val localPath: String? = null,
+    val syncState: String = "ready",
 ) {
     val isDeletedContent: Boolean
         get() = lifecycle == AssetLifecycle.DELETED_CONTENT || !contentAvailable

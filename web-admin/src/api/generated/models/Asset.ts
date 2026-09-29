@@ -82,6 +82,18 @@ export interface Asset {
      */
     contentAvailable: boolean;
     /**
+     * Digest of currently available private content, when present.
+     */
+    readonly contentSha256?: string;
+    /**
+     * Whether an authenticated client has acknowledged a durable full local copy that permits automatic cleanup after reference protection and grace time.
+     */
+    readonly durableClientCopyConfirmed?: boolean;
+    /**
+     * Earliest scheduled input-content cleanup time, if one is eligible.
+     */
+    readonly cleanupAfter?: Date | null;
+    /**
      * 
      */
     qualityWarnings?: Array<string>;
@@ -146,6 +158,9 @@ export function AssetFromJSONTyped(json: any, ignoreDiscriminator: boolean): Ass
         'lifecycle': json['lifecycle'],
         'createdAt': (json['created_at'] == null ? json['created_at'] : parseDateTime(json['created_at'])),
         'contentAvailable': json['content_available'],
+        'contentSha256': json['content_sha256'] == null ? undefined : json['content_sha256'],
+        'durableClientCopyConfirmed': json['durable_client_copy_confirmed'] == null ? undefined : json['durable_client_copy_confirmed'],
+        'cleanupAfter': json['cleanup_after'] === undefined ? undefined : json['cleanup_after'] === null ? null : (parseDateTime(json['cleanup_after'])),
         'qualityWarnings': json['quality_warnings'] == null ? undefined : json['quality_warnings'],
         'garmentCategory': json['garment_category'] == null ? undefined : GarmentCategoryFromJSON(json['garment_category']),
         'garmentSource': json['garment_source'] == null ? undefined : GarmentSourceFromJSON(json['garment_source']),
@@ -156,7 +171,7 @@ export function AssetToJSON(json: any): Asset {
     return AssetToJSONTyped(json, false);
 }
 
-export function AssetToJSONTyped(value?: Asset | null, ignoreDiscriminator: boolean = false): any {
+export function AssetToJSONTyped(value?: Omit<Asset, 'contentSha256'|'durableClientCopyConfirmed'|'cleanupAfter'> | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

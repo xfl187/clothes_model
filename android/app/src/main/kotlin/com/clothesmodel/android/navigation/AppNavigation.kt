@@ -74,6 +74,7 @@ fun MainTabs(
     onOpenAsset: (String) -> Unit,
     onOpenJob: (String) -> Unit,
     onAuthenticationExpired: () -> Unit = {},
+    onConfigureConnection: () -> Unit = {},
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -102,6 +103,7 @@ fun MainTabs(
                     onCreate = onCreate,
                     onOpenJob = onOpenJob,
                     onAuthenticationExpired = onAuthenticationExpired,
+                    onConfigureConnection = onConfigureConnection,
                 )
             }
             composable(Destinations.ASSETS) {
@@ -125,7 +127,7 @@ fun MainTabs(
 fun ClothesModelNavHost(navController: NavHostController = rememberNavController()) {
     NavHost(
         navController = navController,
-        startDestination = Destinations.CONNECTION,
+        startDestination = Destinations.MAIN,
     ) {
         composable(
             route = Destinations.CONNECTION,
@@ -150,9 +152,10 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
                 onOpenAsset = { navController.navigate(Destinations.assetDetail(it)) },
                 onOpenJob = { navController.navigate(Destinations.jobDetail(it)) },
                 onAuthenticationExpired = {
-                    navController.navigate(Destinations.connection(reauth = true)) {
-                        popUpTo(navController.graph.id) { inclusive = true }
-                    }
+                    // Local-first shell remains usable while disconnected.
+                },
+                onConfigureConnection = {
+                    navController.navigate(Destinations.connection(reauth = false))
                 },
             )
         }
@@ -174,11 +177,6 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
             CreateWizardRoute(
                 onBack = { navController.popBackStack() },
                 onCreated = { navController.navigate(Destinations.jobDetail(it)) },
-                onOpenAssets = {
-                    navController.navigate(Destinations.MAIN) {
-                        popUpTo(navController.graph.id) { inclusive = true }
-                    }
-                },
                 onAuthenticationExpired = {
                     navController.navigate(Destinations.connection(reauth = true)) {
                         popUpTo(navController.graph.id) { inclusive = true }

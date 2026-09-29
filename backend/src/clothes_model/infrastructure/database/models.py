@@ -55,6 +55,21 @@ def utc_timestamp() -> UTCDateTime:
     return UTCDateTime(timezone=True)
 
 
+owner_scopes = Table(
+    "owner_scopes",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+)
+
+server_identity = Table(
+    "server_identity",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+)
+
+
 access_tokens = Table(
     "access_tokens",
     metadata,
@@ -62,6 +77,11 @@ access_tokens = Table(
     Column("public_id", String(64), nullable=False, unique=True),
     Column("secret_hash", Text, nullable=False),
     Column("scope", String(16), nullable=False),
+    Column(
+        "owner_scope_id",
+        String(36),
+        nullable=True,
+    ),
     Column("status", String(16), nullable=False),
     Column("created_at", utc_timestamp(), nullable=False),
     Column("expires_at", utc_timestamp(), nullable=True),
@@ -184,6 +204,11 @@ assets = Table(
     Column("id", String(36), primary_key=True),
     Column("kind", String(16), nullable=False),
     Column(
+        "owner_scope_id",
+        String(36),
+        nullable=True,
+    ),
+    Column(
         "stored_object_id",
         String(36),
         ForeignKey("stored_objects.id", ondelete="RESTRICT"),
@@ -191,6 +216,9 @@ assets = Table(
     ),
     Column("favorite", Boolean, nullable=False, server_default="0"),
     Column("content_state", String(16), nullable=False),
+    Column("durable_client_copy_confirmed", Boolean, nullable=False, server_default="0"),
+    Column("client_asset_id", String(36), nullable=True),
+    Column("cleanup_after", utc_timestamp(), nullable=True),
     Column("created_at", utc_timestamp(), nullable=False),
     Column("updated_at", utc_timestamp(), nullable=False),
     Column("deleted_at", utc_timestamp(), nullable=True),
@@ -204,6 +232,12 @@ assets = Table(
 )
 Index("ix_assets_list_order", assets.c.created_at.desc(), assets.c.id.desc())
 Index("ix_assets_kind_favorite", assets.c.kind, assets.c.favorite)
+Index(
+    "ix_assets_owner_list",
+    assets.c.owner_scope_id,
+    assets.c.created_at.desc(),
+    assets.c.id.desc(),
+)
 
 person_assets = Table(
     "person_assets",
@@ -235,6 +269,16 @@ upload_sessions = Table(
         String(36),
         ForeignKey("access_tokens.id", ondelete="RESTRICT"),
         nullable=False,
+    ),
+    Column(
+        "owner_scope_id",
+        String(36),
+        nullable=True,
+    ),
+    Column(
+        "target_asset_id",
+        String(36),
+        nullable=True,
     ),
     Column("asset_kind", String(16), nullable=False),
     Column("filename", String(255), nullable=False),
@@ -498,6 +542,11 @@ jobs = Table(
     "jobs",
     metadata,
     Column("id", String(36), primary_key=True),
+    Column(
+        "owner_scope_id",
+        String(36),
+        nullable=True,
+    ),
     Column("mode", String(32), nullable=False),
     Column("state", String(24), nullable=False),
     Column("block_reason", String(32), nullable=True),
@@ -558,6 +607,7 @@ jobs = Table(
         name="workflow_pair",
     ),
 )
+Index("ix_jobs_owner_list", jobs.c.owner_scope_id, jobs.c.created_at.desc(), jobs.c.id.desc())
 Index("ix_jobs_list_order", jobs.c.created_at.desc(), jobs.c.id.desc())
 Index("ix_jobs_state", jobs.c.state)
 

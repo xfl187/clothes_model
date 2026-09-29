@@ -1,18 +1,29 @@
 package com.clothesmodel.android.create
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.clothesmodel.android.data.AssetKindFilter
 import com.clothesmodel.android.data.AssetModel
 import com.clothesmodel.android.data.AssetRepository
 import com.clothesmodel.android.data.AuthenticatedImageLoader
 import com.clothesmodel.android.data.GarmentCategory
+import com.clothesmodel.android.data.GarmentSource
 import com.clothesmodel.android.data.JobRepository
 import com.clothesmodel.android.data.Outcome
 import com.clothesmodel.android.data.ProblemModel
 import com.clothesmodel.android.data.ProviderModel
 import com.clothesmodel.android.data.ProviderRepository
+import com.clothesmodel.android.imports.ImportStaging
+import com.clothesmodel.android.imports.PendingImport
+import com.clothesmodel.android.imports.PendingImportActions
+import com.clothesmodel.android.imports.PendingImportDatabase
+import com.clothesmodel.android.imports.PendingImportScheduler
+import com.clothesmodel.android.imports.LocalAssetSyncResult
+import com.clothesmodel.android.imports.LocalAssetUploader
 import com.clothesmodel.android.tryon.TryOnDraftStore
 import com.clothesmodel.contract.model.CreateJobRequest
 import com.clothesmodel.contract.model.GenerationOptions
@@ -20,13 +31,28 @@ import com.clothesmodel.contract.model.TryOnMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
+import java.time.Instant
+import java.time.ZoneOffset
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class WizardStep { PERSON, GARMENT, SETTINGS }
+
+data class WizardImportUi(
+    val id: String,
+    val state: String,
+    val error: String? = null,
+) {
+    val failed: Boolean
+        get() = state == "failed" || error != null
+}
 
 data class CreateWizardUiState(
     val step: WizardStep = WizardStep.PERSON,
@@ -36,6 +62,8 @@ data class CreateWizardUiState(
     val assets: List<AssetModel> = emptyList(),
     val assetsLoading: Boolean = false,
     val assetError: ProblemModel? = null,
+    val personImport: WizardImportUi? = null,
+    val garmentImport: WizardImportUi? = null,
     val providers: List<ProviderModel> = emptyList(),
     val providerId: UUID? = null,
     val providerNote: String? = null,
@@ -54,6 +82,26 @@ data class CreateWizardUiState(
             WizardStep.GARMENT -> garmentAsset != null
             WizardStep.SETTINGS -> selectedProvider != null
         }
+
+    val currentImport: WizardImportUi?
+        get() = when (step) {
+            WizardStep.PERSON -> personImport
+            WizardStep.GARMENT -> garmentImport
+            WizardStep.SETTINGS -> null
+        }
+
+    val visibleAssets: List<AssetModel>
+        get() = filterAssetsForStep(assets, step, garmentCategory)
+}
+
+internal fun filterAssetsForStep(
+    assets: List<AssetModel>,
+    step: WizardStep,
+    garmentCategory: GarmentCategory,
+): List<AssetModel> = if (step == WizardStep.GARMENT) {
+    assets.filter { it.garmentCategory == garmentCategory }
+} else {
+    assets
 }
 
 @HiltViewModel
@@ -65,10 +113,16 @@ class CreateWizardViewModel @Inject constructor(
     val imageLoader: AuthenticatedImageLoader,
 ) : ViewModel() {
     private val drafts = TryOnDraftStore(context)
+    private val database = PendingImportDatabase.build(context)
+    private val staging = ImportStaging(context)
+    private val scheduler = PendingImportScheduler(context)
+    private val uploader = LocalAssetUploader(context)
+    private val importActions = PendingImportActions(context, database.pendingImports())
     private val mutableState = MutableStateFlow(CreateWizardUiState())
     val state: StateFlow<CreateWizardUiState> = mutableState.asStateFlow()
 
     init {
+        observeImports()
         viewModelScope.launch {
             val draft = drafts.snapshot()
             mutableState.value = mutableState.value.copy(
@@ -76,16 +130,20 @@ class CreateWizardViewModel @Inject constructor(
                 candidateCount = draft.candidateCount,
             )
             loadProviders(draft.providerId)
-            loadAssets()
+            restoreImport(draft.personImportId, WizardStep.PERSON)
+            restoreImport(draft.garmentImportId, WizardStep.GARMENT)
+            loadAssets(WizardStep.PERSON)
         }
     }
 
     fun goToStep(step: WizardStep) {
-        mutableState.value = mutableState.value.copy(step = step)
-        if ((step == WizardStep.PERSON || step == WizardStep.GARMENT) &&
-            mutableState.value.assets.isEmpty()
-        ) {
-            loadAssets()
+        mutableState.value = mutableState.value.copy(
+            step = step,
+            assets = if (step == WizardStep.SETTINGS) mutableState.value.assets else emptyList(),
+            assetError = null,
+        )
+        if (step == WizardStep.PERSON || step == WizardStep.GARMENT) {
+            loadAssets(step)
         }
     }
 
@@ -125,9 +183,89 @@ class CreateWizardViewModel @Inject constructor(
 
     fun setGarmentCategory(category: GarmentCategory) {
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(garmentCategory = category)
+            val selected = mutableState.value.garmentAsset
+            val keepSelection = selected?.garmentCategory == category
+            mutableState.value = mutableState.value.copy(
+                garmentCategory = category,
+                garmentAsset = selected?.takeIf { keepSelection },
+            )
+            if (selected != null && !keepSelection) drafts.clearAsset("garment")
             drafts.garmentMetadata(category.wire)
             reconcileProvider()
+        }
+    }
+
+    fun import(uri: Uri) {
+        val step = mutableState.value.step
+        if (step != WizardStep.PERSON && step != WizardStep.GARMENT) return
+        viewModelScope.launch {
+            val id = runCatching {
+                withContext(Dispatchers.IO) {
+                    val staged = staging.copy(uri)
+                    val id = UUID.randomUUID().toString()
+                    val isGarment = step == WizardStep.GARMENT
+                    database.pendingImports().save(
+                        PendingImport(
+                            id = id,
+                            stagedPath = staged.file.absolutePath,
+                            displayName = if (isGarment) "衣物图片" else "人物图片",
+                            contentType = staged.contentType,
+                            assetKind = step.wire,
+                            garmentCategory = if (isGarment) {
+                                mutableState.value.garmentCategory.wire
+                            } else {
+                                null
+                            },
+                            garmentSource = if (isGarment) GarmentSource.PHOTO.wire else null,
+                            state = "staged",
+                            sha256 = staged.sha256,
+                            sizeBytes = staged.sizeBytes,
+                            updatedAt = System.currentTimeMillis(),
+                        ),
+                    )
+                    drafts.selectAsset(step.wire, id)
+                    id
+                }
+            }.getOrElse {
+                updateImport(
+                    step,
+                    WizardImportUi("", "failed", "无法保存所选图片，请重新选择。"),
+                )
+                return@launch
+            }
+            val pending = database.pendingImports().get(id) ?: return@launch
+            val asset = pending.toAssetModel()
+            mutableState.value = if (step == WizardStep.PERSON) {
+                mutableState.value.copy(personAsset = asset)
+            } else {
+                mutableState.value.copy(garmentAsset = asset)
+            }
+            updateImport(step, null)
+            loadAssets(step)
+        }
+    }
+
+    fun retryImport(id: String) {
+        if (id.isBlank()) return
+        viewModelScope.launch {
+            val pending = database.pendingImports().get(id) ?: return@launch
+            database.pendingImports().save(
+                pending.copy(state = "staged", lastError = null, updatedAt = System.currentTimeMillis()),
+            )
+            updateImport(pending.step, WizardImportUi(id, "staged"))
+            scheduler.enqueue(id)
+        }
+    }
+
+    fun cancelImport(id: String) {
+        if (id.isBlank()) return
+        viewModelScope.launch {
+            val pending = database.pendingImports().get(id) ?: return@launch
+            scheduler.cancel(id)
+            if (importActions.cancel(id)) {
+                drafts.clearImport(pending.step.wire)
+                updateImport(pending.step, null)
+            }
         }
     }
 
@@ -159,12 +297,29 @@ class CreateWizardViewModel @Inject constructor(
         val provider = current.selectedProvider ?: return
         viewModelScope.launch {
             mutableState.value = current.copy(submitting = true, createError = null)
+            val personSync = uploader.ensureUploaded(person.id.toString())
+            val garmentSync = uploader.ensureUploaded(garment.id.toString())
+            if (personSync !is LocalAssetSyncResult.Ready ||
+                garmentSync !is LocalAssetSyncResult.Ready
+            ) {
+                val authenticationExpired = personSync is LocalAssetSyncResult.AuthenticationExpired ||
+                    garmentSync is LocalAssetSyncResult.AuthenticationExpired
+                val detail = listOf(personSync, garmentSync)
+                    .filterIsInstance<LocalAssetSyncResult.Failed>()
+                    .firstOrNull()?.detail ?: "需要重新认证后才能生成。"
+                mutableState.value = mutableState.value.copy(
+                    submitting = false,
+                    authenticationExpired = authenticationExpired,
+                    createError = ProblemModel("local_asset_sync_failed", detail, 0, true),
+                )
+                return@launch
+            }
             val key = drafts.snapshot().createIdempotencyKey ?: UUID.randomUUID().toString().also {
                 drafts.rememberCreateKey(it)
             }
             val request = CreateJobRequest(
-                personAssetIds = listOf(person.id),
-                garmentAssetId = garment.id,
+                personAssetIds = listOf(personSync.backendAssetId),
+                garmentAssetId = garmentSync.backendAssetId,
                 providerId = provider.id,
                 mode = TryOnMode.precise_try_on,
                 generationOptions = GenerationOptions(candidateCount = current.candidateCount),
@@ -195,30 +350,93 @@ class CreateWizardViewModel @Inject constructor(
         }
     }
 
-    private fun loadAssets() {
+    private fun loadAssets(step: WizardStep) {
+        if (step == WizardStep.SETTINGS) return
         viewModelScope.launch {
             mutableState.value = mutableState.value.copy(assetsLoading = true, assetError = null)
-            val kind = if (mutableState.value.step == WizardStep.GARMENT) {
+            val kind = if (step == WizardStep.GARMENT) {
                 AssetKindFilter.GARMENT
             } else {
                 AssetKindFilter.PERSON
             }
-            when (val outcome = assets.list(kind = kind, limit = 50)) {
-                is Outcome.Success -> mutableState.value = mutableState.value.copy(
-                    assets = outcome.value.items.filter { it.contentAvailable },
+            val connection = com.clothesmodel.android.connection.ConnectionStore(
+                context,
+                com.clothesmodel.android.connection.TokenVault(context),
+            ).snapshot()
+            val list = database.pendingImports()
+                .byKindForOwner(kind.wire.orEmpty(), connection.serverInstanceId, connection.ownerScopeId)
+                .filter { java.io.File(it.stagedPath).isFile }
+                .map(PendingImport::toAssetModel)
+            val draft = drafts.snapshot()
+            val selectedId = if (step == WizardStep.PERSON) draft.personAssetId else draft.garmentAssetId
+            val selected = list.firstOrNull { it.id.toString() == selectedId }
+            mutableState.value = if (step == WizardStep.PERSON) {
+                mutableState.value.copy(
+                    assets = list,
+                    personAsset = selected ?: mutableState.value.personAsset,
                     assetsLoading = false,
                 )
-
-                is Outcome.Problem -> mutableState.value = mutableState.value.copy(
+            } else {
+                mutableState.value.copy(
+                    assets = list,
+                    garmentAsset = selected ?: mutableState.value.garmentAsset,
                     assetsLoading = false,
-                    assetError = outcome.problem,
-                )
-
-                Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
-                    assetsLoading = false,
-                    authenticationExpired = true,
                 )
             }
+        }
+    }
+
+    private fun observeImports() {
+        viewModelScope.launch {
+            WorkManager.getInstance(context)
+                .getWorkInfosByTagFlow(PendingImportScheduler.AUTHENTICATED_UPLOAD_TAG)
+                .map { work -> work.associate { it.id to it.state } }
+                .distinctUntilChanged()
+                .collect { reconcileImports() }
+        }
+    }
+
+    private suspend fun reconcileImports() {
+        val draft = drafts.snapshot()
+        restoreImport(draft.personImportId, WizardStep.PERSON)
+        restoreImport(draft.garmentImportId, WizardStep.GARMENT)
+    }
+
+    private suspend fun restoreImport(id: String?, step: WizardStep) {
+        if (id == null) return
+        val pending = database.pendingImports().get(id) ?: return
+        if (java.io.File(pending.stagedPath).isFile) {
+            val asset = pending.toAssetModel()
+            if (step == WizardStep.PERSON) {
+                mutableState.value = mutableState.value.copy(personAsset = asset)
+            } else {
+                mutableState.value = mutableState.value.copy(garmentAsset = asset)
+            }
+            drafts.selectAsset(step.wire, pending.id)
+            drafts.clearImport(step.wire)
+            updateImport(step, null)
+            return
+        }
+        val work = withContext(Dispatchers.IO) {
+            WorkManager.getInstance(context)
+                .getWorkInfosByTag(PendingImportScheduler.importTag(id))
+                .get()
+        }
+        val workFailed = work.isNotEmpty() && work.all { it.state.isFinished } &&
+            work.none { it.state == WorkInfo.State.SUCCEEDED }
+        val error = if (workFailed) {
+            "上传失败，可重试或取消。"
+        } else {
+            pending.lastError
+        }
+        updateImport(step, WizardImportUi(id, pending.state, error))
+    }
+
+    private fun updateImport(step: WizardStep, value: WizardImportUi?) {
+        mutableState.value = if (step == WizardStep.PERSON) {
+            mutableState.value.copy(personImport = value)
+        } else {
+            mutableState.value.copy(garmentImport = value)
         }
     }
 
@@ -258,7 +476,7 @@ class CreateWizardViewModel @Inject constructor(
 
                 Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
                     loading = false,
-                    authenticationExpired = true,
+                    providerNote = "后端未连接；可以继续选择本地素材，生成时再连接。",
                 )
             }
         }
@@ -278,4 +496,32 @@ class CreateWizardViewModel @Inject constructor(
             )
         }
     }
+
+    override fun onCleared() {
+        database.close()
+        super.onCleared()
+    }
 }
+
+private val WizardStep.wire: String
+    get() = if (this == WizardStep.GARMENT) "garment" else "person"
+
+private val PendingImport.step: WizardStep
+    get() = if (assetKind == "garment") WizardStep.GARMENT else WizardStep.PERSON
+
+private fun PendingImport.toAssetModel(): AssetModel = AssetModel(
+    id = UUID.fromString(id),
+    kind = assetKind,
+    favorite = false,
+    lifecycle = com.clothesmodel.android.data.AssetLifecycle.ACTIVE,
+    contentAvailable = java.io.File(stagedPath).isFile,
+    width = 1,
+    height = 1,
+    createdAt = Instant.ofEpochMilli(updatedAt).atOffset(ZoneOffset.UTC),
+    garmentCategory = garmentCategory?.let(GarmentCategory::fromWire),
+    garmentSource = garmentSource?.let(GarmentSource::fromWire),
+    qualityWarnings = emptyList(),
+    backendAssetId = assetId?.let(UUID::fromString),
+    localPath = stagedPath,
+    syncState = state,
+)

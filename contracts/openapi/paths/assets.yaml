@@ -171,3 +171,41 @@ References:
         $ref: ../openapi.yaml#/components/responses/Forbidden
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
+LocalCopy:
+  parameters:
+    - name: asset_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  put:
+    tags: [Assets]
+    operationId: confirmAssetLocalCopy
+    summary: Confirm a durable full Android copy of an owned person or garment
+    description: >-
+      Safe to repeat with the same client material identifier and digest. The
+      acknowledgement permits later reference-aware input-content cleanup but
+      does not itself delete content or start a grace period.
+    security:
+      - AppBearer: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/assets/schemas.yaml#/AssetLocalCopyAcknowledgement
+    responses:
+      '200':
+        description: Durable local copy acknowledged; current asset state returned.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/assets/schemas.yaml#/Asset
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '422':
+        $ref: ../openapi.yaml#/components/responses/Problem

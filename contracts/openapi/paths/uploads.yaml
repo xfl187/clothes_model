@@ -120,7 +120,7 @@ Complete:
   post:
     tags: [Uploads]
     operationId: completeUploadSession
-    summary: Validate an uploaded file and create its Asset
+    summary: Validate uploaded content and create or rehydrate its logical Asset
     security:
       - AppBearer: []
     parameters:
@@ -133,7 +133,7 @@ Complete:
             $ref: ../components/assets/schemas.yaml#/UploadCompleteRequest
     responses:
       '201':
-        description: Upload completed and Asset created.
+        description: Upload completed and a new or rehydrated Asset returned.
         content:
           application/json:
             schema:

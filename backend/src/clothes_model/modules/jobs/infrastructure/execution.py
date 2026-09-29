@@ -408,9 +408,13 @@ class JobExecutionService:
                 )
             )
         asset_id = str(uuid4())
+        owner_scope_id = await uow.session.scalar(
+            select(db.assets.c.owner_scope_id).where(db.assets.c.id == item.person_asset_id)
+        )
         await uow.session.execute(
             insert(db.assets).values(
                 id=asset_id,
+                owner_scope_id=owner_scope_id,
                 kind="generated_output",
                 stored_object_id=object_id,
                 favorite=False,

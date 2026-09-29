@@ -7,6 +7,7 @@ export * from './Asset';
 export * from './AssetContentDeletionOutcome';
 export * from './AssetContentDeletionResult';
 export * from './AssetKind';
+export * from './AssetLocalCopyAcknowledgement';
 export * from './AssetPage';
 export * from './AssetReference';
 export * from './AssetReferenceKind';

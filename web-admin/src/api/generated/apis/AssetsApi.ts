@@ -29,6 +29,11 @@ import {
     AssetKindToJSON,
 } from '../models/AssetKind';
 import {
+    type AssetLocalCopyAcknowledgement,
+    AssetLocalCopyAcknowledgementFromJSON,
+    AssetLocalCopyAcknowledgementToJSON,
+} from '../models/AssetLocalCopyAcknowledgement';
+import {
     type AssetPage,
     AssetPageFromJSON,
     AssetPageToJSON,
@@ -48,6 +53,17 @@ import {
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+
+export interface ConfirmAssetLocalCopyRequest {
+    /**
+     * 
+     */
+    assetId: string;
+    /**
+     * 
+     */
+    assetLocalCopyAcknowledgement: AssetLocalCopyAcknowledgement;
+}
 
 export interface DeleteAssetContentRequest {
     /**
@@ -118,6 +134,32 @@ export interface UpdateAssetRequest {
  * @interface AssetsApiInterface
  */
 export interface AssetsApiInterface {
+    /**
+     * Creates request options for confirmAssetLocalCopy without sending the request
+     * @param {string} assetId 
+     * @param {AssetLocalCopyAcknowledgement} assetLocalCopyAcknowledgement 
+     * @throws {RequiredError}
+     * @memberof AssetsApiInterface
+     */
+    confirmAssetLocalCopyRequestOpts(requestParameters: ConfirmAssetLocalCopyRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * Safe to repeat with the same client material identifier and digest. The acknowledgement permits later reference-aware input-content cleanup but does not itself delete content or start a grace period.
+     * @summary Confirm a durable full Android copy of an owned person or garment
+     * @param {string} assetId 
+     * @param {AssetLocalCopyAcknowledgement} assetLocalCopyAcknowledgement 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AssetsApiInterface
+     */
+    confirmAssetLocalCopyRaw(requestParameters: ConfirmAssetLocalCopyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Asset>>;
+
+    /**
+     * Safe to repeat with the same client material identifier and digest. The acknowledgement permits later reference-aware input-content cleanup but does not itself delete content or start a grace period.
+     * Confirm a durable full Android copy of an owned person or garment
+     */
+    confirmAssetLocalCopy(requestParameters: ConfirmAssetLocalCopyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Asset>;
+
     /**
      * Creates request options for deleteAssetContent without sending the request
      * @param {string} assetId 
@@ -275,6 +317,71 @@ export interface AssetsApiInterface {
  * 
  */
 export class AssetsApi extends runtime.BaseAPI implements AssetsApiInterface {
+
+    /**
+     * Creates request options for confirmAssetLocalCopy without sending the request
+     */
+    async confirmAssetLocalCopyRequestOpts(requestParameters: ConfirmAssetLocalCopyRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['assetId'] == null) {
+            throw new runtime.RequiredError(
+                'assetId',
+                'Required parameter "assetId" was null or undefined when calling confirmAssetLocalCopy().'
+            );
+        }
+
+        if (requestParameters['assetLocalCopyAcknowledgement'] == null) {
+            throw new runtime.RequiredError(
+                'assetLocalCopyAcknowledgement',
+                'Required parameter "assetLocalCopyAcknowledgement" was null or undefined when calling confirmAssetLocalCopy().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("AppBearer", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/v1/assets/{asset_id}/local-copy`;
+        urlPath = urlPath.replace('{asset_id}', encodeURIComponent(String(requestParameters['assetId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: AssetLocalCopyAcknowledgementToJSON(requestParameters['assetLocalCopyAcknowledgement']),
+        };
+    }
+
+    /**
+     * Safe to repeat with the same client material identifier and digest. The acknowledgement permits later reference-aware input-content cleanup but does not itself delete content or start a grace period.
+     * Confirm a durable full Android copy of an owned person or garment
+     */
+    async confirmAssetLocalCopyRaw(requestParameters: ConfirmAssetLocalCopyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Asset>> {
+        const requestOptions = await this.confirmAssetLocalCopyRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AssetFromJSON(jsonValue));
+    }
+
+    /**
+     * Safe to repeat with the same client material identifier and digest. The acknowledgement permits later reference-aware input-content cleanup but does not itself delete content or start a grace period.
+     * Confirm a durable full Android copy of an owned person or garment
+     */
+    async confirmAssetLocalCopy(requestParameters: ConfirmAssetLocalCopyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Asset> {
+        const response = await this.confirmAssetLocalCopyRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for deleteAssetContent without sending the request

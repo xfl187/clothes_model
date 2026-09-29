@@ -5,14 +5,17 @@ import com.clothesmodel.contract.infrastructure.ApiClient
 import java.io.IOException
 
 sealed interface ConnectionResult {
-    data object Connected : ConnectionResult
+    data class Connected(
+        val serverInstanceId: String?,
+        val ownerScopeId: String?,
+    ) : ConnectionResult
     data object InvalidToken : ConnectionResult
     data object WrongScope : ConnectionResult
     data object Unavailable : ConnectionResult
 }
 
 internal fun classifyConnectionStatus(statusCode: Int): ConnectionResult = when (statusCode) {
-    200 -> ConnectionResult.Connected
+    200 -> ConnectionResult.Connected(null, null)
     401 -> ConnectionResult.InvalidToken
     403 -> ConnectionResult.WrongScope
     else -> ConnectionResult.Unavailable
@@ -25,7 +28,15 @@ class ConnectionVerifier {
             authName = "AppBearer",
             bearerToken = token,
         ).createService(AuthenticationApi::class.java).getAppAuthStatus()
-        classifyConnectionStatus(response.code())
+        if (response.isSuccessful) {
+            val status = response.body()
+            ConnectionResult.Connected(
+                status?.serverInstanceId?.toString(),
+                status?.ownerScopeId?.toString(),
+            )
+        } else {
+            classifyConnectionStatus(response.code())
+        }
     } catch (_: IOException) {
         ConnectionResult.Unavailable
     } catch (_: IllegalArgumentException) {

@@ -17,6 +17,7 @@ class PendingImportScheduler(private val context: Context) {
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
             .setInputData(workDataOf(PendingImportWorker.IMPORT_ID to importId))
             .addTag(AUTHENTICATED_UPLOAD_TAG)
+            .addTag(importTag(importId))
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork("pending-import-$importId", ExistingWorkPolicy.KEEP, request)
     }
@@ -25,5 +26,7 @@ class PendingImportScheduler(private val context: Context) {
 
     companion object {
         const val AUTHENTICATED_UPLOAD_TAG = "authenticated-pending-upload"
+
+        fun importTag(importId: String): String = "pending-import-id:$importId"
     }
 }

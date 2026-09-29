@@ -45,6 +45,7 @@ import kotlinx.serialization.encoding.Encoder
  * @param sizeBytes 
  * @param garmentCategory 
  * @param garmentSource 
+ * @param targetAssetId Existing owned person or garment logical asset whose absent input content will be rehydrated. Omit when creating a new logical asset.
  */
 @Serializable
 
@@ -66,7 +67,11 @@ data class UploadCreateRequest (
     val garmentCategory: GarmentCategory? = null,
 
     @Contextual @SerialName(value = "garment_source")
-    val garmentSource: GarmentSource? = null
+    val garmentSource: GarmentSource? = null,
+
+    /* Existing owned person or garment logical asset whose absent input content will be rehydrated. Omit when creating a new logical asset. */
+    @Contextual @SerialName(value = "target_asset_id")
+    val targetAssetId: java.util.UUID? = null
 
 ) {
 

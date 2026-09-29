@@ -1,8 +1,11 @@
 package com.clothesmodel.android.create
 
+import com.clothesmodel.android.data.AssetLifecycle
+import com.clothesmodel.android.data.AssetModel
 import com.clothesmodel.android.data.GarmentCategory
 import com.clothesmodel.android.data.ProviderAvailabilityDomain
 import com.clothesmodel.android.data.ProviderModel
+import java.time.OffsetDateTime
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,6 +33,34 @@ private fun provider(
 )
 
 class CreateWizardLogicTest {
+    @Test
+    fun garmentStepFiltersAssetsBySelectedCategory() {
+        fun asset(category: GarmentCategory) = AssetModel(
+            id = UUID.randomUUID(),
+            kind = "garment",
+            favorite = false,
+            lifecycle = AssetLifecycle.ACTIVE,
+            contentAvailable = true,
+            width = 100,
+            height = 100,
+            createdAt = OffsetDateTime.parse("2019-08-24T14:15:22Z"),
+            garmentCategory = category,
+            garmentSource = null,
+            qualityWarnings = emptyList(),
+        )
+        val upper = asset(GarmentCategory.UPPER_BODY)
+        val lower = asset(GarmentCategory.LOWER_BODY)
+
+        assertEquals(
+            listOf(lower),
+            filterAssetsForStep(
+                listOf(upper, lower),
+                WizardStep.GARMENT,
+                GarmentCategory.LOWER_BODY,
+            ),
+        )
+    }
+
     @Test
     fun disabledAndMisconfiguredProvidersAreNotSelectable() {
         val providers = listOf(

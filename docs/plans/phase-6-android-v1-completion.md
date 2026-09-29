@@ -75,6 +75,10 @@
   `assembleDebug`/`lintDebug`/`testDebugUnitTest`/`assembleDebugAndroidTest`/`assembleRelease`, and the
   release-boundary scan. Updated README, roadmap, and this plan to record Phase 6 completion. Real
   credentialed AutoDL/Comfy acceptance remains explicitly deferred as a later release-readiness gate.
+- Post-exit correction (2026-09-29): fixed stale person assets carrying into garment selection, added
+  durable in-wizard photo import with retry/cancel and automatic selection, and filtered garments by
+  the active category. Verified focused JVM tests, Android lint/build, four connected Compose tests,
+  and a real-development-backend upload on the emulator.
 - Next action: Phase 6 complete — return to `$planning` to plan Phase 7 (Web Admin and Operations
   Completion)
 
