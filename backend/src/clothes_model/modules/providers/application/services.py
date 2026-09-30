@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any, Protocol
 from uuid import uuid4
@@ -205,6 +205,57 @@ class ProviderConfigService:
             await uow.provider_configs.delete_config(provider_id)
             await uow.commit()
 
+    async def archive(self, provider_id: str) -> ProviderConfig:
+        async with self._uow_factory() as uow:
+            config = await uow.provider_configs.get_config(provider_id)
+            if config is None:
+                raise ProviderError(
+                    "invalid_configuration", "provider_not_found", "Provider 不存在。"
+                )
+            if config.provider_type == "comfyui":
+                raise ProviderError(
+                    "invalid_configuration",
+                    "provider_system_managed",
+                    "系统管理的 ComfyUI Provider 不能归档。",
+                )
+            default = await uow.provider_configs.get_default()
+            if default is not None and default.provider_id == provider_id:
+                raise ProviderError(
+                    "invalid_configuration",
+                    "provider_is_default",
+                    "默认 Provider 不能归档，请先选择其他默认 Provider。",
+                )
+            if config.state == "disabled":
+                return config
+            updated = replace(config, state="disabled", updated_at=self._clock())
+            await uow.provider_configs.update_config(updated)
+            await uow.commit()
+            return updated
+
+    async def restore(self, provider_id: str) -> ProviderConfig:
+        async with self._uow_factory() as uow:
+            config = await uow.provider_configs.get_config(provider_id)
+            if config is None:
+                raise ProviderError(
+                    "invalid_configuration", "provider_not_found", "Provider 不存在。"
+                )
+            if config.provider_type == "comfyui":
+                raise ProviderError(
+                    "invalid_configuration",
+                    "provider_system_managed",
+                    "系统管理的 ComfyUI Provider 不能恢复。",
+                )
+            if config.state != "disabled":
+                raise ProviderError(
+                    "invalid_configuration",
+                    "provider_not_archived",
+                    "Provider 当前未归档。",
+                )
+            updated = replace(config, state="inactive", updated_at=self._clock())
+            await uow.provider_configs.update_config(updated)
+            await uow.commit()
+            return updated
+
     async def update(
         self,
         provider_id: str,
@@ -224,6 +275,10 @@ class ProviderConfigService:
             if config is None:
                 raise ProviderError(
                     "invalid_configuration", "provider_not_found", "Provider 不存在。"
+                )
+            if config.state == "disabled":
+                raise ProviderError(
+                    "invalid_configuration", "provider_archived", "请先恢复已归档的 Provider。"
                 )
             revisions = await uow.provider_configs.list_revisions(provider_id)
             next_number = (revisions[-1].revision if revisions else 0) + 1
@@ -312,6 +367,10 @@ class ProviderConfigService:
 
     async def validate(self, provider_id: str) -> ValidationOutcome:
         invocation, config, revision = await self.resolve_invocation(provider_id)
+        if config.state == "disabled":
+            raise ProviderError(
+                "invalid_configuration", "provider_archived", "请先恢复已归档的 Provider。"
+            )
         adapter = self._registry.resolve(invocation.adapter_type)
         availability = str(await adapter.availability(invocation))
         capabilities = await adapter.capabilities(invocation)
@@ -372,6 +431,10 @@ class ProviderConfigService:
                 raise ProviderError(
                     "invalid_configuration", "provider_not_found", "Provider 不存在。"
                 )
+            if config.state == "disabled":
+                raise ProviderError(
+                    "invalid_configuration", "provider_archived", "请先恢复已归档的 Provider。"
+                )
             if config.state not in {"validated", "active"}:
                 raise ProviderError(
                     "invalid_configuration",
@@ -398,6 +461,16 @@ class ProviderConfigService:
             if config is None:
                 raise ProviderError(
                     "invalid_configuration", "provider_not_found", "Provider 不存在。"
+                )
+            if config.state == "disabled":
+                raise ProviderError(
+                    "invalid_configuration", "provider_archived", "已归档 Provider 不能设为默认。"
+                )
+            if config.state != "active":
+                raise ProviderError(
+                    "invalid_configuration",
+                    "provider_not_active",
+                    "Provider 必须先验证并启用才能设为默认。",
                 )
             revision = await uow.provider_configs.get_current_revision(provider_id)
             if revision is None:

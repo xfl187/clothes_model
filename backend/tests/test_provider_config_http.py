@@ -146,6 +146,16 @@ def test_provider_config_lifecycle_and_app_availability(tmp_path: Path) -> None:
         assert default.status_code == 200, default.text
         assert default.json()["provider_id"] == provider_id
 
+        default_archive = client.post(
+            f"/api/v1/admin/provider-configs/{provider_id}/archive",
+            headers={
+                "X-CSRF-Token": csrf,
+                "Idempotency-Key": "provider-archive-default-0001",
+            },
+        )
+        assert default_archive.status_code == 409
+        assert default_archive.json()["code"] == "provider_is_default"
+
         available = client.get(
             "/api/v1/providers", headers={"Authorization": f"Bearer {credentials['app']}"}
         )

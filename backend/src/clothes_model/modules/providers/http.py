@@ -282,6 +282,54 @@ async def delete_provider_config(
     return Response(status_code=204)
 
 
+async def _lifecycle_response(
+    service: ProviderConfigService, config: ProviderConfig
+) -> dict[str, object]:
+    revision = await service.current_revision(config.id)
+    assert revision is not None
+    return _config_dict(config, revision)
+
+
+@router.post(
+    "/api/v1/admin/provider-configs/{provider_id}/archive",
+    operation_id="archiveProviderConfig",
+)
+async def archive_provider_config(
+    request: Request,
+    provider_id: str,
+    identity: Admin,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    service = _service(request)
+    try:
+        config = await service.archive(provider_id)
+    except ProviderError as error:
+        status = 404 if error.code == "provider_not_found" else 409
+        raise _problem(status, error.code, error.detail) from error
+    return await _lifecycle_response(service, config)
+
+
+@router.post(
+    "/api/v1/admin/provider-configs/{provider_id}/restore",
+    operation_id="restoreProviderConfig",
+)
+async def restore_provider_config(
+    request: Request,
+    provider_id: str,
+    identity: Admin,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    service = _service(request)
+    try:
+        config = await service.restore(provider_id)
+    except ProviderError as error:
+        status = 404 if error.code == "provider_not_found" else 409
+        raise _problem(status, error.code, error.detail) from error
+    return await _lifecycle_response(service, config)
+
+
 @router.post(
     "/api/v1/admin/provider-configs/{provider_id}/validate",
     operation_id="validateProviderConfig",
@@ -298,7 +346,8 @@ async def validate_provider_config(
     try:
         outcome = await service.validate(provider_id)
     except ProviderError as error:
-        raise _problem(404, error.code, error.detail) from error
+        status = 404 if error.code == "provider_not_found" else 409
+        raise _problem(status, error.code, error.detail) from error
     return {
         "status": outcome.status,
         "checked_at": datetime.now(UTC),

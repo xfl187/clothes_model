@@ -11,6 +11,7 @@ from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork, create_d
 from clothes_model.infrastructure.database.migrations import upgrade_database
 from clothes_model.modules.assets.domain import Asset, GarmentMetadata, PersonMetadata, StoredObject
 from clothes_model.modules.auth.application import TokenService
+from clothes_model.modules.providers.application.services import ProviderConfigService
 from clothes_model.modules.providers.domain import (
     ProviderCapabilities,
     ProviderConfig,
@@ -186,6 +187,144 @@ def _client(database_url: str, tmp_path: Path) -> TestClient:
         admin_session_cookie_secure=False,
     )
     return TestClient(create_app(settings))
+
+
+def test_archived_provider_preserves_history_and_blocks_new_work(tmp_path: Path) -> None:
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'archived-provider.db').as_posix()}"
+    upgrade_database(database_url, tmp_path / "migration.lock")
+    tokens = _bootstrap_tokens(database_url)
+    provider_id = str(uuid4())
+    seeded = _seed(database_url, provider_id, "success", "active")
+    app_headers = {
+        "Authorization": f"Bearer {tokens['app']}",
+        "Idempotency-Key": "archive-history-job-0001",
+    }
+
+    with _client(database_url, tmp_path) as client:
+        created = client.post(
+            "/api/v1/jobs", json=_job_body(seeded, provider_id, 1), headers=app_headers
+        )
+        assert created.status_code == 201, created.text
+        job = created.json()
+        revision_id = job["provider_config_ref"]["config_version_id"]
+
+        login = client.post(
+            "/api/v1/admin/auth/session", json={"admin_token": tokens["admin"]}
+        )
+        assert login.status_code == 201
+        csrf = login.json()["csrf_token"]
+        archive_headers = {
+            "X-CSRF-Token": csrf,
+            "Idempotency-Key": "archive-history-provider-0001",
+        }
+
+        archived = client.post(
+            f"/api/v1/admin/provider-configs/{provider_id}/archive",
+            headers=archive_headers,
+        )
+        assert archived.status_code == 200, archived.text
+        assert archived.json()["state"] == "disabled"
+        repeated = client.post(
+            f"/api/v1/admin/provider-configs/{provider_id}/archive",
+            headers={**archive_headers, "Idempotency-Key": "archive-history-provider-0002"},
+        )
+        assert repeated.status_code == 200
+        assert repeated.json()["state"] == "disabled"
+
+        admin_items = client.get("/api/v1/admin/provider-configs").json()["items"]
+        assert any(
+            item["id"] == provider_id and item["state"] == "disabled"
+            for item in admin_items
+        )
+        app_items = client.get(
+            "/api/v1/providers", headers={"Authorization": f"Bearer {tokens['app']}"}
+        ).json()["items"]
+        assert all(item["id"] != provider_id for item in app_items)
+
+        blocked = client.post(
+            "/api/v1/jobs",
+            json=_job_body(seeded, provider_id, 1),
+            headers={**app_headers, "Idempotency-Key": "archive-history-job-0002"},
+        )
+        assert blocked.status_code == 409
+        assert blocked.json()["code"] == "provider_not_usable"
+        assert (
+            client.get(
+                f"/api/v1/jobs/{job['id']}",
+                headers={"Authorization": f"Bearer {tokens['app']}"},
+            ).status_code
+            == 200
+        )
+
+        service = ProviderConfigService(
+            lambda: SqlAlchemyUnitOfWork(client.app.state.database.sessions),
+            client.app.state.provider_registry,
+            client.app.state.secret_cipher,
+        )
+        _, locked_config, locked_revision = asyncio.run(
+            service.resolve_invocation(provider_id, revision_id)
+        )
+        assert locked_config.state == "disabled"
+        assert locked_revision.id == revision_id
+
+        archived_update = client.patch(
+            f"/api/v1/admin/provider-configs/{provider_id}",
+            json={
+                "display_name": "Archived Provider",
+                "type": "llm_image_edit",
+                "adapter_type": "fake_image_edit",
+                "endpoint": "https://fake.local",
+                "model": "fake-model",
+                "timeout_seconds": 30,
+                "vendor_parameters": {"scenario": "success"},
+            },
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert archived_update.status_code == 409
+        assert archived_update.json()["code"] == "provider_archived"
+        for action in ("validate", "enable"):
+            response = client.post(
+                f"/api/v1/admin/provider-configs/{provider_id}/{action}",
+                headers={
+                    "X-CSRF-Token": csrf,
+                    "Idempotency-Key": f"archived-{action}-0001",
+                },
+            )
+            assert response.status_code == 409
+            assert response.json()["code"] == "provider_archived"
+        archived_default = client.put(
+            "/api/v1/admin/configuration/default-provider",
+            json={"provider_id": provider_id, "confirm_new_jobs_only": True},
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert archived_default.status_code == 409
+        assert archived_default.json()["code"] == "provider_archived"
+
+        referenced_delete = client.delete(
+            f"/api/v1/admin/provider-configs/{provider_id}",
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert referenced_delete.status_code == 409
+        assert referenced_delete.json()["code"] == "provider_has_job_history"
+
+        restored = client.post(
+            f"/api/v1/admin/provider-configs/{provider_id}/restore",
+            headers={
+                "X-CSRF-Token": csrf,
+                "Idempotency-Key": "restore-history-provider-0001",
+            },
+        )
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["state"] == "inactive"
+        repeated_restore = client.post(
+            f"/api/v1/admin/provider-configs/{provider_id}/restore",
+            headers={
+                "X-CSRF-Token": csrf,
+                "Idempotency-Key": "restore-history-provider-0002",
+            },
+        )
+        assert repeated_restore.status_code == 409
+        assert repeated_restore.json()["code"] == "provider_not_archived"
 
 
 def test_job_creation_idempotency_queries_and_validation(tmp_path: Path) -> None:
