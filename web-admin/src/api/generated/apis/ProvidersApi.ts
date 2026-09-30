@@ -44,6 +44,17 @@ import {
     ProviderValidationResultToJSON,
 } from '../models/ProviderValidationResult';
 
+export interface ArchiveProviderConfigRequest {
+    /**
+     * 
+     */
+    providerId: string;
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
+}
+
 export interface CreateProviderConfigRequest {
     /**
      * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
@@ -102,6 +113,17 @@ export interface ListProviderConfigsRequest {
     limit?: number;
 }
 
+export interface RestoreProviderConfigRequest {
+    /**
+     * 
+     */
+    providerId: string;
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
+}
+
 export interface UpdateProviderConfigRequest {
     /**
      * 
@@ -131,6 +153,32 @@ export interface ValidateProviderConfigRequest {
  * @interface ProvidersApiInterface
  */
 export interface ProvidersApiInterface {
+    /**
+     * Creates request options for archiveProviderConfig without sending the request
+     * @param {string} providerId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @throws {RequiredError}
+     * @memberof ProvidersApiInterface
+     */
+    archiveProviderConfigRequestOpts(requestParameters: ArchiveProviderConfigRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * Moves a non-system, non-default Provider to the disabled state. Archived Providers remain readable by Admin and by existing locked jobs, but are excluded from new job selection. Repeating the operation is safe.
+     * @summary Archive a Provider while preserving revisions and job history
+     * @param {string} providerId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProvidersApiInterface
+     */
+    archiveProviderConfigRaw(requestParameters: ArchiveProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProviderConfig>>;
+
+    /**
+     * Moves a non-system, non-default Provider to the disabled state. Archived Providers remain readable by Admin and by existing locked jobs, but are excluded from new job selection. Repeating the operation is safe.
+     * Archive a Provider while preserving revisions and job history
+     */
+    archiveProviderConfig(requestParameters: ArchiveProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfig>;
+
     /**
      * Creates request options for createProviderConfig without sending the request
      * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
@@ -279,6 +327,32 @@ export interface ProvidersApiInterface {
     listProviderConfigs(requestParameters: ListProviderConfigsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfigPage>;
 
     /**
+     * Creates request options for restoreProviderConfig without sending the request
+     * @param {string} providerId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @throws {RequiredError}
+     * @memberof ProvidersApiInterface
+     */
+    restoreProviderConfigRequestOpts(requestParameters: RestoreProviderConfigRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * Restores a disabled Provider as inactive. It must be validated and enabled again before it can be selected as the default or used for new jobs.
+     * @summary Restore an archived Provider to inactive state
+     * @param {string} providerId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProvidersApiInterface
+     */
+    restoreProviderConfigRaw(requestParameters: RestoreProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProviderConfig>>;
+
+    /**
+     * Restores a disabled Provider as inactive. It must be validated and enabled again before it can be selected as the default or used for new jobs.
+     * Restore an archived Provider to inactive state
+     */
+    restoreProviderConfig(requestParameters: RestoreProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfig>;
+
+    /**
      * Creates request options for updateProviderConfig without sending the request
      * @param {string} providerId 
      * @param {ProviderConfigRequest} providerConfigRequest 
@@ -334,6 +408,68 @@ export interface ProvidersApiInterface {
  * 
  */
 export class ProvidersApi extends runtime.BaseAPI implements ProvidersApiInterface {
+
+    /**
+     * Creates request options for archiveProviderConfig without sending the request
+     */
+    async archiveProviderConfigRequestOpts(requestParameters: ArchiveProviderConfigRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['providerId'] == null) {
+            throw new runtime.RequiredError(
+                'providerId',
+                'Required parameter "providerId" was null or undefined when calling archiveProviderConfig().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling archiveProviderConfig().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/provider-configs/{provider_id}/archive`;
+        urlPath = urlPath.replace('{provider_id}', encodeURIComponent(String(requestParameters['providerId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Moves a non-system, non-default Provider to the disabled state. Archived Providers remain readable by Admin and by existing locked jobs, but are excluded from new job selection. Repeating the operation is safe.
+     * Archive a Provider while preserving revisions and job history
+     */
+    async archiveProviderConfigRaw(requestParameters: ArchiveProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProviderConfig>> {
+        const requestOptions = await this.archiveProviderConfigRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProviderConfigFromJSON(jsonValue));
+    }
+
+    /**
+     * Moves a non-system, non-default Provider to the disabled state. Archived Providers remain readable by Admin and by existing locked jobs, but are excluded from new job selection. Repeating the operation is safe.
+     * Archive a Provider while preserving revisions and job history
+     */
+    async archiveProviderConfig(requestParameters: ArchiveProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfig> {
+        const response = await this.archiveProviderConfigRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for createProviderConfig without sending the request
@@ -647,6 +783,68 @@ export class ProvidersApi extends runtime.BaseAPI implements ProvidersApiInterfa
      */
     async listProviderConfigs(requestParameters: ListProviderConfigsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfigPage> {
         const response = await this.listProviderConfigsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for restoreProviderConfig without sending the request
+     */
+    async restoreProviderConfigRequestOpts(requestParameters: RestoreProviderConfigRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['providerId'] == null) {
+            throw new runtime.RequiredError(
+                'providerId',
+                'Required parameter "providerId" was null or undefined when calling restoreProviderConfig().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling restoreProviderConfig().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/provider-configs/{provider_id}/restore`;
+        urlPath = urlPath.replace('{provider_id}', encodeURIComponent(String(requestParameters['providerId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Restores a disabled Provider as inactive. It must be validated and enabled again before it can be selected as the default or used for new jobs.
+     * Restore an archived Provider to inactive state
+     */
+    async restoreProviderConfigRaw(requestParameters: RestoreProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProviderConfig>> {
+        const requestOptions = await this.restoreProviderConfigRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProviderConfigFromJSON(jsonValue));
+    }
+
+    /**
+     * Restores a disabled Provider as inactive. It must be validated and enabled again before it can be selected as the default or used for new jobs.
+     * Restore an archived Provider to inactive state
+     */
+    async restoreProviderConfig(requestParameters: RestoreProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfig> {
+        const response = await this.restoreProviderConfigRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

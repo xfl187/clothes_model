@@ -16,6 +16,23 @@ import com.clothesmodel.contract.model.ProviderValidationResult
 
 interface ProvidersApi {
     /**
+     * POST api/v1/admin/provider-configs/{provider_id}/archive
+     * Archive a Provider while preserving revisions and job history
+     * Moves a non-system, non-default Provider to the disabled state. Archived Providers remain readable by Admin and by existing locked jobs, but are excluded from new job selection. Repeating the operation is safe.
+     * Responses:
+     *  - 200: Provider archived; credentials and historical references are retained.
+     *  - 401: Authentication is missing or invalid.
+     *  - 404: Request failed with a stable machine-readable error code.
+     *  - 409: Request failed with a stable machine-readable error code.
+     *
+     * @param providerId 
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @return [ProviderConfig]
+     */
+    @POST("api/v1/admin/provider-configs/{provider_id}/archive")
+    suspend fun archiveProviderConfig(@Path("provider_id") providerId: java.util.UUID, @Header("Idempotency-Key") idempotencyKey: kotlin.String): Response<ProviderConfig>
+
+    /**
      * POST api/v1/admin/provider-configs
      * Save a new inactive provider configuration without changing the default
      * 
@@ -108,6 +125,23 @@ interface ProvidersApi {
      */
     @GET("api/v1/admin/provider-configs")
     suspend fun listProviderConfigs(@Query("cursor") cursor: kotlin.String? = null, @Query("limit") limit: kotlin.Int? = 50): Response<ProviderConfigPage>
+
+    /**
+     * POST api/v1/admin/provider-configs/{provider_id}/restore
+     * Restore an archived Provider to inactive state
+     * Restores a disabled Provider as inactive. It must be validated and enabled again before it can be selected as the default or used for new jobs.
+     * Responses:
+     *  - 200: Provider restored to inactive state.
+     *  - 401: Authentication is missing or invalid.
+     *  - 404: Request failed with a stable machine-readable error code.
+     *  - 409: Request failed with a stable machine-readable error code.
+     *
+     * @param providerId 
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @return [ProviderConfig]
+     */
+    @POST("api/v1/admin/provider-configs/{provider_id}/restore")
+    suspend fun restoreProviderConfig(@Path("provider_id") providerId: java.util.UUID, @Header("Idempotency-Key") idempotencyKey: kotlin.String): Response<ProviderConfig>
 
     /**
      * PATCH api/v1/admin/provider-configs/{provider_id}

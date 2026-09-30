@@ -997,6 +997,68 @@ paths:
           $ref: '#/components/responses/Problem'
         '409':
           $ref: '#/components/responses/Problem'
+  /api/v1/admin/provider-configs/{provider_id}/archive:
+    parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Providers
+      operationId: archiveProviderConfig
+      summary: Archive a Provider while preserving revisions and job history
+      description: Moves a non-system, non-default Provider to the disabled state. Archived Providers remain readable by Admin and by existing locked jobs, but are excluded from new job selection. Repeating the operation is safe.
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Provider archived; credentials and historical references are retained.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/admin/provider-configs/{provider_id}/restore:
+    parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Providers
+      operationId: restoreProviderConfig
+      summary: Restore an archived Provider to inactive state
+      description: Restores a disabled Provider as inactive. It must be validated and enabled again before it can be selected as the default or used for new jobs.
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Provider restored to inactive state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
   /api/v1/admin/workflows:
     get:
       tags:

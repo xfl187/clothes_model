@@ -87,6 +87,10 @@ paths:
     $ref: ./paths/providers.yaml#/ValidateConfig
   /api/v1/admin/provider-configs/{provider_id}/enable:
     $ref: ./paths/providers.yaml#/EnableConfig
+  /api/v1/admin/provider-configs/{provider_id}/archive:
+    $ref: ./paths/providers.yaml#/ArchiveConfig
+  /api/v1/admin/provider-configs/{provider_id}/restore:
+    $ref: ./paths/providers.yaml#/RestoreConfig
   /api/v1/admin/workflows:
     $ref: ./paths/workflows.yaml#/Collection
   /api/v1/admin/workflows/{workflow_version_id}:
