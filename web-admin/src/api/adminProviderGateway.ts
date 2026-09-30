@@ -25,6 +25,8 @@ export interface ProviderAdminGateway {
   save(request: ProviderConfigRequest, providerId?: string): Promise<ProviderConfig>;
   validate(providerId: string): Promise<ProviderValidationResult>;
   enable(providerId: string): Promise<ProviderConfig>;
+  archive(providerId: string): Promise<ProviderConfig>;
+  restore(providerId: string): Promise<ProviderConfig>;
   setDefault(providerId: string): Promise<void>;
   remove(providerId: string): Promise<void>;
 }
@@ -64,6 +66,20 @@ export class OpenApiProviderAdminGateway implements ProviderAdminGateway {
 
   async enable(providerId: string) {
     return this.providers.enableProviderConfig({
+      providerId,
+      idempotencyKey: crypto.randomUUID(),
+    });
+  }
+
+  async archive(providerId: string) {
+    return this.providers.archiveProviderConfig({
+      providerId,
+      idempotencyKey: crypto.randomUUID(),
+    });
+  }
+
+  async restore(providerId: string) {
+    return this.providers.restoreProviderConfig({
       providerId,
       idempotencyKey: crypto.randomUUID(),
     });

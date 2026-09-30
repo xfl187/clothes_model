@@ -20,9 +20,13 @@ const validate = vi.fn().mockResolvedValue({
   steps: [{ key: 'generation', status: 'passed' }, { key: 'output_decode', status: 'passed' }],
 });
 const remove = vi.fn().mockResolvedValue(undefined);
+const archive = vi.fn();
+const restore = vi.fn();
 const gateway: ProviderAdminGateway = {
   list, save, validate,
   enable: vi.fn().mockResolvedValue(provider),
+  archive,
+  restore,
   setDefault: vi.fn().mockResolvedValue(undefined),
   remove,
 };
@@ -36,7 +40,36 @@ function renderPage() {
 
 beforeEach(() => {
   list.mockReset().mockResolvedValue([provider]);
-  save.mockClear(); validate.mockClear(); remove.mockReset().mockResolvedValue(undefined);
+  save.mockClear(); validate.mockClear(); archive.mockReset(); restore.mockReset();
+  remove.mockReset().mockResolvedValue(undefined);
+});
+
+test('archives a provider into read-only history and restores it as inactive', async () => {
+  const archived = { ...provider, state: 'disabled' } as ProviderConfig;
+  archive.mockResolvedValue(archived);
+  restore.mockResolvedValue(provider);
+  list.mockReset()
+    .mockResolvedValueOnce([provider])
+    .mockResolvedValueOnce([archived])
+    .mockResolvedValueOnce([provider]);
+  renderPage();
+  const user = userEvent.setup();
+
+  await user.click(await screen.findByRole('button', { name: '归档 Seedream' }));
+  expect(screen.getByRole('dialog', { name: '确认归档配置' })).toBeInTheDocument();
+  expect(archive).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: '确认归档' }));
+  expect(await screen.findByText('已归档 · 密钥已保存')).toBeInTheDocument();
+  expect(archive).toHaveBeenCalledWith('provider-1');
+
+  await user.click(screen.getByRole('button', { name: '查看 Seedream' }));
+  expect(screen.getByText('此 Provider 已归档，仅保留历史关联。恢复后才能修改、验证或再次启用。')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '保存配置' })).toBeDisabled();
+  expect(screen.queryByRole('button', { name: '验证连接与生成' })).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: '恢复 Seedream' }));
+  expect(await screen.findByText('未启用 · 密钥已保存')).toBeInTheDocument();
+  expect(restore).toHaveBeenCalledWith('provider-1');
 });
 
 test('retains redacted secret and requires explicit paid validation confirmation', async () => {

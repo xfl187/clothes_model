@@ -7,10 +7,10 @@ Updated: 2026-09-30
 
 - Task 1 — COMPLETE
 - Task 2 — COMPLETE
-- Task 3 — NOT_STARTED
+- Task 3 — COMPLETE
 - Task 4 — NOT_STARTED
 
-Last verified: 2026-09-30 — contract verification, generated artifact drift, Backend/Web generated-client type checks, Android generated-client compilation, focused Provider/job HTTP tests, Ruff, and Pyright passed.
+Last verified: 2026-09-30 — contract verification, generated artifact drift, Backend/Web generated-client type checks, Android generated-client compilation, focused Provider/job HTTP tests, Ruff, Pyright, Web unit tests, Web lint, and the production Web build passed.
 
 ## Goal
 

@@ -13,6 +13,8 @@
 .providerRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; margin-bottom: 10px; }
 .provider { width: 100%; display: grid; gap: 5px; margin: 0; text-align: left; background: white; }
 .provider span { color: var(--muted); font-size: 12px; }
+.rowActions { display: flex; gap: 6px; align-items: stretch; }
+.archiveNotice { padding: 12px; color: var(--muted); border: 1px solid var(--rule); background: #f7f2ec; }
 .deleteButton { color: var(--danger); border-color: var(--danger) !important; background: white; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .validation { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--rule); }
