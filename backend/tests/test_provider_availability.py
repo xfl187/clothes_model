@@ -80,6 +80,16 @@ def test_availability_decrypts_configured_credential(tmp_path: Path) -> None:
                 await without_key.availability_for(config, revision)
                 == "unavailable_configuration"
             )
+
+            rotated_key = ProviderConfigService(
+                lambda: SqlAlchemyUnitOfWork(runtime.sessions),
+                registry,
+                AesGcmSecretCipher(os.urandom(32)),
+            )
+            assert (
+                await rotated_key.availability_for(config, revision)
+                == "unavailable_configuration"
+            )
         finally:
             await runtime.close()
 

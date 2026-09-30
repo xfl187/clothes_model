@@ -118,6 +118,26 @@ ConfigItem:
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
+  delete:
+    tags: [Providers]
+    operationId: deleteProviderConfig
+    summary: Permanently delete an unreferenced provider configuration
+    description: >-
+      Deletes the configuration and all of its immutable revisions. The
+      system-managed ComfyUI provider, the current default, and configurations
+      referenced by job history cannot be deleted.
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    responses:
+      '204':
+        description: Provider configuration deleted.
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
 ValidateConfig:
   parameters:
     - name: provider_id

@@ -55,6 +55,13 @@ export interface CreateProviderConfigRequest {
     providerConfigRequest: ProviderConfigRequest;
 }
 
+export interface DeleteProviderConfigRequest {
+    /**
+     * 
+     */
+    providerId: string;
+}
+
 export interface EnableProviderConfigRequest {
     /**
      * 
@@ -148,6 +155,30 @@ export interface ProvidersApiInterface {
      * Save a new inactive provider configuration without changing the default
      */
     createProviderConfig(requestParameters: CreateProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfig>;
+
+    /**
+     * Creates request options for deleteProviderConfig without sending the request
+     * @param {string} providerId 
+     * @throws {RequiredError}
+     * @memberof ProvidersApiInterface
+     */
+    deleteProviderConfigRequestOpts(requestParameters: DeleteProviderConfigRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * Deletes the configuration and all of its immutable revisions. The system-managed ComfyUI provider, the current default, and configurations referenced by job history cannot be deleted.
+     * @summary Permanently delete an unreferenced provider configuration
+     * @param {string} providerId 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProvidersApiInterface
+     */
+    deleteProviderConfigRaw(requestParameters: DeleteProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>>;
+
+    /**
+     * Deletes the configuration and all of its immutable revisions. The system-managed ComfyUI provider, the current default, and configurations referenced by job history cannot be deleted.
+     * Permanently delete an unreferenced provider configuration
+     */
+    deleteProviderConfig(requestParameters: DeleteProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void>;
 
     /**
      * Creates request options for enableProviderConfig without sending the request
@@ -364,6 +395,56 @@ export class ProvidersApi extends runtime.BaseAPI implements ProvidersApiInterfa
     async createProviderConfig(requestParameters: CreateProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfig> {
         const response = await this.createProviderConfigRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for deleteProviderConfig without sending the request
+     */
+    async deleteProviderConfigRequestOpts(requestParameters: DeleteProviderConfigRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['providerId'] == null) {
+            throw new runtime.RequiredError(
+                'providerId',
+                'Required parameter "providerId" was null or undefined when calling deleteProviderConfig().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/provider-configs/{provider_id}`;
+        urlPath = urlPath.replace('{provider_id}', encodeURIComponent(String(requestParameters['providerId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Deletes the configuration and all of its immutable revisions. The system-managed ComfyUI provider, the current default, and configurations referenced by job history cannot be deleted.
+     * Permanently delete an unreferenced provider configuration
+     */
+    async deleteProviderConfigRaw(requestParameters: DeleteProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.deleteProviderConfigRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Deletes the configuration and all of its immutable revisions. The system-managed ComfyUI provider, the current default, and configurations referenced by job history cannot be deleted.
+     * Permanently delete an unreferenced provider configuration
+     */
+    async deleteProviderConfig(requestParameters: DeleteProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.deleteProviderConfigRaw(requestParameters, initOverrides);
     }
 
     /**

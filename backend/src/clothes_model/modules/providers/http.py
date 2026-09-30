@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from clothes_model.core.problems import AppProblem
@@ -263,6 +263,23 @@ async def update_provider_config(
     revision = await service.current_revision(config.id)
     assert revision is not None
     return _config_dict(config, revision)
+
+
+@router.delete(
+    "/api/v1/admin/provider-configs/{provider_id}",
+    status_code=204,
+    operation_id="deleteProviderConfig",
+)
+async def delete_provider_config(
+    request: Request, provider_id: str, identity: Admin
+) -> Response:
+    del identity
+    try:
+        await _service(request).delete(provider_id)
+    except ProviderError as error:
+        status = 404 if error.code == "provider_not_found" else 409
+        raise _problem(status, error.code, error.detail) from error
+    return Response(status_code=204)
 
 
 @router.post(

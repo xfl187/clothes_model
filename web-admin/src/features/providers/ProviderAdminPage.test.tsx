@@ -19,10 +19,12 @@ const validate = vi.fn().mockResolvedValue({
   status: 'passed', checkedAt: new Date(), capabilities: {},
   steps: [{ key: 'generation', status: 'passed' }, { key: 'output_decode', status: 'passed' }],
 });
+const remove = vi.fn().mockResolvedValue(undefined);
 const gateway: ProviderAdminGateway = {
   list, save, validate,
   enable: vi.fn().mockResolvedValue(provider),
   setDefault: vi.fn().mockResolvedValue(undefined),
+  remove,
 };
 
 function renderPage() {
@@ -32,16 +34,23 @@ function renderPage() {
   }}><ProviderAdminPage gateway={gateway} /></AdminSessionContext.Provider>);
 }
 
-beforeEach(() => { list.mockClear(); save.mockClear(); validate.mockClear(); });
+beforeEach(() => {
+  list.mockReset().mockResolvedValue([provider]);
+  save.mockClear(); validate.mockClear(); remove.mockReset().mockResolvedValue(undefined);
+});
 
 test('retains redacted secret and requires explicit paid validation confirmation', async () => {
   renderPage();
   const user = userEvent.setup();
-  await user.click(await screen.findByRole('button', { name: /Seedream/ }));
+  await user.click(await screen.findByRole('button', { name: '编辑 Seedream' }));
   expect(screen.getByPlaceholderText('留空以保留现有密钥')).toHaveValue('');
 
   await user.click(screen.getByRole('button', { name: '保存配置' }));
   expect(save).toHaveBeenCalledWith(expect.not.objectContaining({ apiKey: expect.anything() }), 'provider-1');
+
+  await user.type(screen.getByLabelText('API Key'), '  ark-test-key  ');
+  await user.click(screen.getByRole('button', { name: '保存配置' }));
+  expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ apiKey: 'ark-test-key' }), 'provider-1');
 
   await user.click(screen.getByRole('button', { name: '验证连接与生成' }));
   expect(screen.getByRole('dialog', { name: '确认一次付费验证' })).toBeInTheDocument();
@@ -50,4 +59,18 @@ test('retains redacted secret and requires explicit paid validation confirmation
   expect(await screen.findByText('验证：passed')).toBeInTheDocument();
   expect(validate).toHaveBeenCalledWith('provider-1');
   expect(screen.getByText('output_decode: passed')).toBeInTheDocument();
+});
+
+test('requires confirmation before permanently deleting a provider configuration', async () => {
+  list.mockResolvedValueOnce([provider]).mockResolvedValueOnce([]);
+  renderPage();
+  const user = userEvent.setup();
+
+  await user.click(await screen.findByRole('button', { name: '删除 Seedream' }));
+  expect(screen.getByRole('dialog', { name: '确认删除配置' })).toBeInTheDocument();
+  expect(remove).not.toHaveBeenCalled();
+
+  await user.click(screen.getByRole('button', { name: '永久删除' }));
+  expect(await screen.findByText('尚无配置。')).toBeInTheDocument();
+  expect(remove).toHaveBeenCalledWith('provider-1');
 });

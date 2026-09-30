@@ -4,9 +4,21 @@ import { ProvidersApi } from './generated/apis/ProvidersApi';
 import type { ProviderConfig } from './generated/models/ProviderConfig';
 import type { ProviderConfigRequest } from './generated/models/ProviderConfigRequest';
 import type { ProviderValidationResult } from './generated/models/ProviderValidationResult';
-import { Configuration } from './generated/runtime';
+import { Configuration, ResponseError } from './generated/runtime';
 
 export type { ProviderConfig, ProviderConfigRequest, ProviderValidationResult };
+
+export async function providerAdminErrorMessage(error: unknown): Promise<string> {
+  if (error instanceof ResponseError) {
+    try {
+      const problem = await error.response.clone().json() as { detail?: unknown };
+      if (typeof problem.detail === 'string' && problem.detail.trim()) return problem.detail;
+    } catch {
+      // Fall through to the stable generic message for non-Problem responses.
+    }
+  }
+  return '操作失败，请检查会话与配置后重试。';
+}
 
 export interface ProviderAdminGateway {
   list(): Promise<ProviderConfig[]>;
@@ -14,6 +26,7 @@ export interface ProviderAdminGateway {
   validate(providerId: string): Promise<ProviderValidationResult>;
   enable(providerId: string): Promise<ProviderConfig>;
   setDefault(providerId: string): Promise<void>;
+  remove(providerId: string): Promise<void>;
 }
 
 export class OpenApiProviderAdminGateway implements ProviderAdminGateway {
@@ -60,5 +73,9 @@ export class OpenApiProviderAdminGateway implements ProviderAdminGateway {
     await this.configuration.updateDefaultProviderConfiguration({
       defaultProviderUpdateRequest: { providerId, confirmNewJobsOnly: true },
     });
+  }
+
+  async remove(providerId: string) {
+    await this.providers.deleteProviderConfig({ providerId });
   }
 }

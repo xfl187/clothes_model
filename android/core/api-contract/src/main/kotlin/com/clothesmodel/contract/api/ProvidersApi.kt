@@ -32,6 +32,22 @@ interface ProvidersApi {
     suspend fun createProviderConfig(@Header("Idempotency-Key") idempotencyKey: kotlin.String, @Body providerConfigRequest: ProviderConfigRequest): Response<ProviderConfig>
 
     /**
+     * DELETE api/v1/admin/provider-configs/{provider_id}
+     * Permanently delete an unreferenced provider configuration
+     * Deletes the configuration and all of its immutable revisions. The system-managed ComfyUI provider, the current default, and configurations referenced by job history cannot be deleted.
+     * Responses:
+     *  - 204: Provider configuration deleted.
+     *  - 401: Authentication is missing or invalid.
+     *  - 404: Request failed with a stable machine-readable error code.
+     *  - 409: Request failed with a stable machine-readable error code.
+     *
+     * @param providerId 
+     * @return [Unit]
+     */
+    @DELETE("api/v1/admin/provider-configs/{provider_id}")
+    suspend fun deleteProviderConfig(@Path("provider_id") providerId: java.util.UUID): Response<Unit>
+
+    /**
      * POST api/v1/admin/provider-configs/{provider_id}/enable
      * Enable a validated provider configuration without changing the default
      * 

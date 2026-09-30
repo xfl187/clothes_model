@@ -39,6 +39,23 @@ if (-not (Test-Path -LiteralPath $keyPath -PathType Leaf)) {
     throw "Encryption master-key file does not exist: $keyPath"
 }
 
+try {
+    $encodedKey = (Get-Content -Raw -LiteralPath $keyPath).Trim()
+    $normalizedKey = $encodedKey.Replace('-', '+').Replace('_', '/')
+    switch ($normalizedKey.Length % 4) {
+        2 { $normalizedKey += '==' }
+        3 { $normalizedKey += '=' }
+        1 { throw 'invalid Base64 length' }
+    }
+    $decodedKey = [Convert]::FromBase64String($normalizedKey)
+}
+catch {
+    throw "Encryption master-key file must contain a Base64-encoded 32-byte key: $keyPath"
+}
+if ($decodedKey.Length -ne 32) {
+    throw "Encryption master-key must decode to exactly 32 bytes; got $($decodedKey.Length): $keyPath"
+}
+
 $composeArgs = @(
     'compose',
     '--env-file', $envFile,

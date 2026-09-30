@@ -372,6 +372,17 @@ class SqlAlchemyProviderConfigRepository:
             .values(**asdict(config))
         )
 
+    async def has_references(self, provider_id: str) -> bool:
+        job_id = await self._session.scalar(
+            select(models.jobs.c.id).where(models.jobs.c.provider_id == provider_id).limit(1)
+        )
+        return job_id is not None
+
+    async def delete_config(self, provider_id: str) -> None:
+        await self._session.execute(
+            delete(models.provider_configs).where(models.provider_configs.c.id == provider_id)
+        )
+
     async def add_revision(self, revision: ProviderConfigRevision) -> None:
         await _insert(self._session, models.provider_config_revisions, asdict(revision))
 

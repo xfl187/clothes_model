@@ -20,7 +20,6 @@ from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork, create_d
 from clothes_model.infrastructure.scheduler import JobScheduler, SchedulerCoordinator
 from clothes_model.infrastructure.security import (
     AesGcmSecretCipher,
-    SecretCryptoError,
     load_master_key,
 )
 from clothes_model.infrastructure.storage import (
@@ -43,10 +42,10 @@ from clothes_model.modules.providers.infrastructure import (
 def _load_secret_cipher(settings: Settings) -> AesGcmSecretCipher | None:
     if settings.encryption_master_key_file is None:
         return None
-    try:
-        return AesGcmSecretCipher(load_master_key(settings.encryption_master_key_file))
-    except SecretCryptoError:
-        return None
+    # A configured-but-invalid key is a deployment error, not an optional
+    # credential boundary. Failing startup here prevents a healthy-looking
+    # instance from rejecting Provider saves later with secret_key_unavailable.
+    return AesGcmSecretCipher(load_master_key(settings.encryption_master_key_file))
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

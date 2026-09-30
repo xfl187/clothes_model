@@ -14,10 +14,12 @@ Profiles are independent. Starting `production` never starts the mock server.
 
 Both `development` and `production` require the same host-side encryption
 master-key file boundary before Provider or ComfyUI credentials can be saved.
-For a development-only instance, create and preserve a separate 32-byte key
-outside the repository, set `CLOTHES_MODEL_ENCRYPTION_MASTER_KEY_FILE_SOURCE`
-to that file, and then start the profile. Recreating this key makes credentials
-already encrypted in the development database unreadable.
+For a development-only instance, create and preserve a separate Base64-encoded
+32-byte key outside the repository, set
+`CLOTHES_MODEL_ENCRYPTION_MASTER_KEY_FILE_SOURCE` to that text file, and then
+start the profile. The file must contain the Base64 text, not 32 raw binary
+bytes. Recreating this key makes credentials already encrypted in the
+development database unreadable.
 
 The development scheduler stays disabled by default so an API-only instance
 cannot accidentally compete with another worker. To execute real queued jobs in

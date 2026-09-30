@@ -9,6 +9,7 @@ from clothes_model.api.application import create_app
 from clothes_model.core.config import Settings
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork, create_database_runtime
 from clothes_model.infrastructure.database.migrations import upgrade_database
+from clothes_model.infrastructure.security import AesGcmSecretCipher
 from clothes_model.modules.auth.application import TokenService
 
 
@@ -76,6 +77,23 @@ def test_provider_config_lifecycle_and_app_availability(tmp_path: Path) -> None:
         assert "raw-secret" not in created.text
         assert "api_key" not in config
 
+        disposable = client.post(
+            "/api/v1/admin/provider-configs",
+            json=_config_body(api_key="disposable-secret"),
+            headers={
+                "X-CSRF-Token": csrf,
+                "Idempotency-Key": "provider-create-disposable-0001",
+            },
+        )
+        assert disposable.status_code == 201
+        disposable_id = disposable.json()["id"]
+        deleted = client.delete(
+            f"/api/v1/admin/provider-configs/{disposable_id}",
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert deleted.status_code == 204
+        assert client.get(f"/api/v1/admin/provider-configs/{disposable_id}").status_code == 404
+
         replay = client.post(
             "/api/v1/admin/provider-configs", json=_config_body(), headers=headers
         )
@@ -136,3 +154,17 @@ def test_provider_config_lifecycle_and_app_availability(tmp_path: Path) -> None:
         assert items and items[0]["availability"] == "available"
         assert items[0]["is_default"] is True
         assert items[0]["capabilities"]["manual_mask"]["supported"] is True
+
+        client.app.state.secret_cipher = AesGcmSecretCipher(os.urandom(32))
+        degraded = client.get(
+            "/api/v1/providers", headers={"Authorization": f"Bearer {credentials['app']}"}
+        )
+        assert degraded.status_code == 200
+        assert degraded.json()["items"][0]["availability"] == "unavailable_configuration"
+
+        default_delete = client.delete(
+            f"/api/v1/admin/provider-configs/{provider_id}",
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert default_delete.status_code == 409
+        assert default_delete.json()["code"] == "provider_is_default"

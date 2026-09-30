@@ -1,10 +1,14 @@
 import json
 import logging
+from pathlib import Path
 
+import pytest
 from pytest import MonkeyPatch
 
+from clothes_model.api.application import _load_secret_cipher
 from clothes_model.core.config import Settings
 from clothes_model.core.logging import JsonFormatter
+from clothes_model.infrastructure.security import SecretCryptoError
 
 
 def test_prefixed_environment_and_safe_log_context(monkeypatch: MonkeyPatch) -> None:
@@ -35,3 +39,17 @@ def test_json_formatter_does_not_serialize_unapproved_record_fields() -> None:
 
     assert json.loads(payload)["message"] == "event"
     assert "must-not-leak" not in payload
+
+
+def test_configured_invalid_master_key_fails_application_startup(tmp_path: Path) -> None:
+    key_path = tmp_path / "invalid-master.key"
+    key_path.write_bytes(b"x" * 32)
+
+    with pytest.raises(SecretCryptoError, match="encryption master key"):
+        _load_secret_cipher(
+            Settings(
+                _env_file=None,
+                environment="test",
+                encryption_master_key_file=key_path,
+            )
+        )

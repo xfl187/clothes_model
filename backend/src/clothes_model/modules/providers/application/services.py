@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from typing import Any, Protocol
 from uuid import uuid4
 
-from clothes_model.infrastructure.security import AesGcmSecretCipher
+from clothes_model.infrastructure.security import AesGcmSecretCipher, SecretCryptoError
 from clothes_model.modules.providers.domain import (
     ProviderCapabilities,
     ProviderConfig,
@@ -176,6 +176,35 @@ class ProviderConfigService:
         async with self._uow_factory() as uow:
             return await uow.provider_configs.get_current_revision(provider_id)
 
+    async def delete(self, provider_id: str) -> None:
+        async with self._uow_factory() as uow:
+            config = await uow.provider_configs.get_config(provider_id)
+            if config is None:
+                raise ProviderError(
+                    "invalid_configuration", "provider_not_found", "Provider 不存在。"
+                )
+            if config.provider_type == "comfyui":
+                raise ProviderError(
+                    "invalid_configuration",
+                    "provider_system_managed",
+                    "系统管理的 ComfyUI Provider 不能删除。",
+                )
+            default = await uow.provider_configs.get_default()
+            if default is not None and default.provider_id == provider_id:
+                raise ProviderError(
+                    "invalid_configuration",
+                    "provider_is_default",
+                    "默认 Provider 不能删除，请先选择其他默认 Provider。",
+                )
+            if await uow.provider_configs.has_references(provider_id):
+                raise ProviderError(
+                    "invalid_configuration",
+                    "provider_has_job_history",
+                    "Provider 已被任务历史引用，不能删除。",
+                )
+            await uow.provider_configs.delete_config(provider_id)
+            await uow.commit()
+
     async def update(
         self,
         provider_id: str,
@@ -271,9 +300,12 @@ class ProviderConfigService:
         if config.secret_envelope is not None:
             if self._cipher is None:
                 return "unavailable_configuration"
-            credential = self._cipher.decrypt(
-                config.secret_envelope, purpose=SECRET_PURPOSE, record_id=config.id
-            )
+            try:
+                credential = self._cipher.decrypt(
+                    config.secret_envelope, purpose=SECRET_PURPOSE, record_id=config.id
+                )
+            except SecretCryptoError:
+                return "unavailable_configuration"
         invocation = self._invocation(config, revision, credential)
         adapter = self._registry.resolve(revision.adapter_type)
         return str(await adapter.availability(invocation))
