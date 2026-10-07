@@ -9,7 +9,10 @@
 - Phase 5 — COMPLETE FOR IMPLEMENTATION (10 / 10 tasks; deterministic gate passed 2026-09-28)
 - Deferred release evidence — credentialed AutoDL/Comfy acceptance after a real Workflow/node exists
 - Phase 6 — COMPLETE (10 / 10 tasks; exit gate passed 2026-09-28 via `android/verify-phase6.ps1`)
-- Next — plan Phase 7 (Web Admin and Operations Completion) from the persisted roadmap
+- Phase 7 — COMPLETE ([plan](../plans/phase-7-web-admin-operations-completion.md)); Web Admin `概览 / 配置 / 运行维护` A00–A12, Backend overview/retention/scan/cleanup/App-Token rotation/admin diagnostics, and `web-admin/verify-phase7.ps1` passed
+- Phase 8 — COMPLETE ([plan](../plans/phase-8-v1-hardening-release-gate.md)); V1 acceptance matrix, fault/security/backup verification, runbooks, and the full `verify-phase8.ps1` gate passed end-to-end
+- Deferred release evidence — credentialed AutoDL/Comfy acceptance after a real Workflow/node exists
+- Next — after the deferred credentialed gate, start Phase 9 (V1.1 layered outfits)
 
 ## Current Repository State
 
@@ -583,4 +586,4 @@ Phase 4 之后可以并行：
 
 Phase 4 已完成并通过带凭据的人工验收（2026-09-27）：Web Admin 写入并验证真实 Ark Key、启用并设为默认，Android 上传两类素材并完成一条单候选任务，输出经固定后端私有持久化并在 Android 显示，后端重启后仍可恢复。实现依据见 [Phase 4 Plan](../plans/phase-4-minimum-v1-e2e.md)、[ADR-0008](../../docs/adr/0008-durable-job-execution.md) 与 [ADR-0009](../../docs/adr/0009-synchronous-provider-completion.md)。
 
-Phase 5 的 10 个实现任务和确定性退出门禁已完成，见 [Phase 5 Plan](../plans/phase-5-comfyui-workflow-recovery.md)。由于真实 Workflow 与 AutoDL/Comfy 节点尚未准备，凭据化操作员验收按 2026-09-28 的产品负责人决定延期到下一版发布准备阶段；在该证据完成前不得声称 Comfy 生产就绪。Phase 6 的 10 个实现任务与出口门禁已完成，见 [Phase 6 Plan](../plans/phase-6-android-v1-completion.md)：Android V1 的固定导航、素材库与可恢复导入、三步精确换装向导、任务/候选状态与恢复、结果对比/收藏/下载分享/删除占位、以及遮罩修正关联任务均已实现；为此新增了启用私有 `mask` 素材与关联任务的 Backend 前向迁移。出口门禁由 `android/verify-phase6.ps1` 确定性执行。下一步回到 `$planning` 规划 Phase 7（Web Admin 与运维完善）。
+Phase 5 的 10 个实现任务和确定性退出门禁已完成，见 [Phase 5 Plan](../plans/phase-5-comfyui-workflow-recovery.md)。由于真实 Workflow 与 AutoDL/Comfy 节点尚未准备，凭据化操作员验收按 2026-09-28 的产品负责人决定延期到下一版发布准备阶段；在该证据完成前不得声称 Comfy 生产就绪。Phase 6 的 10 个实现任务与出口门禁已完成，见 [Phase 6 Plan](../plans/phase-6-android-v1-completion.md)：Android V1 的固定导航、素材库与可恢复导入、三步精确换装向导、任务/候选状态与恢复、结果对比/收藏/下载分享/删除占位、以及遮罩修正关联任务均已实现；为此新增了启用私有 `mask` 素材与关联任务的 Backend 前向迁移。出口门禁由 `android/verify-phase6.ps1` 确定性执行。Phase 7（Web Admin 与运维完善）的实现计划已生成，见 [Phase 7 Plan](../plans/phase-7-web-admin-operations-completion.md)：契约优先（Task 1），随后补齐 Backend 系统概览、保留期限/存储扫描/清理、App Token 轮换、诊断恢复与 Provider 测试拆分，再实现 Web Admin 的 `概览 / 配置 / 运行维护` 全部 A00–A12 页面与全局状态。实现从 Task 1 开始。真实 Comfy 凭据化验收仍延期，不阻塞本阶段确定性出口门禁。

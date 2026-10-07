@@ -45,7 +45,10 @@ Push-Location $backendRoot
 try {
     Invoke-BackendTool 'ruff' @('check', '.')
     Invoke-BackendTool 'pyright' @()
-    Invoke-BackendTool 'pytest' @('-q')
+    $pytestBase = Join-Path ([System.IO.Path]::GetTempPath()) (
+        'clothes-model-phase6-pytest-' + [System.Guid]::NewGuid().ToString('N')
+    )
+    Invoke-BackendTool 'pytest' @('-q', '--basetemp', $pytestBase)
 }
 finally {
     Pop-Location

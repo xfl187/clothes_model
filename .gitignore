@@ -17,6 +17,10 @@
 /uploads/
 /private-storage/
 /backend/data/
+backend/.test-runs/
+.tmp/
+/.tmp-*
+/opencode.json
 
 # Python
 .venv/

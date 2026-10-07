@@ -25,6 +25,7 @@ backend/.pytest_cache/
 backend/.ruff_cache/
 backend/.pyright/
 backend/.pytest-tmp-*/
+backend/.test-runs/
 backend/**/__pycache__/
 web-admin/node_modules/
 web-admin/dist/

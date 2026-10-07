@@ -51,6 +51,23 @@ Stopping is non-destructive: the container is retained and the SQLite,
 private-storage, and runtime volumes remain intact. Do not add `down --volumes`
 to the normal development shutdown flow.
 
+### Development App/Admin credentials
+
+The Backend stores only credential hashes, so an existing plaintext Token
+cannot be recovered. When either development credential is lost, replace both
+credentials together and save the complete pair in one operator-owned file:
+
+```powershell
+./infra/reset-development-credentials.ps1
+```
+
+By default the script writes
+`%LOCALAPPDATA%\ClothesModel\development-credentials.json`, outside the
+repository. It resets the Admin Token, rotates the App Token, and atomically
+writes the new pair. The previous App/Admin Tokens become invalid immediately,
+so update connected Android installations after running it. Do not run this
+script during ordinary Backend startup and never commit or share its output.
+
 ## Production-shaped startup
 
 PowerShell:
@@ -80,6 +97,12 @@ application image after migrations. It prints missing App/Admin credentials
 once. `reset-admin` is the server-side recovery boundary for a lost Admin
 Token; `rotate-app` immediately revokes the previous App credential without
 cancelling persisted server work.
+
+Any credentials file created under the host temporary directory is only an
+operator-managed snapshot. `Get-Content` reads that file; it does not generate
+or query the active credentials. Neither `reset-admin` nor `rotate-app` updates
+such a file automatically, so replace or remove the snapshot immediately after
+rotation to avoid presenting a revoked token as current.
 
 `docker compose down` removes containers and the network but preserves these volumes. Do not add `--volumes` when validating restart persistence.
 
@@ -149,3 +172,36 @@ recovers a storage-blocked remote completion without resubmitting, and requeries
 a known `prompt_id` after a simulated restart. A credentialed AutoDL/Comfy run is
 manual until the target node is provisioned; it must stay bounded and must never
 run on ordinary pull requests.
+
+## Backup and restore
+
+The V1 deployment persists a SQLite database plus private storage. Take a
+consistent pair and verify restores before relying on them:
+
+```powershell
+./infra/backup.ps1 -DatabasePath <app.db> -StoragePath <storage-dir> -OutputPath <backup.zip>
+./infra/restore.ps1 -ArchivePath <backup.zip> -DatabasePath <app.db> -StoragePath <storage-dir> -Force
+./infra/verify-backup-restore.ps1
+```
+
+`backup.ps1` uses the SQLite online backup API, so it is safe under active
+writers, and captures the private-storage directory alongside the database.
+Stop the Backend before restoring. Never place backups or secrets in source
+control.
+
+## Operator runbooks
+
+See [docs/runbooks](../docs/runbooks) for empty-deployment setup, credential
+lifecycle, Provider configuration, Workflow publish/rollback, node replacement,
+and incident recovery.
+
+## Phase 8 security smoke
+
+With the production profile running:
+
+```powershell
+./infra/verify-phase8-deployment.ps1
+```
+
+It asserts readiness, denies anonymous access to admin and private content, and
+confirms the served Web shell carries no credential material.

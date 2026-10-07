@@ -457,6 +457,10 @@ jobs:
         shell: pwsh
         run: ./infra/verify-phase2-deployment.ps1 *>&1 | Tee-Object -FilePath artifacts/deployment-smoke.log
 
+      - name: Verify production security boundary
+        shell: pwsh
+        run: ./infra/verify-phase8-deployment.ps1 *>&1 | Tee-Object -FilePath artifacts/deployment-security.log
+
       - name: Capture deployment logs
         if: always()
         run: docker compose -f infra/compose.yaml --profile production logs --no-color > artifacts/deployment-compose.log 2>&1
@@ -511,3 +515,43 @@ jobs:
         env:
           CLOTHES_MODEL_PHASE4_ARK_API_KEY: ${{ secrets.VOLCENGINE_ARK_API_KEY }}
         run: uv run python scripts/credentialed_seedream_smoke.py
+
+  backup-restore:
+    name: Backup and restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.14.7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          version: 0.12.18
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install locked Backend dependencies
+        run: uv sync --project backend --locked
+
+      - name: Verify consistent backup and restore
+        shell: pwsh
+        run: ./infra/verify-backup-restore.ps1 -Python backend/.venv/bin/python
+
+  phase8-exit:
+    name: Phase 8 V1 release gate
+    if: always()
+    needs: [contract, backend, web, android, android-instrumentation, deployment, backup-restore]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every Phase 8 verification boundary
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+        run: |
+          echo "$NEEDS_JSON"
+          test "$(echo "$NEEDS_JSON" | jq -r '[.[].result] | all(. == "success")')" = "true"
