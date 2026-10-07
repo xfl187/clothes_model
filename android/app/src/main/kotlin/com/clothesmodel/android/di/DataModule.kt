@@ -10,6 +10,8 @@ import com.clothesmodel.android.data.AuthenticationEvents
 import com.clothesmodel.android.data.ConnectionApiServicesFactory
 import com.clothesmodel.android.data.ContentRepository
 import com.clothesmodel.android.data.JobRepository
+import com.clothesmodel.android.data.NetworkOutfitRepository
+import com.clothesmodel.android.data.OutfitRepository
 import com.clothesmodel.android.data.ProviderRepository
 import dagger.Module
 import dagger.Provides
@@ -69,6 +71,13 @@ object DataModule {
         factory: ApiServicesFactory,
         events: AuthenticationEvents,
     ): ContentRepository = ContentRepository(factory, events)
+
+    @Provides
+    @Singleton
+    fun provideOutfitRepository(
+        factory: ApiServicesFactory,
+        events: AuthenticationEvents,
+    ): OutfitRepository = NetworkOutfitRepository(factory, events)
 
     @Provides
     @Singleton

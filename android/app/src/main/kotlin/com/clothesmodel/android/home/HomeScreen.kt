@@ -1,5 +1,6 @@
 package com.clothesmodel.android.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +31,7 @@ import com.clothesmodel.android.ui.theme.AtelierSpacing
 fun HomeRoute(
     onCreate: () -> Unit,
     onOpenJob: (String) -> Unit,
+    onOpenOutfits: () -> Unit = {},
     onAuthenticationExpired: () -> Unit = {},
     onConfigureConnection: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
@@ -43,6 +45,7 @@ fun HomeRoute(
         imageLoader = viewModel.imageLoader,
         onCreate = onCreate,
         onOpenJob = onOpenJob,
+        onOpenOutfits = onOpenOutfits,
         onRefresh = viewModel::refresh,
         onConfigureConnection = onConfigureConnection,
     )
@@ -55,6 +58,7 @@ fun HomeScreen(
     onCreate: () -> Unit,
     onOpenJob: (String) -> Unit,
     onRefresh: () -> Unit,
+    onOpenOutfits: () -> Unit = {},
     onConfigureConnection: () -> Unit = {},
 ) {
     AtelierScaffold(title = "首页") {
@@ -124,14 +128,53 @@ fun HomeScreen(
                 }
             }
 
-            SectionHeading(text = "即将开放")
-            ComingSoonCard(
+            SectionHeading(text = "分层穿搭")
+            ModeEntryCard(
                 title = "分层穿搭",
-                description = "在同一身体基底上叠加多件衣物，并保留可回退的版本。",
+                description = "在同一身体基底上逐件叠加衣物，并保留可回退的版本。",
+                actionLabel = "进入",
+                onClick = onOpenOutfits,
             )
+
+            SectionHeading(text = "即将开放")
             ComingSoonCard(
                 title = "创意写真",
                 description = "为同一人物生成不同风格的写真结果。",
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModeEntryCard(
+    title: String,
+    description: String,
+    actionLabel: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        shape = AtelierShapes.Secondary,
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(AtelierSpacing.lg)
+                .sizeIn(minHeight = AtelierSpacing.minTouchTarget),
+            verticalArrangement = Arrangement.spacedBy(AtelierSpacing.xs),
+        ) {
+            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = actionLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }

@@ -5,6 +5,7 @@ import com.clothesmodel.android.connection.ConnectionStore
 import com.clothesmodel.android.connection.TokenVault
 import com.clothesmodel.contract.api.AssetsApi
 import com.clothesmodel.contract.api.JobsApi
+import com.clothesmodel.contract.api.OutfitsApi
 import com.clothesmodel.contract.api.ProvidersApi
 import com.clothesmodel.contract.api.UploadsApi
 import com.clothesmodel.contract.infrastructure.ApiClient
@@ -29,6 +30,7 @@ data class ApiServices(
     val jobs: JobsApi,
     val providers: ProvidersApi,
     val uploads: UploadsApi,
+    val outfits: OutfitsApi,
 )
 
 interface ApiServicesFactory {
@@ -53,6 +55,7 @@ class ConnectionApiServicesFactory(
             jobs = client.createService(JobsApi::class.java),
             providers = client.createService(ProvidersApi::class.java),
             uploads = client.createService(UploadsApi::class.java),
+            outfits = client.createService(OutfitsApi::class.java),
         )
     }
 }

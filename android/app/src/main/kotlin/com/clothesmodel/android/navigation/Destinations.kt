@@ -5,6 +5,7 @@ object Destinations {
     const val ARG_JOB_ID = "jobId"
     const val ARG_CANDIDATE_ID = "candidateId"
     const val ARG_REAUTH = "reauth"
+    const val ARG_SESSION_ID = "sessionId"
 
     const val CONNECTION = "connection?$ARG_REAUTH={$ARG_REAUTH}"
     const val MAIN = "main"
@@ -17,6 +18,8 @@ object Destinations {
     const val RESULTS = "jobs/{$ARG_JOB_ID}/results"
     const val COMPARE = "jobs/{$ARG_JOB_ID}/compare/{$ARG_CANDIDATE_ID}"
     const val MASK = "jobs/{$ARG_JOB_ID}/mask/{$ARG_CANDIDATE_ID}"
+    const val OUTFITS = "outfits"
+    const val OUTFIT_SESSION = "outfits/{$ARG_SESSION_ID}"
 
     fun connection(reauth: Boolean = false): String = "connection?$ARG_REAUTH=$reauth"
 
@@ -30,6 +33,8 @@ object Destinations {
         "jobs/$jobId/compare/$candidateId"
 
     fun mask(jobId: String, candidateId: String): String = "jobs/$jobId/mask/$candidateId"
+
+    fun outfitSession(sessionId: String): String = "outfits/$sessionId"
 
     val tabRoutes: List<Pair<String, String>> = listOf(
         HOME to "首页",

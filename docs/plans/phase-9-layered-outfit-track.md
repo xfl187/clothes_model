@@ -52,12 +52,15 @@
   `supported_layer_roles` and locks the active Comfy Workflow via a shared infrastructure helper
   (non-Comfy layer jobs stay Workflow-free; V1 job behavior unchanged). Verified: capability-rejection
   test, Comfy-without-active-Workflow rejection test, and full Backend Ruff/Pyright/pytest.
-- Task 10 — PENDING
+- Task 10 — COMPLETE (2026-10-07): Android gains the `OutfitsApi` service, `OutfitRepository`, the
+  enabled `分层穿搭` home entry, the `outfits` session-list screen (list/create-from-person/favorite) with
+  its ViewModel, and navigation routes (workbench placeholder for Task 11). Verified: Android
+  `compileDebugKotlin`, `testDebugUnitTest` (new `OutfitSessionListViewModelTest`), and `lintDebug`.
 - Task 11 — PENDING
 - Task 12 — PENDING
 - Task 13 — PENDING
 - Task 14 — PENDING
-- Next action: implement Task 10 — Android V1.1 entry and session list.
+- Next action: implement Task 11 — Android workbench and layer management.
 
 ## Goal
 

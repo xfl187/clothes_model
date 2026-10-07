@@ -1,8 +1,11 @@
 package com.clothesmodel.android.data
 
 import com.clothesmodel.contract.model.CreateJobRequest
+import com.clothesmodel.contract.model.CreateOutfitSessionRequest
 import com.clothesmodel.contract.model.FinishFailedRequest
+import com.clothesmodel.contract.model.OutfitSession
 import com.clothesmodel.contract.model.RetryJobItemRequest
+import com.clothesmodel.contract.model.UpdateOutfitSessionRequest
 import java.io.IOException
 import java.util.UUID
 import retrofit2.Response
@@ -199,4 +202,48 @@ private fun JobStateDomain.toWire(): com.clothesmodel.contract.model.JobState =
 private object AssetUpdateRequestFactory {
     fun create(favorite: Boolean): com.clothesmodel.contract.model.AssetUpdateRequest =
         com.clothesmodel.contract.model.AssetUpdateRequest(favorite = favorite)
+}
+
+interface OutfitRepository {
+    suspend fun list(limit: Int = 50): Outcome<List<OutfitSession>>
+    suspend fun create(
+        personAssetId: UUID,
+        name: String?,
+        idempotencyKey: String,
+    ): Outcome<OutfitSession>
+
+    suspend fun setFavorite(sessionId: UUID, favorite: Boolean): Outcome<OutfitSession>
+}
+
+class NetworkOutfitRepository(
+    private val factory: ApiServicesFactory,
+    private val events: AuthenticationEvents,
+) : OutfitRepository {
+    override suspend fun list(limit: Int): Outcome<List<OutfitSession>> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.listOutfitSessions(limit = limit).toOutcome(events) { it.items }
+    }
+
+    override suspend fun create(
+        personAssetId: UUID,
+        name: String?,
+        idempotencyKey: String,
+    ): Outcome<OutfitSession> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.createOutfitSession(
+            idempotencyKey,
+            CreateOutfitSessionRequest(personAssetId = personAssetId, name = name),
+        ).toOutcome(events) { it }
+    }
+
+    override suspend fun setFavorite(
+        sessionId: UUID,
+        favorite: Boolean,
+    ): Outcome<OutfitSession> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.updateOutfitSession(
+            sessionId,
+            UpdateOutfitSessionRequest(favorite = favorite),
+        ).toOutcome(events) { it }
+    }
 }

@@ -31,6 +31,8 @@ import com.clothesmodel.android.history.HistoryRoute
 import com.clothesmodel.android.home.HomeRoute
 import com.clothesmodel.android.jobs.JobDetailRoute
 import com.clothesmodel.android.mask.MaskEditorRoute
+import com.clothesmodel.android.outfits.OutfitSessionListRoute
+import com.clothesmodel.android.outfits.OutfitWorkbenchPlaceholder
 import com.clothesmodel.android.results.CompareRoute
 import com.clothesmodel.android.results.ResultRoute
 import com.clothesmodel.android.ui.theme.AtelierShapes
@@ -73,6 +75,7 @@ fun MainTabs(
     onCreate: () -> Unit,
     onOpenAsset: (String) -> Unit,
     onOpenJob: (String) -> Unit,
+    onOpenOutfits: () -> Unit = {},
     onAuthenticationExpired: () -> Unit = {},
     onConfigureConnection: () -> Unit = {},
 ) {
@@ -102,6 +105,7 @@ fun MainTabs(
                 HomeRoute(
                     onCreate = onCreate,
                     onOpenJob = onOpenJob,
+                    onOpenOutfits = onOpenOutfits,
                     onAuthenticationExpired = onAuthenticationExpired,
                     onConfigureConnection = onConfigureConnection,
                 )
@@ -151,6 +155,7 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
                 onCreate = { navController.navigate(Destinations.CREATE) },
                 onOpenAsset = { navController.navigate(Destinations.assetDetail(it)) },
                 onOpenJob = { navController.navigate(Destinations.jobDetail(it)) },
+                onOpenOutfits = { navController.navigate(Destinations.OUTFITS) },
                 onAuthenticationExpired = {
                     // Local-first shell remains usable while disconnected.
                 },
@@ -255,6 +260,28 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
                         popUpTo(navController.graph.id) { inclusive = true }
                     }
                 },
+            )
+        }
+        composable(Destinations.OUTFITS) {
+            OutfitSessionListRoute(
+                onBack = { navController.popBackStack() },
+                onOpenSession = { navController.navigate(Destinations.outfitSession(it)) },
+                onAuthenticationExpired = {
+                    navController.navigate(Destinations.connection(reauth = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
+            )
+        }
+        composable(
+            route = Destinations.OUTFIT_SESSION,
+            arguments = listOf(
+                navArgument(Destinations.ARG_SESSION_ID) { type = NavType.StringType },
+            ),
+        ) { entry ->
+            OutfitWorkbenchPlaceholder(
+                sessionId = entry.arguments?.getString(Destinations.ARG_SESSION_ID).orEmpty(),
+                onBack = { navController.popBackStack() },
             )
         }
     }
