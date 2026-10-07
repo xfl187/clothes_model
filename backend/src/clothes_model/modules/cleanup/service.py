@@ -14,6 +14,18 @@ from clothes_model.infrastructure.database import models as db
 TERMINAL_JOB_STATES = ("succeeded", "partially_succeeded", "failed", "cancelled")
 
 
+def _active_outfit_reference_exists() -> Any:
+    return (
+        select(db.asset_references.c.id)
+        .where(
+            db.asset_references.c.asset_id == db.assets.c.id,
+            db.asset_references.c.source_kind == "outfit",
+            db.asset_references.c.active.is_(True),
+        )
+        .exists()
+    )
+
+
 class StoragePort(Protocol):
     def delete(self, relative_path: str) -> None: ...
 
@@ -55,6 +67,7 @@ async def schedule_eligible_assets(sessions: object, *, now: datetime | None = N
                     db.assets.c.durable_client_copy_confirmed.is_(True),
                     db.assets.c.cleanup_after.is_(None),
                     ~active_job_ref,
+                    ~_active_outfit_reference_exists(),
                 )
                 .values(cleanup_after=deadline, updated_at=current)
             ),
@@ -108,7 +121,16 @@ async def cleanup_due_assets(
                 )
                 .limit(1)
             )
-            if active is not None:
+            outfit_active = await uow.session.scalar(
+                select(db.asset_references.c.id)
+                .where(
+                    db.asset_references.c.asset_id == row["id"],
+                    db.asset_references.c.source_kind == "outfit",
+                    db.asset_references.c.active.is_(True),
+                )
+                .limit(1)
+            )
+            if active is not None or outfit_active is not None:
                 skipped += 1
                 await uow.session.execute(
                     update(db.assets).where(db.assets.c.id == row["id"]).values(cleanup_after=None)

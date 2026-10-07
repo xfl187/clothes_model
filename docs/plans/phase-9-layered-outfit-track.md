@@ -43,14 +43,19 @@
   compatible Provider when the original is unavailable/incompatible (no silent switch), keeps
   `pending_reapply` with no job when none is available, and records the actual locked version. All outfit
   operations are now real (no placeholders). Verified by focused reapply test.
-- Task 8 — PENDING
+- Task 8 — COMPLETE (2026-10-07): outfit layers register asset references (`source_kind="outfit"`) that
+  block asset-content deletion and are released on layer removal, branch/session deletion; the cleanup
+  scheduler/executor now excludes assets with active outfit references. Verified:
+  `test_outfits_layers.py` (references listed, `asset_referenced`, release after removal), full Backend
+  Ruff/Pyright/pytest.
 - Task 9 — PENDING
 - Task 10 — PENDING
 - Task 11 — PENDING
 - Task 12 — PENDING
 - Task 13 — PENDING
 - Task 14 — PENDING
-- Next action: implement Task 8 — reference protection and cleanup integration for outfit references.
+- Next action: implement Task 9 — jobs/capability hardening (Comfy Workflow lock for layer jobs, keeping
+  V1 job behavior unchanged).
 
 ## Goal
 

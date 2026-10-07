@@ -462,6 +462,52 @@ def test_reapply_requires_explicit_provider_and_never_silently_switches(tmp_path
         assert blocked.json()["code"] == "provider_not_usable"
 
 
+def test_outfit_layer_references_protect_and_release_assets(tmp_path: Path) -> None:
+    client, credentials, seeded = _build(tmp_path)
+    headers = {"Authorization": f"Bearer {credentials['app']}"}
+    with client:
+        created = client.post(
+            "/api/v1/outfits",
+            json={"person_asset_id": seeded["person"]},
+            headers={**headers, "Idempotency-Key": "ol-ref-session"},
+        ).json()
+        session_id = created["id"]
+        branch_id = created["branches"][0]["id"]
+        layer = client.post(
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers",
+            json={
+                "role": "inner_top",
+                "garment_asset_id": seeded["garment"],
+                "provider_id": seeded["provider"],
+                "candidate_count": 1,
+            },
+            headers={**headers, "Idempotency-Key": "ol-ref-layer"},
+        ).json()
+        layer_id = layer["session"]["branches"][0]["layers"][0]["id"]
+
+        references = client.get(
+            f"/api/v1/assets/{seeded['garment']}/references", headers=headers
+        ).json()["items"]
+        assert any(ref["source_kind"] == "outfit" for ref in references)
+
+        blocked = client.delete(f"/api/v1/assets/{seeded['garment']}/content", headers=headers)
+        assert blocked.status_code == 409
+        assert blocked.json()["code"] == "asset_referenced"
+
+        client.request(
+            "DELETE",
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}",
+            json={"mode": "remove"},
+            headers=headers,
+        )
+        released = client.get(
+            f"/api/v1/assets/{seeded['garment']}/references", headers=headers
+        ).json()["items"]
+        assert released == []
+        deleted = client.delete(f"/api/v1/assets/{seeded['garment']}/content", headers=headers)
+        assert deleted.status_code == 200, deleted.text
+
+
 def test_add_layer_rejects_provider_without_layering(tmp_path: Path) -> None:
     client, credentials, seeded = _build(tmp_path, sequential=False)
     headers = {"Authorization": f"Bearer {credentials['app']}"}

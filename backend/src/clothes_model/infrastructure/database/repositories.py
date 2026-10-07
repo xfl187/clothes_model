@@ -314,6 +314,21 @@ class SqlAlchemyAssetReferenceRepository:
         )
         return [AssetReference(**dict(row)) for row in result.mappings().all()]
 
+    async def release_many(
+        self, *, source_kind: str, source_ids: Sequence[str], at: datetime
+    ) -> None:
+        if not source_ids:
+            return
+        await self._session.execute(
+            update(models.asset_references)
+            .where(
+                models.asset_references.c.source_kind == source_kind,
+                models.asset_references.c.source_id.in_(list(source_ids)),
+                models.asset_references.c.active.is_(True),
+            )
+            .values(active=False, released_at=at)
+        )
+
 
 class SqlAlchemySecurityAuditRepository:
     def __init__(self, session: AsyncSession) -> None:

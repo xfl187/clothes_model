@@ -136,6 +136,12 @@ class OutfitService:
                 raise OutfitError(
                     409, "outfit_has_unfinished_jobs", "存在未结束的任务，需先取消或结束后再删除。"
                 )
+            released: list[str] = []
+            for branch in await uow.outfits.list_branches(session.id):
+                released.extend(layer.id for layer in await uow.outfits.list_layers(branch.id))
+            await uow.asset_references.release_many(
+                source_kind="outfit", source_ids=released, at=datetime.now(UTC)
+            )
             await uow.outfits.delete_session(session.id)
             await uow.commit()
 
@@ -247,6 +253,12 @@ class OutfitService:
                     "outfit_mainline_locked",
                     "删除当前主线前请先切换主线。",
                 )
+            branch_layers = await uow.outfits.list_layers(branch.id)
+            await uow.asset_references.release_many(
+                source_kind="outfit",
+                source_ids=[layer.id for layer in branch_layers],
+                at=datetime.now(UTC),
+            )
             await uow.outfits.delete_branch(branch.id)
             await uow.commit()
             session = await self._require_session(uow, session_id, owner_scope_id)
@@ -370,7 +382,7 @@ class OutfitService:
                     AssetReference(
                         id=str(uuid4()),
                         asset_id=asset_id,
-                        source_kind="outfit_layer",
+                        source_kind="outfit",
                         source_id=layer_id,
                         active=True,
                         created_at=now,
@@ -494,6 +506,9 @@ class OutfitService:
             layers = await uow.outfits.list_layers(branch.id)
             if mode == "remove":
                 await uow.outfits.delete_layer(layer.id)
+                await uow.asset_references.release_many(
+                    source_kind="outfit", source_ids=[layer.id], at=now
+                )
             for existing in layers:
                 if existing.id != layer.id and existing.layer_order >= layer.layer_order:
                     await uow.outfits.update_layer(
@@ -574,7 +589,7 @@ class OutfitService:
                         AssetReference(
                             id=str(uuid4()),
                             asset_id=asset_id,
-                            source_kind="outfit_layer",
+                            source_kind="outfit",
                             source_id=new_layer_id,
                             active=True,
                             created_at=now,
