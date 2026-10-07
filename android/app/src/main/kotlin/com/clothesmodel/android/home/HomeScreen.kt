@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -18,6 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.clothesmodel.android.ui.components.AtelierScaffold
+import com.clothesmodel.android.ui.components.AtelierButton
 import com.clothesmodel.android.ui.components.EmptyState
 import com.clothesmodel.android.ui.components.InlineProblem
 import com.clothesmodel.android.ui.components.JobSummaryCard
@@ -69,7 +69,7 @@ fun HomeScreen(
                     text = "选择一张人物照片与一件衣物，生成尽量保持身份与背景的试穿结果。",
                     style = MaterialTheme.typography.bodyLarge,
                 )
-                Button(
+                AtelierButton(
                     onClick = onCreate,
                     shape = AtelierShapes.PrimaryButton,
                     modifier = Modifier

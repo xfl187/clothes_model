@@ -5,10 +5,14 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.clothesmodel.android.data.AuthenticatedImageLoader
+import com.clothesmodel.android.data.AssetLifecycle
+import com.clothesmodel.android.data.AssetModel
 import com.clothesmodel.android.data.ContentFetcher
 import com.clothesmodel.android.data.Outcome
 import com.clothesmodel.android.data.ProblemModel
 import com.clothesmodel.android.ui.theme.ClothesModelTheme
+import java.time.OffsetDateTime
+import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -88,5 +92,27 @@ class AssetCenterScreenTest {
         )
         rule.onNodeWithText("正在导入").assertIsDisplayed()
         rule.onNodeWithText("取消导入").assertIsDisplayed()
+    }
+
+    @Test
+    fun deletedAssetsAreNotShownInReusableLibrary() {
+        val deleted = AssetModel(
+            id = UUID.randomUUID(),
+            kind = "person",
+            favorite = false,
+            lifecycle = AssetLifecycle.DELETED_CONTENT,
+            contentAvailable = false,
+            width = 100,
+            height = 100,
+            createdAt = OffsetDateTime.now(),
+            garmentCategory = null,
+            garmentSource = null,
+            qualityWarnings = emptyList(),
+        )
+
+        setScreen(AssetCenterUiState(loading = false, assets = listOf(deleted)))
+
+        rule.onNodeWithText("素材已删除").assertDoesNotExist()
+        rule.onNodeWithText("还没有素材").assertIsDisplayed()
     }
 }

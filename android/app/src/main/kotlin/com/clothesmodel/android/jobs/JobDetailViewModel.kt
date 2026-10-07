@@ -15,6 +15,7 @@ import com.clothesmodel.android.data.ProviderModel
 import com.clothesmodel.android.data.ProviderRepository
 import com.clothesmodel.android.data.RefreshPolicy
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -39,6 +40,8 @@ data class JobDetailUiState(
     val authenticationExpired: Boolean = false,
     val busy: Set<String> = emptySet(),
     val retrySelection: RetrySelection? = null,
+    val lastSyncedAt: OffsetDateTime? = null,
+    val now: OffsetDateTime = OffsetDateTime.now(),
 )
 
 @HiltViewModel
@@ -54,6 +57,7 @@ class JobDetailViewModel @Inject constructor(
     val state: StateFlow<JobDetailUiState> = mutableState.asStateFlow()
     private val commandKeys = mutableMapOf<String, String>()
     private var polling: Job? = null
+    private var clock: Job? = null
 
     init {
         load()
@@ -76,10 +80,15 @@ class JobDetailViewModel @Inject constructor(
                         job = outcome.value,
                         loading = false,
                         stale = false,
+                        error = null,
+                        lastSyncedAt = OffsetDateTime.now(),
                     )
                     loadGarmentCategory(outcome.value.garmentAssetId)
                     loadProviders()
-                    if (RefreshPolicy.shouldPoll(outcome.value.state)) startPolling()
+                    if (RefreshPolicy.shouldPoll(outcome.value.state)) {
+                        startPolling()
+                        startClock()
+                    }
                 }
 
                 is Outcome.Problem -> mutableState.value = mutableState.value.copy(
@@ -98,10 +107,12 @@ class JobDetailViewModel @Inject constructor(
     fun onResumed() {
         if (mutableState.value.job == null) load() else refresh()
         startPolling()
+        startClock()
     }
 
     fun onPaused() {
         stopPolling()
+        stopClock()
     }
 
     fun refresh() {
@@ -109,11 +120,16 @@ class JobDetailViewModel @Inject constructor(
         viewModelScope.launch {
             mutableState.value = mutableState.value.copy(refreshing = true)
             when (val outcome = jobs.get(id)) {
-                is Outcome.Success -> mutableState.value = mutableState.value.copy(
-                    job = outcome.value,
-                    refreshing = false,
-                    stale = false,
-                )
+                is Outcome.Success -> {
+                    mutableState.value = mutableState.value.copy(
+                        job = outcome.value,
+                        refreshing = false,
+                        stale = false,
+                        error = null,
+                        lastSyncedAt = OffsetDateTime.now(),
+                    )
+                    if (isProgressActive(outcome.value.state)) startClock() else stopClock()
+                }
 
                 is Outcome.Problem -> mutableState.value = mutableState.value.copy(
                     refreshing = false,
@@ -191,8 +207,12 @@ class JobDetailViewModel @Inject constructor(
                         job = outcome.value,
                         busy = mutableState.value.busy - keyToken,
                         commandError = null,
+                        lastSyncedAt = OffsetDateTime.now(),
                     )
-                    if (RefreshPolicy.shouldPoll(outcome.value.state)) startPolling()
+                    if (RefreshPolicy.shouldPoll(outcome.value.state)) {
+                        startPolling()
+                        startClock()
+                    }
                 }
 
                 is Outcome.Problem -> {
@@ -223,6 +243,8 @@ class JobDetailViewModel @Inject constructor(
                     is Outcome.Success -> mutableState.value = mutableState.value.copy(
                         job = outcome.value,
                         stale = false,
+                        error = null,
+                        lastSyncedAt = OffsetDateTime.now(),
                     )
 
                     is Outcome.Problem -> mutableState.value = mutableState.value.copy(
@@ -242,6 +264,23 @@ class JobDetailViewModel @Inject constructor(
     private fun stopPolling() {
         polling?.cancel()
         polling = null
+    }
+
+    private fun startClock() {
+        if (clock?.isActive == true) return
+        clock = viewModelScope.launch {
+            while (isActive) {
+                val currentState = mutableState.value.job?.state ?: JobStateDomain.UNKNOWN
+                if (!isProgressActive(currentState)) break
+                mutableState.value = mutableState.value.copy(now = OffsetDateTime.now())
+                delay(CLOCK_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun stopClock() {
+        clock?.cancel()
+        clock = null
     }
 
     private fun loadGarmentCategory(assetId: UUID?) {
@@ -273,10 +312,12 @@ class JobDetailViewModel @Inject constructor(
 
     override fun onCleared() {
         stopPolling()
+        stopClock()
         super.onCleared()
     }
 
     companion object {
         private const val POLL_INTERVAL_MS = 2_000L
+        private const val CLOCK_INTERVAL_MS = 1_000L
     }
 }

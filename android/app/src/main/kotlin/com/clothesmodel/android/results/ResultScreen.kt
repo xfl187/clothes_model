@@ -14,9 +14,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +33,8 @@ import com.clothesmodel.android.assets.AssetImage
 import com.clothesmodel.android.assets.gridMinSizeDp
 import com.clothesmodel.android.data.CandidateModel
 import com.clothesmodel.android.ui.components.AtelierScaffold
+import com.clothesmodel.android.ui.components.AtelierButton
+import com.clothesmodel.android.ui.components.AtelierOutlinedButton
 import com.clothesmodel.android.ui.components.ConfirmationDialog
 import com.clothesmodel.android.ui.components.DeletedContentPlaceholder
 import com.clothesmodel.android.ui.components.EmptyState
@@ -243,35 +243,35 @@ private fun SelectedResult(
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
-            OutlinedButton(
+            AtelierOutlinedButton(
                 onClick = onFavorite,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
             ) { Text(if (output.favorite) "取消收藏" else "收藏") }
-            OutlinedButton(
+            AtelierOutlinedButton(
                 onClick = onCompare,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
             ) { Text("原图对比") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
-            OutlinedButton(
+            AtelierOutlinedButton(
                 onClick = onDownload,
                 enabled = output.contentAvailable && !busy,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
             ) { Text("下载") }
-            OutlinedButton(
+            AtelierOutlinedButton(
                 onClick = onShare,
                 enabled = output.contentAvailable && !busy,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
             ) { Text("分享") }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
-            Button(
+            AtelierButton(
                 onClick = onMask,
                 enabled = output.contentAvailable,
                 shape = AtelierShapes.PrimaryButton,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
             ) { Text("修正后重新生成") }
-            OutlinedButton(
+            AtelierOutlinedButton(
                 onClick = onDelete,
                 enabled = output.contentAvailable && !busy,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
@@ -292,7 +292,7 @@ private fun TraceableRow(candidate: CandidateModel, onRetry: () -> Unit) {
         candidate.errorDetail?.let {
             Text(it, color = LocalAtelierTokens.current.error, style = MaterialTheme.typography.bodyMedium)
         }
-        OutlinedButton(
+        AtelierOutlinedButton(
             onClick = onRetry,
             modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
         ) { Text("再次尝试") }

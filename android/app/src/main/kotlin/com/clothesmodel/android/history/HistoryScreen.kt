@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.clothesmodel.android.ui.components.AtelierScaffold
+import com.clothesmodel.android.ui.components.AtelierOutlinedButton
 import com.clothesmodel.android.ui.components.EmptyState
 import com.clothesmodel.android.ui.components.InlineProblem
 import com.clothesmodel.android.ui.components.JobSummaryCard
@@ -83,7 +83,7 @@ fun HistoryScreen(
                 }
                 if (state.hasMore) {
                     item {
-                        OutlinedButton(
+                        AtelierOutlinedButton(
                             onClick = onLoadMore,
                             enabled = !state.loadingMore,
                             modifier = Modifier

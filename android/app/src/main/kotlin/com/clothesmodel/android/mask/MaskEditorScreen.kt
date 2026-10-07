@@ -11,10 +11,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +35,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.clothesmodel.android.assets.AssetImage
 import com.clothesmodel.android.ui.components.AtelierScaffold
+import com.clothesmodel.android.ui.components.AtelierButton
+import com.clothesmodel.android.ui.components.AtelierOutlinedButton
 import com.clothesmodel.android.ui.components.ConfirmationDialog
 import com.clothesmodel.android.ui.components.EntityCard
 import com.clothesmodel.android.ui.components.InlineProblem
@@ -221,17 +221,17 @@ fun MaskEditorScreen(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
-                    OutlinedButton(
+                    AtelierOutlinedButton(
                         onClick = onUndo,
                         enabled = state.document.strokes.isNotEmpty(),
                         modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
                     ) { Text("撤销") }
-                    OutlinedButton(
+                    AtelierOutlinedButton(
                         onClick = onClear,
                         enabled = state.document.strokes.isNotEmpty(),
                         modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
                     ) { Text("清空") }
-                    OutlinedButton(
+                    AtelierOutlinedButton(
                         onClick = onTogglePreview,
                         modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
                     ) { Text(if (state.showPreview) "隐藏遮罩" else "显示遮罩") }
@@ -258,7 +258,7 @@ fun MaskEditorScreen(
 
                 state.submitError?.let { InlineProblem(message = it.detail) }
 
-                Button(
+                AtelierButton(
                     onClick = onSubmit,
                     enabled = state.canSubmit,
                     shape = AtelierShapes.PrimaryButton,

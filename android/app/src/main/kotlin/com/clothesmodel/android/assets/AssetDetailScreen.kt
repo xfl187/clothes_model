@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.clothesmodel.android.ui.components.AtelierScaffold
+import com.clothesmodel.android.ui.components.AtelierButton
+import com.clothesmodel.android.ui.components.AtelierOutlinedButton
 import com.clothesmodel.android.ui.components.ConfirmationDialog
 import com.clothesmodel.android.ui.components.DeletedContentPlaceholder
 import com.clothesmodel.android.ui.components.EntityCard
@@ -98,7 +98,7 @@ fun AssetDetailScreen(
                     if (asset.qualityWarnings.isNotEmpty()) {
                         InlineProblem(message = asset.qualityWarnings.joinToString("；"))
                     }
-                    OutlinedButton(
+                    AtelierOutlinedButton(
                         onClick = onToggleFavorite,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -123,7 +123,7 @@ fun AssetDetailScreen(
                     }
 
                     if (asset.contentAvailable) {
-                        Button(
+                        AtelierButton(
                             onClick = { confirmDelete = true },
                             enabled = !state.busy,
                             modifier = Modifier

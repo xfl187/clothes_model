@@ -7,9 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,7 +18,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -28,8 +30,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.clothesmodel.android.assets.AssetImage
 import com.clothesmodel.android.data.CandidateModel
 import com.clothesmodel.android.data.JobModel
+import com.clothesmodel.android.data.JobStateDomain
 import com.clothesmodel.android.data.ProviderModel
 import com.clothesmodel.android.ui.components.AtelierScaffold
+import com.clothesmodel.android.ui.components.AtelierButton
+import com.clothesmodel.android.ui.components.AtelierOutlinedButton
+import com.clothesmodel.android.ui.components.atelierOutlinedTextFieldColors
 import com.clothesmodel.android.ui.components.DeletedContentPlaceholder
 import com.clothesmodel.android.ui.components.EntityCard
 import com.clothesmodel.android.ui.components.InlineProblem
@@ -41,6 +47,8 @@ import com.clothesmodel.android.ui.components.statusLabel
 import com.clothesmodel.android.ui.components.toAtelierStatus
 import com.clothesmodel.android.ui.theme.AtelierShapes
 import com.clothesmodel.android.ui.theme.AtelierSpacing
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @Composable
@@ -108,6 +116,8 @@ fun JobDetailScreen(
                     job = job,
                     busy = state.busy.contains("cancel-job"),
                     stale = state.stale,
+                    lastSyncedAt = state.lastSyncedAt,
+                    now = state.now,
                     onCancelJob = onCancelJob,
                     onOpenResults = onOpenResults,
                 )
@@ -167,11 +177,16 @@ private fun AggregatePanel(
     job: JobModel,
     busy: Boolean,
     stale: Boolean,
+    lastSyncedAt: OffsetDateTime?,
+    now: OffsetDateTime,
     onCancelJob: () -> Unit,
     onOpenResults: () -> Unit,
 ) {
     val succeeded = succeededCandidates(job.candidates)
     val failed = failedCandidates(job.candidates)
+    val completed = completedCandidates(job.candidates)
+    val elapsedEnd = if (isProgressActive(job.state)) now else job.updatedAt
+    val stageLabel = progressStageLabel(job.state)
     Column(verticalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
         Text(
             text = job.providerLabel,
@@ -179,23 +194,42 @@ private fun AggregatePanel(
             modifier = Modifier.semantics { heading() },
         )
         StatusMarker(status = job.state.toAtelierStatus(), label = job.state.statusLabel())
-        Text("已运行 ${formatElapsed(job.createdAt, job.updatedAt)} · 候选 ${job.candidates.size} 个")
-        Text("成功 $succeeded · 失败 $failed")
+        stageLabel?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+        if (job.state == JobStateDomain.PREPARING ||
+            job.state == JobStateDomain.RUNNING
+        ) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics {
+                        contentDescription = stageLabel.orEmpty()
+                        progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate
+                    },
+            )
+            Text(
+                "当前 Provider 不提供百分比，进度按执行阶段显示。",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        Text("已耗时 ${formatElapsed(job.createdAt, elapsedEnd)}")
+        Text("已完成 $completed/${job.candidateCount} · 成功 $succeeded · 失败 $failed")
         job.blockReason?.let { Text(it.blockLabel(), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         job.blockedDetail?.let { Text(it) }
         if (stale) {
-            Text("当前显示的是上一次同步结果，网络恢复后会自动刷新。")
+            Text("连接异常，当前显示上一次同步结果；网络恢复后会自动刷新。")
         }
+        lastSyncedAt?.let { Text("最后更新 ${it.format(LAST_SYNC_FORMAT)}") }
         Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.md)) {
             if (job.candidates.any { candidate -> candidate.outputs.any { it.contentAvailable } }) {
-                Button(
+                AtelierButton(
                     onClick = onOpenResults,
                     shape = AtelierShapes.PrimaryButton,
                     modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
                 ) { Text("查看结果") }
             }
             if (canCancelJob(job.state)) {
-                OutlinedButton(
+                AtelierOutlinedButton(
                     onClick = onCancelJob,
                     enabled = !busy,
                     modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
@@ -204,6 +238,8 @@ private fun AggregatePanel(
         }
     }
 }
+
+private val LAST_SYNC_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
 @Composable
 private fun LockedConfiguration(job: JobModel) {
@@ -265,14 +301,14 @@ private fun CandidateCard(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
             if (canCancelCandidate(candidate.state)) {
-                OutlinedButton(
+                AtelierOutlinedButton(
                     onClick = onCancel,
                     enabled = !busy,
                     modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
                 ) { Text("取消候选") }
             }
             if (canRetryCandidate(candidate.state)) {
-                OutlinedButton(
+                AtelierOutlinedButton(
                     onClick = onRetry,
                     enabled = !busy,
                     modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
@@ -301,17 +337,17 @@ private fun NeedsAttentionActions(
     Column(verticalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
         Text("自动推进已停止。请选择：重新查询、明确重试或结束失败。")
         Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
-            OutlinedButton(
+            AtelierOutlinedButton(
                 onClick = onRequery,
                 enabled = !busy,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
             ) { Text("重新查询") }
-            OutlinedButton(
+            AtelierOutlinedButton(
                 onClick = onRetry,
                 enabled = !busy,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
             ) { Text("明确重试") }
-            OutlinedButton(
+            AtelierOutlinedButton(
                 onClick = onFinish,
                 enabled = !busy,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
@@ -385,6 +421,7 @@ private fun FinishReasonDialog(
                     onValueChange = { reason = it },
                     label = { Text("失败原因") },
                     modifier = Modifier.fillMaxWidth(),
+                    colors = atelierOutlinedTextFieldColors(),
                 )
             }
         },

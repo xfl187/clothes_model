@@ -20,6 +20,7 @@ private fun provider(
     maxCandidates: Int = 4,
     mask: Boolean = false,
     categories: List<String> = emptyList(),
+    unavailableReason: String? = null,
 ) = ProviderModel(
     id = UUID.randomUUID(),
     displayName = name,
@@ -29,7 +30,7 @@ private fun provider(
     supportsManualMask = mask,
     supportsRegionMask = mask,
     garmentCategories = categories,
-    unavailableReason = null,
+    unavailableReason = unavailableReason,
 )
 
 class CreateWizardLogicTest {
@@ -92,6 +93,15 @@ class CreateWizardLogicTest {
     }
 
     @Test
+    fun singleCandidateProviderExplainsFixedCountInsteadOfOfferingDisabledControls() {
+        val fixed = provider("fixed", maxCandidates = 1)
+        val variable = provider("variable", maxCandidates = 2)
+
+        assertEquals("该 Provider 当前固定生成 1 张候选。", candidateCountFixedMessage(fixed))
+        assertNull(candidateCountFixedMessage(variable))
+    }
+
+    @Test
     fun defaultProviderPrefersMarkedDefaultThenFirstSelectable() {
         val disabled = provider("d", ProviderAvailabilityDomain.DISABLED, isDefault = true)
         val first = provider("a")
@@ -107,5 +117,25 @@ class CreateWizardLogicTest {
         val withoutMask = provider("a")
         val withMask = provider("b", mask = true)
         assertEquals(listOf("b"), maskCompatibleProviders(listOf(withoutMask, withMask)).map { it.displayName })
+    }
+
+    @Test
+    fun generationBlockingReasonExplainsUnavailableProvider() {
+        val state = CreateWizardUiState(
+            step = WizardStep.SETTINGS,
+            loading = false,
+            providers = listOf(
+                provider(
+                    "Ark",
+                    ProviderAvailabilityDomain.UNAVAILABLE_CONFIGURATION,
+                    unavailableReason = "Provider 凭据无法解密，请管理员重新保存 API Key。",
+                ),
+            ),
+        )
+
+        assertEquals(
+            "Provider 凭据无法解密，请管理员重新保存 API Key。",
+            generationBlockingReason(state),
+        )
     }
 }

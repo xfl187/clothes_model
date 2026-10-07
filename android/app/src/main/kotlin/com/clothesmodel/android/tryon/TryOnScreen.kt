@@ -12,11 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +25,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.clothesmodel.android.ui.components.AtelierButton
+import com.clothesmodel.android.ui.components.AtelierOutlinedButton
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -94,7 +94,7 @@ fun TryOnScreen(
                 }
         }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Button(
+        AtelierButton(
             onClick = onGenerate,
             enabled = state.canGenerate,
             modifier = Modifier.fillMaxWidth().sizeIn(minHeight = 48.dp),
@@ -130,7 +130,7 @@ private fun AssetChoice(title: String, selection: UploadSelection?, onPick: () -
                 else -> "尚未选择"
             },
         )
-        OutlinedButton(
+        AtelierOutlinedButton(
             onClick = onPick,
             modifier = Modifier.fillMaxWidth().sizeIn(minHeight = 48.dp),
         ) { Text("选择$title") }

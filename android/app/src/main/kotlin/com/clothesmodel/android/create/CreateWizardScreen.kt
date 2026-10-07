@@ -11,10 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +31,8 @@ import com.clothesmodel.android.data.GarmentCategory
 import com.clothesmodel.android.data.ProviderAvailabilityDomain
 import com.clothesmodel.android.data.ProviderModel
 import com.clothesmodel.android.ui.components.AtelierScaffold
+import com.clothesmodel.android.ui.components.AtelierButton
+import com.clothesmodel.android.ui.components.AtelierOutlinedButton
 import com.clothesmodel.android.ui.components.EmptyState
 import com.clothesmodel.android.ui.components.EntityCard
 import com.clothesmodel.android.ui.components.InlineProblem
@@ -65,6 +65,7 @@ fun CreateWizardRoute(
         onSelectGarment = viewModel::selectGarment,
         onCategory = viewModel::setGarmentCategory,
         onSelectProvider = viewModel::selectProvider,
+        onRetryProviders = viewModel::retryProviders,
         onCandidateCount = viewModel::setCandidateCount,
         onSubmit = { viewModel.submit(onCreated) },
         onImport = { picker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
@@ -89,6 +90,7 @@ fun CreateWizardScreen(
     onImport: () -> Unit,
     onRetryImport: (String) -> Unit,
     onCancelImport: (String) -> Unit,
+    onRetryProviders: () -> Unit = {},
 ) {
     AtelierScaffold(title = "精准换装", onBack = onBack) {
         Column(verticalArrangement = Arrangement.spacedBy(AtelierSpacing.lg)) {
@@ -140,6 +142,7 @@ fun CreateWizardScreen(
                     state = state,
                     onSelectProvider = onSelectProvider,
                     onCandidateCount = onCandidateCount,
+                    onRetryProviders = onRetryProviders,
                 )
             }
 
@@ -151,13 +154,13 @@ fun CreateWizardScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.md)) {
                 if (state.step != WizardStep.PERSON) {
-                    OutlinedButton(
+                    AtelierOutlinedButton(
                         onClick = onPrevious,
                         modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
                     ) { Text("上一步") }
                 }
                 if (state.step == WizardStep.SETTINGS) {
-                    Button(
+                    AtelierButton(
                         onClick = onSubmit,
                         enabled = state.canAdvance && !state.submitting,
                         shape = AtelierShapes.PrimaryButton,
@@ -168,7 +171,7 @@ fun CreateWizardScreen(
                         Text(if (state.submitting) "正在创建任务" else "生成试穿结果")
                     }
                 } else {
-                    Button(
+                    AtelierButton(
                         onClick = onNext,
                         enabled = state.canAdvance,
                         shape = AtelierShapes.PrimaryButton,
@@ -193,7 +196,7 @@ private fun AssetStep(
     onCancelImport: (String) -> Unit,
     importLabel: String,
 ) {
-    OutlinedButton(
+    AtelierOutlinedButton(
         onClick = onImport,
         modifier = Modifier
             .fillMaxWidth()
@@ -216,9 +219,9 @@ private fun AssetStep(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
             if (pending.failed) {
-                OutlinedButton(onClick = { onRetryImport(pending.id) }) { Text("重试") }
+                AtelierOutlinedButton(onClick = { onRetryImport(pending.id) }) { Text("重试") }
             }
-            OutlinedButton(onClick = { onCancelImport(pending.id) }) { Text("取消上传") }
+            AtelierOutlinedButton(onClick = { onCancelImport(pending.id) }) { Text("取消上传") }
         }
     }
     when {
@@ -283,12 +286,25 @@ private fun SettingsStep(
     state: CreateWizardUiState,
     onSelectProvider: (ProviderModel) -> Unit,
     onCandidateCount: (Int) -> Unit,
+    onRetryProviders: () -> Unit,
 ) {
     SectionHeading(text = "Provider", supporting = "提交后会锁定该 Provider 与版本。")
-    if (state.providers.isEmpty()) {
-        Text("当前没有可用 Provider，请联系管理员配置。")
-    }
     val compatible = compatibleProviders(state.providers, state.garmentCategory)
+    val unavailable = state.providers.filterNot { it in compatible }
+    when {
+        state.loading && state.providers.isEmpty() -> LoadingState(label = "正在检查 Provider")
+        state.providerError != null -> InlineProblem(
+            message = "无法读取 Provider：${state.providerError.detail}",
+            retryLabel = "重新检查",
+            onRetry = onRetryProviders,
+        )
+        compatible.isEmpty() -> InlineProblem(
+            message = generationBlockingReason(state)
+                ?: "当前没有可用 Provider，请管理员检查配置。",
+            retryLabel = "重新检查",
+            onRetry = onRetryProviders,
+        )
+    }
     compatible.forEach { provider ->
         val selected = provider.id == state.providerId
         EntityCard(
@@ -297,25 +313,46 @@ private fun SettingsStep(
             onClick = { onSelectProvider(provider) },
         )
     }
+    if (unavailable.isNotEmpty()) {
+        SectionHeading(
+            text = "暂不可用",
+            supporting = "以下 Provider 不能用于本次生成。",
+        )
+        unavailable.forEach { provider ->
+            EntityCard(
+                title = provider.displayName,
+                subtitle = unavailableProviderSubtitle(provider, state.garmentCategory),
+            )
+        }
+    }
 
     SectionHeading(text = "候选数量", supporting = "数量越多，费用越高。")
     val limit = candidateLimit(state.selectedProvider)
-    Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.md)) {
-        OutlinedButton(
-            onClick = { onCandidateCount(state.candidateCount - 1) },
-            enabled = state.candidateCount > MIN_CANDIDATES,
-            modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
-        ) { Text("减少") }
+    val fixedMessage = candidateCountFixedMessage(state.selectedProvider)
+    if (fixedMessage != null) {
         Text(
-            text = "${state.candidateCount} 张",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(AtelierSpacing.md),
+            text = fixedMessage,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedButton(
-            onClick = { onCandidateCount(state.candidateCount + 1) },
-            enabled = state.candidateCount < limit,
-            modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
-        ) { Text("增加") }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.md)) {
+            AtelierOutlinedButton(
+                onClick = { onCandidateCount(state.candidateCount - 1) },
+                enabled = state.candidateCount > MIN_CANDIDATES,
+                modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
+            ) { Text("减少") }
+            Text(
+                text = "${state.candidateCount} 张",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(AtelierSpacing.md),
+            )
+            AtelierOutlinedButton(
+                onClick = { onCandidateCount(state.candidateCount + 1) },
+                enabled = state.candidateCount < limit,
+                modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
+            ) { Text("增加") }
+        }
     }
 
     val provider = state.selectedProvider
@@ -334,7 +371,17 @@ private fun providerSubtitle(provider: ProviderModel, selected: Boolean): String
     }
     val default = if (provider.isDefault) " · 默认" else ""
     val chosen = if (selected) " · 已选择" else ""
-    return "$availability · 最多 ${provider.maxCandidates} 张$default$chosen"
+    val reason = provider.unavailableReason?.let { " · $it" }.orEmpty()
+    return "$availability · 最多 ${provider.maxCandidates} 张$default$chosen$reason"
+}
+
+private fun unavailableProviderSubtitle(
+    provider: ProviderModel,
+    category: GarmentCategory,
+): String = when {
+    !categoryCompatible(provider, category) -> "不支持当前衣物类别"
+    provider.unavailableReason != null -> provider.unavailableReason
+    else -> providerSubtitle(provider, selected = false)
 }
 
 private fun stepTitle(step: WizardStep): String = when (step) {

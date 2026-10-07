@@ -115,7 +115,8 @@ data class ProviderModel(
     val unavailableReason: String?,
 ) {
     val selectable: Boolean
-        get() = availability == ProviderAvailabilityDomain.AVAILABLE
+        get() = availability == ProviderAvailabilityDomain.AVAILABLE ||
+            availability == ProviderAvailabilityDomain.TEMPORARILY_OFFLINE
 }
 
 enum class JobStateDomain {

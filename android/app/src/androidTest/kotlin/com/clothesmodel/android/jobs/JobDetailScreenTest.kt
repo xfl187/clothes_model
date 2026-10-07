@@ -136,4 +136,39 @@ class JobDetailScreenTest {
         rule.onNodeWithText("尝试次数：2").assertIsDisplayed()
         rule.onNodeWithText("外部执行标识：exec-123").assertIsDisplayed()
     }
+
+    @Test
+    fun runningJobShowsStageElapsedAndCompletedCandidateCount() {
+        val syncedAt = OffsetDateTime.parse("2026-09-30T12:34:56+08:00")
+        render(
+            JobDetailUiState(
+                loading = false,
+                lastSyncedAt = syncedAt,
+                job = job(
+                    JobStateDomain.RUNNING,
+                    listOf(
+                        candidate(CandidateStateDomain.SUCCEEDED),
+                        candidate(CandidateStateDomain.RUNNING),
+                    ),
+                ),
+            ),
+        )
+        rule.onNodeWithText("阶段 3/3 · 正在生成").assertIsDisplayed()
+        rule.onNodeWithText("当前 Provider 不提供百分比，进度按执行阶段显示。").assertIsDisplayed()
+        rule.onNodeWithText("已完成 1/2 · 成功 1 · 失败 0").assertIsDisplayed()
+        rule.onNodeWithText("最后更新 12:34:56").assertIsDisplayed()
+    }
+
+    @Test
+    fun staleJobKeepsLastProgressAndExplainsRecovery() {
+        render(
+            JobDetailUiState(
+                loading = false,
+                stale = true,
+                job = job(JobStateDomain.WAITING_PROVIDER, listOf(candidate(CandidateStateDomain.WAITING_PROVIDER))),
+            ),
+        )
+        rule.onNodeWithText("等待 Provider · 恢复后自动继续").assertIsDisplayed()
+        rule.onNodeWithText("连接异常，当前显示上一次同步结果；网络恢复后会自动刷新。").assertIsDisplayed()
+    }
 }

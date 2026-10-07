@@ -67,6 +67,7 @@ data class CreateWizardUiState(
     val providers: List<ProviderModel> = emptyList(),
     val providerId: UUID? = null,
     val providerNote: String? = null,
+    val providerError: ProblemModel? = null,
     val candidateCount: Int = 1,
     val loading: Boolean = true,
     val submitting: Boolean = false,
@@ -144,6 +145,8 @@ class CreateWizardViewModel @Inject constructor(
         )
         if (step == WizardStep.PERSON || step == WizardStep.GARMENT) {
             loadAssets(step)
+        } else {
+            loadProviders(mutableState.value.providerId?.toString())
         }
     }
 
@@ -280,6 +283,10 @@ class CreateWizardViewModel @Inject constructor(
             drafts.provider(provider.id.toString())
             drafts.candidateCount(mutableState.value.candidateCount)
         }
+    }
+
+    fun retryProviders() {
+        loadProviders(mutableState.value.providerId?.toString())
     }
 
     fun setCandidateCount(count: Int) {
@@ -442,7 +449,10 @@ class CreateWizardViewModel @Inject constructor(
 
     private fun loadProviders(persistedProviderId: String?) {
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(loading = true)
+            mutableState.value = mutableState.value.copy(
+                loading = true,
+                providerError = null,
+            )
             when (val outcome = providers.available(limit = 50)) {
                 is Outcome.Success -> {
                     val list = outcome.value.items
@@ -465,18 +475,21 @@ class CreateWizardViewModel @Inject constructor(
                             chosen,
                         ),
                         providerNote = note,
+                        providerError = null,
                         loading = false,
                     )
                 }
 
                 is Outcome.Problem -> mutableState.value = mutableState.value.copy(
                     loading = false,
-                    assetError = outcome.problem,
+                    providerError = outcome.problem,
                 )
 
                 Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
                     loading = false,
+                    providerError = null,
                     providerNote = "后端未连接；可以继续选择本地素材，生成时再连接。",
+                    authenticationExpired = true,
                 )
             }
         }

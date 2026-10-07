@@ -19,10 +19,8 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,11 +40,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.clothesmodel.android.data.AssetModel
 import com.clothesmodel.android.data.GarmentCategory
 import com.clothesmodel.android.data.GarmentSource
 import com.clothesmodel.android.ui.components.AtelierScaffold
+import com.clothesmodel.android.ui.components.AtelierButton
+import com.clothesmodel.android.ui.components.AtelierOutlinedButton
 import com.clothesmodel.android.ui.components.EmptyState
 import com.clothesmodel.android.ui.components.EntityCard
 import com.clothesmodel.android.ui.components.InlineProblem
@@ -69,6 +70,10 @@ fun AssetCenterRoute(
     viewModel: AssetCenterViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose { }
+    }
     LaunchedEffect(state.authenticationExpired) {
         if (state.authenticationExpired) onAuthenticationExpired()
     }
@@ -156,7 +161,7 @@ fun AssetCenterScreen(
                             }
                         }
                     }
-                    Button(
+                    AtelierButton(
                         onClick = {
                             picker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
                         },
@@ -190,8 +195,9 @@ fun AssetCenterScreen(
                 item(span = { GridItemSpan(maxLineSpan) }) { LoadingState(label = "正在加载素材") }
             } else {
                 val filtered = state.assets.filter { asset ->
-                    state.categoryFilter == null ||
-                        asset.garmentCategory == state.categoryFilter
+                    !asset.isDeletedContent &&
+                        (state.categoryFilter == null ||
+                            asset.garmentCategory == state.categoryFilter)
                 }
                 if (filtered.isEmpty() && state.imports.isEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
@@ -347,12 +353,12 @@ private fun ImportRow(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
             if (pending.failed) {
-                OutlinedButton(
+                AtelierOutlinedButton(
                     onClick = onRetry,
                     modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
                 ) { Text("重试上传") }
             }
-            OutlinedButton(
+            AtelierOutlinedButton(
                 onClick = onCancel,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
             ) { Text("取消导入") }

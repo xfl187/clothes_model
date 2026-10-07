@@ -7,31 +7,52 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
-private val Editorial = FontFamily.Serif
+// Keep every role on the same highly legible system sans family. Android's
+// system sans includes the device's tuned CJK glyphs and avoids the thin,
+// fallback serif rendering seen on some emulators.
+private val Editorial = FontFamily.SansSerif
 private val Ui = FontFamily.SansSerif
 
 val AtelierTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = Editorial,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 36.sp,
         lineHeight = 42.sp,
     ),
     displayMedium = TextStyle(
         fontFamily = Editorial,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 30.sp,
         lineHeight = 36.sp,
     ),
+    displaySmall = TextStyle(
+        fontFamily = Editorial,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 27.sp,
+        lineHeight = 34.sp,
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = Editorial,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 28.sp,
+        lineHeight = 35.sp,
+    ),
     headlineMedium = TextStyle(
         fontFamily = Editorial,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 30.sp,
     ),
+    headlineSmall = TextStyle(
+        fontFamily = Ui,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+    ),
     titleLarge = TextStyle(
         fontFamily = Ui,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
         lineHeight = 26.sp,
     ),
@@ -41,17 +62,29 @@ val AtelierTypography = Typography(
         fontSize = 16.sp,
         lineHeight = 22.sp,
     ),
+    titleSmall = TextStyle(
+        fontFamily = Ui,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+    ),
     bodyLarge = TextStyle(
         fontFamily = Ui,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
         lineHeight = 24.sp,
     ),
     bodyMedium = TextStyle(
         fontFamily = Ui,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 21.sp,
+        fontWeight = FontWeight.Medium,
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
+    ),
+    bodySmall = TextStyle(
+        fontFamily = Ui,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 19.sp,
     ),
     labelLarge = TextStyle(
         fontFamily = Ui,
@@ -62,8 +95,8 @@ val AtelierTypography = Typography(
     labelMedium = TextStyle(
         fontFamily = Ui,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 12.sp,
-        lineHeight = 17.sp,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = Ui,

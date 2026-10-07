@@ -79,6 +79,25 @@
   durable in-wizard photo import with retry/cancel and automatic selection, and filtered garments by
   the active category. Verified focused JVM tests, Android lint/build, four connected Compose tests,
   and a real-development-backend upload on the emulator.
+- Post-exit enhancement (2026-09-30): made active job progress explicit with truthful execution stages,
+  a live elapsed timer, current-attempt completion counts, last-sync time, stale-network recovery text,
+  and an indeterminate indicator only where the Provider exposes no trustworthy percentage. Verified
+  focused JVM tests, Android lint, and five connected JobDetail Compose tests on the emulator.
+- Post-exit integrated verification (2026-10-07): completed the readability and shared-action pass,
+  actionable Provider-unavailability diagnostics, and the expired Admin-login throttle-window repair.
+  The full deterministic Phase 6 gate passed after correcting Provider availability assessment so
+  credential-optional fake and Comfy adapters retain their truthful offline/waiting behavior. Generated
+  contract drift and boundaries, Backend Ruff/Pyright/full pytest, Android Debug/Release builds, lint,
+  full JVM tests, instrumentation APK compilation, and the release-boundary scan all passed.
+- Post-exit functional correction (2026-10-07): corrected before/after comparison so the original keeps
+  the full result viewport and is clipped instead of being remeasured into the revealed width; refreshed
+  the local asset library on resume and removed deleted items from its reusable grid while preserving
+  historical deletion placeholders; and replaced unusable decrement/increment controls with an explicit
+  fixed-one-candidate explanation when the selected Provider supports only one result. Android compile,
+  full JVM tests, lint, instrumentation APK compilation, ten connected asset/wizard Compose tests on the
+  emulator, Release build, and the release-boundary scan passed. By owner decision, mask-editor gesture
+  and tool-layout refinement is deferred to a dedicated later scope; switchable Android presentations
+  remain a draft proposal until functional acceptance is complete.
 - Next action: Phase 6 complete — return to `$planning` to plan Phase 7 (Web Admin and Operations
   Completion)
 

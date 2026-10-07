@@ -13,7 +13,7 @@
 产品应像一间安静、可信、长期使用的私人试衣工作室，而不是促销型电商、社交衣橱或带有霓虹装饰的 AI 工具。
 
 - 摄影是主要视觉材料。人物、衣物和结果图片承担情绪与可信度，界面 chrome 主动退后。
-- 编辑式排版建立产品气质。衬线标题带来时装编辑感，无衬线正文保证状态、说明和操作清晰。
+- 编辑式排版通过尺度、字重和留白建立层级。Android 全部使用设备优化的中文无衬线字体，保证模拟器与真机上的稳定清晰度；Web 结论标题仍可保留衬线气质。
 - 大面积暖中性背景营造私人感；深梅紫只用于生成、选择和关键导航，不铺满所有容器。
 - 通过尺度、留白、图像比例和前后景建立层级，不依赖彩色卡片堆叠。
 - AI 的存在通过生成状态、连续过渡和明确反馈体现，不使用霓虹、光晕、任意渐变或“未来感”装饰。
@@ -43,11 +43,11 @@ Web Admin 是同一产品的后台控制室。它继承 Quiet Atelier 的温暖�
 | Primary surface | `atelierPaper` | `#FBF8F3` | 内容底面、底部导航、浮层 |
 | Secondary surface | `atelierMist` | `#ECE7E1` | 次级区域、占位、禁用模式 |
 | Primary text | `atelierInk` | `#241F23` | 标题、正文、关键数字 |
-| Secondary text | `atelierMuted` | `#716970` | 元数据、说明、非关键状态 |
+| Secondary text | `atelierMuted` | `#5F565D` | 元数据、说明、非关键状态 |
 | Primary accent | `atelierPlum` | `#69465F` | 选择、生成动作、当前导航 |
 | Strong accent | `atelierPlumDeep` | `#4A3043` | 主按钮及高强调动作 |
 | Accent container | `atelierBlush` | `#DCC5CF` | 当前导航、选择辅助底色 |
-| Divider | `atelierLine` | `#DFD7D2` | 轻分隔、输入边界 |
+| Divider | `atelierLine` | `#948890` | 清晰可辨的分隔与输入边界 |
 | Success | `atelierSuccess` | `#426C56` | 完成、已保留、质量通过 |
 | Warning surface | `atelierWarning` | `#F3DFB7` | 可继续的质量风险、等待 |
 | Warning text | `atelierWarningInk` | `#6B4B18` | 警示标题和说明 |
@@ -64,10 +64,10 @@ Web Admin 是同一产品的后台控制室。它继承 Quiet Atelier 的温暖�
 | Primary surface | `#211D20` |
 | Secondary surface | `#2B262A` |
 | Primary text | `#F3ECEF` |
-| Secondary text | `#BEB3BA` |
+| Secondary text | `#D1C6CC` |
 | Primary accent | `#D5AFC3` |
 | Accent container | `#563A4E` |
-| Divider | `#40383D` |
+| Divider | `#71656C` |
 | Success | `#8FC3A2` |
 | Warning surface / text | `#4B391E` / `#F1D18E` |
 | Error | `#F1A19B` |
@@ -81,8 +81,8 @@ Web Admin 是同一产品的后台控制室。它继承 Quiet Atelier 的温暖�
 
 ### Font families
 
-- Display / editorial：`Noto Serif SC`，用于首页主叙事、页面主标题和结果选择标题。
-- UI / body：`Noto Sans SC`，用于导航、正文、状态、表单、按钮与元数据。
+- Android display / UI / body：设备系统中文无衬线字体，用较明确的字号和字重区分层级，避免部分模拟器缺少衬线字形时回退成细体。
+- Web editorial：页面结论与少量对象标题可继续使用衬线字体；表单、状态与操作使用无衬线字体。
 - 数字、百分比和运行时间使用 UI 字体的 tabular figures；不混用装饰性数字字体。
 - 字体作为本地资源随 App 提供，避免网络字体导致布局漂移。
 
@@ -92,18 +92,18 @@ Web Admin 是同一产品的后台控制室。它继承 Quiet Atelier 的温暖�
 
 | Role | Size / line height | Weight | Use |
 |---|---:|---:|---|
-| Display Large | 36sp / 42sp | 500 | 极少量品牌或空状态主句 |
-| Display Medium | 30sp / 36sp | 500 | 首页和关键结果主标题 |
-| Headline | 24sp / 30sp | 500 | 页面主标题 |
-| Title Large | 20sp / 26sp | 600 | 顶栏或区域标题 |
+| Display Large | 36sp / 42sp | 600 | 极少量品牌或空状态主句 |
+| Display Medium | 30sp / 36sp | 600 | 首页和关键结果主标题 |
+| Headline | 24sp / 30sp | 600 | 页面主标题 |
+| Title Large | 20sp / 26sp | 700 | 顶栏或区域标题 |
 | Title Medium | 16sp / 22sp | 650 | 卡片实体、重要状态 |
-| Body Large | 16sp / 24sp | 400 | 关键解释、表单内容 |
-| Body Medium | 14sp / 21sp | 400 | 默认正文 |
+| Body Large | 16sp / 24sp | 500 | 关键解释、表单内容 |
+| Body Medium | 15sp / 22sp | 500 | 默认正文 |
 | Label Large | 14sp / 20sp | 700 | 主次按钮、筛选 |
-| Label Medium | 12sp / 17sp | 650 | 元数据、状态 |
+| Label Medium | 13sp / 18sp | 650 | 元数据、状态 |
 | Overline | 11sp / 16sp | 750 | 英文眉题；字距 0.12em |
 
-- 衬线字体只承担情绪与层级，不用于长段状态、错误、表单或按钮。
+- Android 不依赖衬线字体承担层级；标题使用更高字重，长段状态、错误、表单和按钮保持统一无衬线字形。
 - 关键状态和恢复动作不截断；大字号下允许换行和增加容器高度。
 - 中文不使用全大写。英文 overline 只作辅助，不承担唯一信息。
 
@@ -374,7 +374,7 @@ Web Admin：
 
 ### Shared versus platform-specific boundary
 
-- Android 与 Web Admin 共享：暖中性色、plum 品牌强调、衬线/无衬线排版方向、状态语义、单角收紧的形状家族、克制动效与不依赖颜色的反馈。
+- Android 与 Web Admin 共享：暖中性色、plum 品牌强调、清晰的排版层级、状态语义、单角收紧的形状家族、克制动效与不依赖颜色的反馈。
 - Android 特有：摄影主导、Bottom Navigation、移动端全屏目的地、系统 Sheet、触控优先目标与平台返回行为。
 - Web Admin 特有：固定分组 Sidebar、桌面路径顶栏、ledger、密集表格、右侧 Inspector、verification rail、粘性 action rail、键盘焦点和受控横向滚动。
 - 跨平台统一不意味着组件结构相同；共享的是产品性格与语义，不是把任一平台界面机械缩放到另一平台。

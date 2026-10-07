@@ -1,7 +1,9 @@
 package com.clothesmodel.android.create
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import com.clothesmodel.android.data.AuthenticatedImageLoader
 import com.clothesmodel.android.data.AssetLifecycle
@@ -108,6 +110,36 @@ class CreateWizardScreenTest {
 
         rule.onNodeWithText("已选择 ·", substring = true).assertIsDisplayed()
         rule.onNodeWithText("下一步").assertIsDisplayed()
+    }
+
+    @Test
+    fun settingsStepExplainsWhyGenerationIsDisabled() {
+        render(
+            CreateWizardUiState(
+                step = WizardStep.SETTINGS,
+                loading = false,
+                providers = listOf(
+                    ProviderModel(
+                        id = UUID.randomUUID(),
+                        displayName = "Ark Seedream",
+                        availability = ProviderAvailabilityDomain.UNAVAILABLE_CONFIGURATION,
+                        isDefault = true,
+                        maxCandidates = 1,
+                        supportsManualMask = false,
+                        supportsRegionMask = false,
+                        garmentCategories = emptyList(),
+                        unavailableReason = "Provider 凭据无法解密，请管理员重新保存 API Key。",
+                    ),
+                ),
+            ),
+        )
+
+        rule.onAllNodesWithText(
+            "Provider 凭据无法解密，请管理员重新保存 API Key。",
+            substring = true,
+        ).assertCountEquals(2)
+        rule.onNodeWithText("重新检查").assertIsDisplayed()
+        rule.onNodeWithText("暂不可用").assertIsDisplayed()
     }
 
     @Test

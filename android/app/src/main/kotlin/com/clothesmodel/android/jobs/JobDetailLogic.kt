@@ -19,7 +19,10 @@ internal fun candidateStateLabel(state: CandidateStateDomain): String = when (st
 }
 
 internal fun formatElapsed(start: OffsetDateTime, end: OffsetDateTime): String {
-    val minutes = Duration.between(start, end).toMinutes().coerceAtLeast(0)
+    val duration = Duration.between(start, end).coerceAtLeast(Duration.ZERO)
+    val seconds = duration.seconds
+    if (seconds < 60) return "$seconds 秒"
+    val minutes = duration.toMinutes()
     return if (minutes < 60) "$minutes 分钟" else "${minutes / 60} 小时 ${minutes % 60} 分"
 }
 
@@ -34,7 +37,31 @@ internal fun needsAttentionActions(state: CandidateStateDomain): Boolean =
     state == CandidateStateDomain.NEEDS_ATTENTION
 
 internal fun succeededCandidates(candidates: List<CandidateModel>): Int =
-    candidates.count { it.state == CandidateStateDomain.SUCCEEDED }
+    candidates.count { it.isCurrentAttempt && it.state == CandidateStateDomain.SUCCEEDED }
 
 internal fun failedCandidates(candidates: List<CandidateModel>): Int =
-    candidates.count { it.state == CandidateStateDomain.FAILED }
+    candidates.count { it.isCurrentAttempt && it.state == CandidateStateDomain.FAILED }
+
+internal fun completedCandidates(candidates: List<CandidateModel>): Int =
+    candidates.count { it.isCurrentAttempt && it.state.isTerminal }
+
+private val CandidateModel.isCurrentAttempt: Boolean
+    get() = supersededByJobItemId == null
+
+internal fun isProgressActive(state: JobStateDomain): Boolean = when (state) {
+    JobStateDomain.QUEUED,
+    JobStateDomain.WAITING_PROVIDER,
+    JobStateDomain.PREPARING,
+    JobStateDomain.RUNNING,
+    -> true
+
+    else -> false
+}
+
+internal fun progressStageLabel(state: JobStateDomain): String? = when (state) {
+    JobStateDomain.QUEUED -> "阶段 1/3 · 已排队"
+    JobStateDomain.WAITING_PROVIDER -> "等待 Provider · 恢复后自动继续"
+    JobStateDomain.PREPARING -> "阶段 2/3 · 正在准备输入"
+    JobStateDomain.RUNNING -> "阶段 3/3 · 正在生成"
+    else -> null
+}

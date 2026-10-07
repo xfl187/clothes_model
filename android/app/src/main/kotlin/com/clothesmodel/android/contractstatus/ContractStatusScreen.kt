@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,6 +24,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.clothesmodel.android.ui.components.AtelierButton
 
 @Composable
 fun ContractStatusRoute(viewModel: ContractStatusViewModel = hiltViewModel()) {
@@ -83,7 +83,7 @@ fun ContractStatusScreen(
                     }
                 }
                 item {
-                    Button(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) {
+                    AtelierButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) {
                         Text("Refresh contract probes")
                     }
                 }

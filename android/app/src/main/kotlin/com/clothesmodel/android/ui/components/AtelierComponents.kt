@@ -13,11 +13,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -171,7 +169,7 @@ fun InlineProblem(
                 color = tokens.warningInk,
             )
             if (retryLabel != null && onRetry != null) {
-                OutlinedButton(
+                AtelierOutlinedButton(
                     onClick = onRetry,
                     modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
                 ) { Text(retryLabel) }
@@ -200,7 +198,7 @@ fun EmptyState(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (actionLabel != null && onAction != null) {
-            Button(
+            AtelierButton(
                 onClick = onAction,
                 modifier = Modifier.sizeIn(minHeight = AtelierSpacing.minTouchTarget),
             ) { Text(actionLabel) }
