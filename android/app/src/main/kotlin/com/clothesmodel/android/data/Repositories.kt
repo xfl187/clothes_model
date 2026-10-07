@@ -1,10 +1,17 @@
 package com.clothesmodel.android.data
 
+import com.clothesmodel.contract.model.AddOutfitLayerRequest
 import com.clothesmodel.contract.model.CreateJobRequest
 import com.clothesmodel.contract.model.CreateOutfitSessionRequest
 import com.clothesmodel.contract.model.FinishFailedRequest
+import com.clothesmodel.contract.model.LayerRole
+import com.clothesmodel.contract.model.OutfitLayerResult
+import com.clothesmodel.contract.model.OutfitRoute
 import com.clothesmodel.contract.model.OutfitSession
+import com.clothesmodel.contract.model.RemoveOutfitLayerRequest
 import com.clothesmodel.contract.model.RetryJobItemRequest
+import com.clothesmodel.contract.model.SelectOutfitRevisionRequest
+import com.clothesmodel.contract.model.SwitchOutfitRouteRequest
 import com.clothesmodel.contract.model.UpdateOutfitSessionRequest
 import java.io.IOException
 import java.util.UUID
@@ -213,6 +220,40 @@ interface OutfitRepository {
     ): Outcome<OutfitSession>
 
     suspend fun setFavorite(sessionId: UUID, favorite: Boolean): Outcome<OutfitSession>
+
+    suspend fun get(sessionId: UUID): Outcome<OutfitSession>
+
+    suspend fun addLayer(
+        sessionId: UUID,
+        branchId: UUID,
+        role: LayerRole,
+        garmentAssetId: UUID,
+        providerId: UUID?,
+        candidateCount: Int,
+        idempotencyKey: String,
+    ): Outcome<OutfitLayerResult>
+
+    suspend fun selectRevision(
+        sessionId: UUID,
+        branchId: UUID,
+        revisionId: UUID,
+        jobItemId: UUID,
+        outputId: UUID,
+        idempotencyKey: String,
+    ): Outcome<OutfitSession>
+
+    suspend fun removeLayer(
+        sessionId: UUID,
+        branchId: UUID,
+        layerId: UUID,
+        mode: RemoveOutfitLayerRequest.Mode?,
+    ): Outcome<OutfitSession>
+
+    suspend fun switchRoute(
+        sessionId: UUID,
+        route: OutfitRoute,
+        idempotencyKey: String,
+    ): Outcome<OutfitSession>
 }
 
 class NetworkOutfitRepository(
@@ -244,6 +285,80 @@ class NetworkOutfitRepository(
         services.outfits.updateOutfitSession(
             sessionId,
             UpdateOutfitSessionRequest(favorite = favorite),
+        ).toOutcome(events) { it }
+    }
+
+    override suspend fun get(sessionId: UUID): Outcome<OutfitSession> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.getOutfitSession(sessionId).toOutcome(events) { it }
+    }
+
+    override suspend fun addLayer(
+        sessionId: UUID,
+        branchId: UUID,
+        role: LayerRole,
+        garmentAssetId: UUID,
+        providerId: UUID?,
+        candidateCount: Int,
+        idempotencyKey: String,
+    ): Outcome<OutfitLayerResult> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.addOutfitLayer(
+            sessionId,
+            branchId,
+            idempotencyKey,
+            AddOutfitLayerRequest(
+                role = role,
+                garmentAssetId = garmentAssetId,
+                providerId = providerId,
+                candidateCount = candidateCount,
+            ),
+        ).toOutcome(events) { it }
+    }
+
+    override suspend fun selectRevision(
+        sessionId: UUID,
+        branchId: UUID,
+        revisionId: UUID,
+        jobItemId: UUID,
+        outputId: UUID,
+        idempotencyKey: String,
+    ): Outcome<OutfitSession> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.selectOutfitRevision(
+            sessionId,
+            branchId,
+            revisionId,
+            idempotencyKey,
+            SelectOutfitRevisionRequest(jobItemId = jobItemId, outputId = outputId),
+        ).toOutcome(events) { it }
+    }
+
+    override suspend fun removeLayer(
+        sessionId: UUID,
+        branchId: UUID,
+        layerId: UUID,
+        mode: RemoveOutfitLayerRequest.Mode?,
+    ): Outcome<OutfitSession> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.removeOutfitLayer(
+            sessionId,
+            branchId,
+            layerId,
+            mode?.let { RemoveOutfitLayerRequest(mode = it) },
+        ).toOutcome(events) { it }
+    }
+
+    override suspend fun switchRoute(
+        sessionId: UUID,
+        route: OutfitRoute,
+        idempotencyKey: String,
+    ): Outcome<OutfitSession> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.switchOutfitRoute(
+            sessionId,
+            idempotencyKey,
+            SwitchOutfitRouteRequest(route = route),
         ).toOutcome(events) { it }
     }
 }

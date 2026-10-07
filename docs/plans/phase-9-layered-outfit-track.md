@@ -56,11 +56,16 @@
   enabled `分层穿搭` home entry, the `outfits` session-list screen (list/create-from-person/favorite) with
   its ViewModel, and navigation routes (workbench placeholder for Task 11). Verified: Android
   `compileDebugKotlin`, `testDebugUnitTest` (new `OutfitSessionListViewModelTest`), and `lintDebug`.
-- Task 11 — PENDING
+- Task 11 — COMPLETE (2026-10-07): real layered workbench replacing the placeholder — confirmed layers,
+  add-layer (role/garment/provider/candidates) with capability-gated job creation, candidate selection to
+  commit a revision, branch working-layer list with `pending_reapply` presentation and remove, and route
+  switch actions; `OutfitRepository` extended with get/addLayer/selectRevision/removeLayer/switchRoute.
+  Verified: Android `compileDebugKotlin`, `:app:testDebugUnitTest`, `:app:lintDebug`. Connected Compose
+  tests for the workbench remain in the CI emulator scope.
 - Task 12 — PENDING
 - Task 13 — PENDING
 - Task 14 — PENDING
-- Next action: implement Task 11 — Android workbench and layer management.
+- Next action: implement Task 12 — Android branches, route switch, reapply, and protected deletion.
 
 ## Goal
 

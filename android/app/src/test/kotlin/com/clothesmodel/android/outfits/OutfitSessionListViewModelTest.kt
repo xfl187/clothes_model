@@ -6,7 +6,12 @@ import com.clothesmodel.android.data.AssetRepository
 import com.clothesmodel.android.data.AuthenticationEvents
 import com.clothesmodel.android.data.Outcome
 import com.clothesmodel.android.data.OutfitRepository
+import com.clothesmodel.android.data.ProblemModel
+import com.clothesmodel.contract.model.LayerRole
+import com.clothesmodel.contract.model.OutfitLayerResult
+import com.clothesmodel.contract.model.OutfitRoute
 import com.clothesmodel.contract.model.OutfitSession
+import com.clothesmodel.contract.model.RemoveOutfitLayerRequest
 import java.time.OffsetDateTime
 import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,18 +48,67 @@ class OutfitSessionListViewModelTest {
         },
     )
 
+    private open class FakeOutfitRepository(
+        private val sessions: List<OutfitSession>,
+        private val created: OutfitSession?,
+    ) : OutfitRepository {
+        override suspend fun list(limit: Int) = Outcome.Success(sessions)
+
+        override suspend fun create(
+            personAssetId: UUID,
+            name: String?,
+            idempotencyKey: String,
+        ) = created?.let { Outcome.Success(it) }
+            ?: Outcome.Problem(ProblemModel("not_found", "", 0, false))
+
+        override suspend fun setFavorite(sessionId: UUID, favorite: Boolean): Outcome<OutfitSession> {
+            val current = sessions.first { it.id == sessionId }
+            return Outcome.Success(current.copy(favorite = favorite))
+        }
+
+        override suspend fun get(sessionId: UUID): Outcome<OutfitSession> =
+            Outcome.Success(sessions.first { it.id == sessionId })
+
+        override suspend fun addLayer(
+            sessionId: UUID,
+            branchId: UUID,
+            role: LayerRole,
+            garmentAssetId: UUID,
+            providerId: UUID?,
+            candidateCount: Int,
+            idempotencyKey: String,
+        ): Outcome<OutfitLayerResult> = throw UnsupportedOperationException()
+
+        override suspend fun selectRevision(
+            sessionId: UUID,
+            branchId: UUID,
+            revisionId: UUID,
+            jobItemId: UUID,
+            outputId: UUID,
+            idempotencyKey: String,
+        ): Outcome<OutfitSession> = throw UnsupportedOperationException()
+
+        override suspend fun removeLayer(
+            sessionId: UUID,
+            branchId: UUID,
+            layerId: UUID,
+            mode: RemoveOutfitLayerRequest.Mode?,
+        ): Outcome<OutfitSession> = throw UnsupportedOperationException()
+
+        override suspend fun switchRoute(
+            sessionId: UUID,
+            route: OutfitRoute,
+            idempotencyKey: String,
+        ): Outcome<OutfitSession> = throw UnsupportedOperationException()
+    }
+
     @Test
     fun `refresh loads sessions`() = runTest(mainDispatcherRule.dispatcher) {
         val expected = listOf(session(UUID.randomUUID(), "Look A"))
-        val repository = object : OutfitRepository {
-            override suspend fun list(limit: Int) = Outcome.Success(expected)
-            override suspend fun create(personAssetId: UUID, name: String?, idempotencyKey: String) =
-                Outcome.Success(expected.first())
-
-            override suspend fun setFavorite(sessionId: UUID, favorite: Boolean) =
-                Outcome.Success(expected.first())
-        }
-        val viewModel = OutfitSessionListViewModel(repository, emptyAssetRepository())
+        val viewModel = OutfitSessionListViewModel(
+            FakeOutfitRepository(expected, expected.first()),
+            emptyAssetRepository(),
+        )
 
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
 
@@ -65,15 +119,10 @@ class OutfitSessionListViewModelTest {
     @Test
     fun `create exposes the new session`() = runTest(mainDispatcherRule.dispatcher) {
         val created = session(UUID.randomUUID(), "New Look")
-        val repository = object : OutfitRepository {
-            override suspend fun list(limit: Int) = Outcome.Success(emptyList<OutfitSession>())
-            override suspend fun create(personAssetId: UUID, name: String?, idempotencyKey: String) =
-                Outcome.Success(created)
-
-            override suspend fun setFavorite(sessionId: UUID, favorite: Boolean) =
-                Outcome.Success(created)
-        }
-        val viewModel = OutfitSessionListViewModel(repository, emptyAssetRepository())
+        val viewModel = OutfitSessionListViewModel(
+            FakeOutfitRepository(emptyList(), created),
+            emptyAssetRepository(),
+        )
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
 
         viewModel.create(UUID.randomUUID())
@@ -85,17 +134,11 @@ class OutfitSessionListViewModelTest {
 
     @Test
     fun `toggleFavorite updates the matching session`() = runTest(mainDispatcherRule.dispatcher) {
-        val id = UUID.randomUUID()
-        val initial = session(id, "Look A", favorite = false)
-        val repository = object : OutfitRepository {
-            override suspend fun list(limit: Int) = Outcome.Success(listOf(initial))
-            override suspend fun create(personAssetId: UUID, name: String?, idempotencyKey: String) =
-                Outcome.Success(initial)
-
-            override suspend fun setFavorite(sessionId: UUID, favorite: Boolean) =
-                Outcome.Success(initial.copy(favorite = favorite))
-        }
-        val viewModel = OutfitSessionListViewModel(repository, emptyAssetRepository())
+        val initial = session(UUID.randomUUID(), "Look A", favorite = false)
+        val viewModel = OutfitSessionListViewModel(
+            FakeOutfitRepository(listOf(initial), initial),
+            emptyAssetRepository(),
+        )
         mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleFavorite(initial)

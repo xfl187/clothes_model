@@ -32,7 +32,7 @@ import com.clothesmodel.android.home.HomeRoute
 import com.clothesmodel.android.jobs.JobDetailRoute
 import com.clothesmodel.android.mask.MaskEditorRoute
 import com.clothesmodel.android.outfits.OutfitSessionListRoute
-import com.clothesmodel.android.outfits.OutfitWorkbenchPlaceholder
+import com.clothesmodel.android.outfits.OutfitWorkbenchRoute
 import com.clothesmodel.android.results.CompareRoute
 import com.clothesmodel.android.results.ResultRoute
 import com.clothesmodel.android.ui.theme.AtelierShapes
@@ -278,10 +278,14 @@ fun ClothesModelNavHost(navController: NavHostController = rememberNavController
             arguments = listOf(
                 navArgument(Destinations.ARG_SESSION_ID) { type = NavType.StringType },
             ),
-        ) { entry ->
-            OutfitWorkbenchPlaceholder(
-                sessionId = entry.arguments?.getString(Destinations.ARG_SESSION_ID).orEmpty(),
+        ) {
+            OutfitWorkbenchRoute(
                 onBack = { navController.popBackStack() },
+                onAuthenticationExpired = {
+                    navController.navigate(Destinations.connection(reauth = true)) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                },
             )
         }
     }
