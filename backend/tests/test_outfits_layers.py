@@ -1,0 +1,290 @@
+import asyncio
+import json
+from datetime import UTC, datetime
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi.testclient import TestClient
+
+from clothes_model.api.application import create_app
+from clothes_model.core.config import Settings
+from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork, create_database_runtime
+from clothes_model.infrastructure.database.migrations import upgrade_database
+from clothes_model.modules.assets.domain import (
+    Asset,
+    GarmentMetadata,
+    PersonMetadata,
+    StoredObject,
+)
+from clothes_model.modules.auth.application import TokenService
+from clothes_model.modules.jobs.domain import GeneratedOutputRecord
+from clothes_model.modules.providers.domain import ProviderConfig, ProviderConfigRevision
+
+_ALL_ROLES = ["inner_top", "outerwear", "lower_body", "dress"]
+
+
+def _now() -> datetime:
+    return datetime(2026, 10, 7, 12, 0, tzinfo=UTC)
+
+
+def _capabilities(*, sequential: bool) -> str:
+    return json.dumps(
+        {
+            "schema_version": 1,
+            "garment_categories": {
+                "values": ["upper_body", "lower_body", "dress"],
+                "source": "adapter",
+                "verification": "declared",
+            },
+            "manual_mask": {"supported": True, "source": "adapter", "verification": "declared"},
+            "sequential_layering": {
+                "supported": sequential,
+                "source": "adapter",
+                "verification": "declared",
+            },
+            "supported_layer_roles": {
+                "values": _ALL_ROLES,
+                "source": "adapter",
+                "verification": "declared",
+            },
+            "output_constraints": {"max_candidates": 4},
+        }
+    )
+
+
+def _bootstrap(database_url: str) -> dict[str, str]:
+    async def run() -> dict[str, str]:
+        runtime = create_database_runtime(database_url, 5000)
+        try:
+            return {
+                item.scope: item.value
+                for item in await TokenService(
+                    lambda: SqlAlchemyUnitOfWork(runtime.sessions)
+                ).bootstrap()
+            }
+        finally:
+            await runtime.close()
+
+    return asyncio.run(run())
+
+
+def _seed_assets_and_provider(
+    database_url: str, *, sequential: bool = True
+) -> dict[str, str]:
+    person_id, garment_id = str(uuid4()), str(uuid4())
+    provider_id, revision_id = str(uuid4()), str(uuid4())
+    person_object, garment_object = str(uuid4()), str(uuid4())
+
+    async def run() -> None:
+        runtime = create_database_runtime(database_url, 5000)
+        try:
+            async with SqlAlchemyUnitOfWork(runtime.sessions) as uow:
+                for object_id, digest, path in (
+                    (person_object, "e", "objects/ee/person"),
+                    (garment_object, "f", "objects/ff/garment"),
+                ):
+                    await uow.stored_objects.add(
+                        StoredObject(
+                            id=object_id,
+                            sha256=digest * 64,
+                            relative_path=path,
+                            content_type="image/jpeg",
+                            size_bytes=128,
+                            width=16,
+                            height=8,
+                            state="available",
+                            asset_ref_count=0,
+                            created_at=_now(),
+                        )
+                    )
+                await uow.assets.add(
+                    Asset(
+                        id=person_id,
+                        kind="person",
+                        stored_object_id=person_object,
+                        favorite=False,
+                        content_state="available",
+                        created_at=_now(),
+                        updated_at=_now(),
+                        person=PersonMetadata(asset_id=person_id),
+                    )
+                )
+                await uow.assets.add(
+                    Asset(
+                        id=garment_id,
+                        kind="garment",
+                        stored_object_id=garment_object,
+                        favorite=False,
+                        content_state="available",
+                        created_at=_now(),
+                        updated_at=_now(),
+                        garment=GarmentMetadata(
+                            asset_id=garment_id, category="upper_body", source="photo"
+                        ),
+                    )
+                )
+                await uow.provider_configs.add_config(
+                    ProviderConfig(
+                        id=provider_id,
+                        display_name="Layered Fake",
+                        provider_type="llm_image_edit",
+                        state="active",
+                        created_at=_now(),
+                        updated_at=_now(),
+                    )
+                )
+                await uow.provider_configs.add_revision(
+                    ProviderConfigRevision(
+                        id=revision_id,
+                        provider_id=provider_id,
+                        revision=1,
+                        adapter_type="fake_image_edit",
+                        endpoint="https://fake.local",
+                        model="fake-model",
+                        timeout_seconds=30,
+                        capabilities_json=_capabilities(sequential=sequential),
+                        vendor_parameters_json='{"scenario":"success"}',
+                        created_at=_now(),
+                    )
+                )
+                await uow.commit()
+        finally:
+            await runtime.close()
+
+    asyncio.run(run())
+    return {"person": person_id, "garment": garment_id, "provider": provider_id}
+
+
+def _seed_output(database_url: str, job_item_id: str) -> str:
+    output_id, asset_id, object_id = str(uuid4()), str(uuid4()), str(uuid4())
+
+    async def run() -> None:
+        runtime = create_database_runtime(database_url, 5000)
+        try:
+            async with SqlAlchemyUnitOfWork(runtime.sessions) as uow:
+                await uow.stored_objects.add(
+                    StoredObject(
+                        id=object_id,
+                        sha256="a" * 64,
+                        relative_path="objects/aa/output",
+                        content_type="image/png",
+                        size_bytes=256,
+                        width=16,
+                        height=16,
+                        state="available",
+                        asset_ref_count=1,
+                        created_at=_now(),
+                    )
+                )
+                await uow.assets.add(
+                    Asset(
+                        id=asset_id,
+                        kind="generated_output",
+                        stored_object_id=object_id,
+                        favorite=False,
+                        content_state="available",
+                        created_at=_now(),
+                        updated_at=_now(),
+                    )
+                )
+                await uow.job_outputs.add_output(
+                    GeneratedOutputRecord(
+                        id=output_id,
+                        job_item_id=job_item_id,
+                        asset_id=asset_id,
+                        favorite=False,
+                        seed=None,
+                        actual_parameters_json="{}",
+                        quality_warnings_json="[]",
+                        created_at=_now(),
+                    )
+                )
+                await uow.commit()
+        finally:
+            await runtime.close()
+
+    asyncio.run(run())
+    return output_id
+
+
+def _build(tmp_path: Path, *, sequential: bool = True) -> tuple[TestClient, dict, dict]:
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'outfit-layers.db').as_posix()}"
+    upgrade_database(database_url, tmp_path / "migration.lock")
+    credentials = _bootstrap(database_url)
+    seeded = _seed_assets_and_provider(database_url, sequential=sequential)
+    settings = Settings(
+        environment="test",
+        database_url=database_url,
+        instance_lock_path=tmp_path / "instance.lock",
+        storage_root=tmp_path / "storage",
+        admin_session_cookie_secure=False,
+    )
+    return TestClient(create_app(settings)), credentials, seeded
+
+
+def test_add_layer_creates_job_and_select_commits_revision(tmp_path: Path) -> None:
+    client, credentials, seeded = _build(tmp_path)
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'outfit-layers.db').as_posix()}"
+    headers = {"Authorization": f"Bearer {credentials['app']}"}
+    with client:
+        created = client.post(
+            "/api/v1/outfits",
+            json={"person_asset_id": seeded["person"]},
+            headers={**headers, "Idempotency-Key": "ol-session-0001"},
+        ).json()
+        session_id = created["id"]
+        branch_id = created["branches"][0]["id"]
+        base_revision = created["head_revision"]["id"]
+
+        layered = client.post(
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers",
+            json={
+                "role": "inner_top",
+                "garment_asset_id": seeded["garment"],
+                "provider_id": seeded["provider"],
+                "candidate_count": 1,
+            },
+            headers={**headers, "Idempotency-Key": "ol-layer-0001"},
+        )
+        assert layered.status_code == 201, layered.text
+        result = layered.json()
+        job_id = result["job"]["id"]
+        item_id = result["job"]["items"][0]["id"]
+        assert result["job"]["garment_asset_id"] == seeded["garment"]
+
+        output_id = _seed_output(database_url, item_id)
+        selected = client.post(
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}"
+            f"/revisions/{base_revision}/select",
+            json={"job_item_id": item_id, "output_id": output_id},
+            headers={**headers, "Idempotency-Key": "ol-select-0001"},
+        )
+        assert selected.status_code == 200, selected.text
+        head = selected.json()["head_revision"]
+        assert head["id"] != base_revision
+        assert [layer["role"] for layer in head["layers"]] == ["inner_top"]
+        assert head["layers"][0]["selected_output_id"] == output_id
+        assert job_id  # the linked job existed
+
+
+def test_add_layer_rejects_provider_without_layering(tmp_path: Path) -> None:
+    client, credentials, seeded = _build(tmp_path, sequential=False)
+    headers = {"Authorization": f"Bearer {credentials['app']}"}
+    with client:
+        created = client.post(
+            "/api/v1/outfits",
+            json={"person_asset_id": seeded["person"]},
+            headers={**headers, "Idempotency-Key": "ol-session-0002"},
+        ).json()
+        rejected = client.post(
+            f"/api/v1/outfits/{created['id']}/branches/{created['branches'][0]['id']}/layers",
+            json={
+                "role": "inner_top",
+                "garment_asset_id": seeded["garment"],
+                "provider_id": seeded["provider"],
+                "candidate_count": 1,
+            },
+            headers={**headers, "Idempotency-Key": "ol-layer-0002"},
+        )
+        assert rejected.status_code == 409
+        assert rejected.json()["code"] == "provider_not_usable"

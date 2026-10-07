@@ -24,6 +24,7 @@
 package com.clothesmodel.contract.model
 
 import com.clothesmodel.contract.model.GenerationOptions
+import com.clothesmodel.contract.model.OutfitJobContext
 import com.clothesmodel.contract.model.TryOnMode
 
 import kotlinx.serialization.Serializable
@@ -45,6 +46,7 @@ import kotlinx.serialization.encoding.Encoder
  * @param generationOptions 
  * @param maskAssetId 
  * @param relatedJobId Links a mask-correction job to the original job without overwriting it.
+ * @param outfitContext Present only for V1.1 layered-outfit layer jobs. V1 jobs omit it and keep their behavior.
  */
 @Serializable
 
@@ -73,7 +75,11 @@ data class CreateJobRequest (
 
     /* Links a mask-correction job to the original job without overwriting it. */
     @Contextual @SerialName(value = "related_job_id")
-    val relatedJobId: java.util.UUID? = null
+    val relatedJobId: java.util.UUID? = null,
+
+    /* Present only for V1.1 layered-outfit layer jobs. V1 jobs omit it and keep their behavior. */
+    @SerialName(value = "outfit_context")
+    val outfitContext: OutfitJobContext? = null
 
 ) {
 

@@ -34,6 +34,8 @@ tags:
     description: Capacity status, cleanup preview, and confirmed cleanup commands.
   - name: Diagnostics
     description: Redacted, timestamped operational diagnostics for administrators.
+  - name: Outfits
+    description: V1.1 layered-outfit sessions, branches, revisions, and layers.
 paths:
   /health/live:
     $ref: ./paths/health.yaml#/Live
@@ -135,6 +137,24 @@ paths:
     $ref: ./paths/diagnostics.yaml#/RequeryJobItem
   /api/v1/admin/diagnostics/job-items/{job_item_id}/finish-failed:
     $ref: ./paths/diagnostics.yaml#/FinishFailedJobItem
+  /api/v1/outfits:
+    $ref: ./paths/outfits.yaml#/Collection
+  /api/v1/outfits/{session_id}:
+    $ref: ./paths/outfits.yaml#/Session
+  /api/v1/outfits/{session_id}/branches:
+    $ref: ./paths/outfits.yaml#/Branches
+  /api/v1/outfits/{session_id}/branches/{branch_id}:
+    $ref: ./paths/outfits.yaml#/Branch
+  /api/v1/outfits/{session_id}/branches/{branch_id}/layers:
+    $ref: ./paths/outfits.yaml#/Layers
+  /api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}:
+    $ref: ./paths/outfits.yaml#/Layer
+  /api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}/reapply:
+    $ref: ./paths/outfits.yaml#/ReapplyLayer
+  /api/v1/outfits/{session_id}/branches/{branch_id}/revisions/{revision_id}/select:
+    $ref: ./paths/outfits.yaml#/SelectRevision
+  /api/v1/outfits/{session_id}/route:
+    $ref: ./paths/outfits.yaml#/Route
 components:
   securitySchemes:
     AppBearer:

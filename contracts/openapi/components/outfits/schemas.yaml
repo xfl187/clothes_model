@@ -1,0 +1,305 @@
+OutfitRoute:
+  type: string
+  enum: [split, dress, unknown]
+
+LayerRole:
+  type: string
+  enum: [inner_top, outerwear, lower_body, dress, unknown]
+
+LayerApplyState:
+  type: string
+  enum: [applied, pending_reapply, unknown]
+
+LayerTypeDefinition:
+  type: object
+  additionalProperties: false
+  required: [key, body_region, order, compatible_roles, conflicting_roles]
+  properties:
+    key:
+      $ref: '#/LayerRole'
+    body_region:
+      type: string
+    order:
+      type: integer
+      minimum: 0
+    compatible_roles:
+      type: array
+      items:
+        $ref: '#/LayerRole'
+    conflicting_roles:
+      type: array
+      items:
+        $ref: '#/LayerRole'
+    required_capabilities:
+      type: array
+      items:
+        type: string
+
+OutfitLayer:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - role
+    - garment_asset_id
+    - order
+    - state
+    - definition_version
+    - created_at
+    - updated_at
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    role:
+      $ref: '#/LayerRole'
+    garment_asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    order:
+      type: integer
+      minimum: 0
+    state:
+      $ref: '#/LayerApplyState'
+    definition_version:
+      type: integer
+      minimum: 1
+    source_layer_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    apply_job_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    selected_output_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+OutfitRevision:
+  type: object
+  additionalProperties: false
+  required: [id, branch_id, layers, created_at]
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    branch_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    base_revision_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    parent_revision_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    layers:
+      type: array
+      items:
+        $ref: '#/OutfitLayer'
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+OutfitBranch:
+  type: object
+  additionalProperties: false
+  required: [id, name, route, is_mainline, favorite, created_at, updated_at]
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    name:
+      type: string
+    route:
+      $ref: '#/OutfitRoute'
+    is_mainline:
+      type: boolean
+    favorite:
+      type: boolean
+    head_revision_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    revision_count:
+      type: integer
+      minimum: 0
+    unfinished_job_count:
+      type: integer
+      minimum: 0
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+OutfitSession:
+  type: object
+  additionalProperties: false
+  required:
+    - id
+    - name
+    - favorite
+    - person_asset_id
+    - layer_definition_version
+    - layer_types
+    - branches
+    - created_at
+    - updated_at
+  properties:
+    id:
+      $ref: ../common/schemas.yaml#/Identifier
+    name:
+      type: string
+    favorite:
+      type: boolean
+    person_asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    layer_definition_version:
+      type: integer
+      minimum: 1
+    layer_types:
+      type: array
+      items:
+        $ref: '#/LayerTypeDefinition'
+    main_branch_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    head_revision:
+      $ref: '#/OutfitRevision'
+    branches:
+      type: array
+      items:
+        $ref: '#/OutfitBranch'
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    updated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+OutfitSessionPage:
+  type: object
+  additionalProperties: false
+  required: [items, next_cursor, has_more]
+  properties:
+    items:
+      type: array
+      items:
+        $ref: '#/OutfitSession'
+    next_cursor:
+      type: string
+      nullable: true
+    has_more:
+      type: boolean
+
+CreateOutfitSessionRequest:
+  type: object
+  additionalProperties: false
+  required: [person_asset_id]
+  properties:
+    person_asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    name:
+      type: string
+      maxLength: 120
+
+UpdateOutfitSessionRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      maxLength: 120
+    favorite:
+      type: boolean
+
+CreateOutfitBranchRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      maxLength: 120
+    base_revision_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    route:
+      $ref: '#/OutfitRoute'
+
+UpdateOutfitBranchRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      maxLength: 120
+    favorite:
+      type: boolean
+    mainline:
+      type: boolean
+
+AddOutfitLayerRequest:
+  type: object
+  additionalProperties: false
+  required: [role, garment_asset_id]
+  properties:
+    role:
+      $ref: '#/LayerRole'
+    garment_asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    provider_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    candidate_count:
+      type: integer
+      minimum: 1
+      maximum: 4
+    mask_asset_id:
+      $ref: ../common/schemas.yaml#/Identifier
+
+SelectOutfitRevisionRequest:
+  type: object
+  additionalProperties: false
+  required: [job_item_id, output_id]
+  properties:
+    job_item_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    output_id:
+      $ref: ../common/schemas.yaml#/Identifier
+
+RemoveOutfitLayerRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    mode:
+      type: string
+      enum: [remove, revert]
+
+ReapplyOutfitLayerRequest:
+  type: object
+  additionalProperties: false
+  properties:
+    provider_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    candidate_count:
+      type: integer
+      minimum: 1
+      maximum: 4
+
+SwitchOutfitRouteRequest:
+  type: object
+  additionalProperties: false
+  required: [route]
+  properties:
+    route:
+      $ref: '#/OutfitRoute'
+
+OutfitLayerResult:
+  type: object
+  additionalProperties: false
+  required: [session, job]
+  properties:
+    session:
+      $ref: '#/OutfitSession'
+    job:
+      $ref: ../jobs/schemas.yaml#/TryOnJob
+
+OutfitJobContext:
+  type: object
+  additionalProperties: false
+  required: [session_id, branch_id, layer_id, role]
+  properties:
+    session_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    branch_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    base_revision_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    layer_id:
+      $ref: ../common/schemas.yaml#/Identifier
+    role:
+      $ref: '#/LayerRole'

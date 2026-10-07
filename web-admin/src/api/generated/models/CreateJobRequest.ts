@@ -20,6 +20,13 @@ import {
     GenerationOptionsToJSON,
     GenerationOptionsToJSONTyped,
 } from './GenerationOptions';
+import type { OutfitJobContext } from './OutfitJobContext';
+import {
+    OutfitJobContextFromJSON,
+    OutfitJobContextFromJSONTyped,
+    OutfitJobContextToJSON,
+    OutfitJobContextToJSONTyped,
+} from './OutfitJobContext';
 import type { TryOnMode } from './TryOnMode';
 import {
     TryOnModeFromJSON,
@@ -62,6 +69,10 @@ export interface CreateJobRequest {
      * Links a mask-correction job to the original job without overwriting it.
      */
     relatedJobId?: string;
+    /**
+     * Present only for V1.1 layered-outfit layer jobs. V1 jobs omit it and keep their behavior.
+     */
+    outfitContext?: OutfitJobContext;
 }
 
 
@@ -95,6 +106,7 @@ export function CreateJobRequestFromJSONTyped(json: any, ignoreDiscriminator: bo
         'mode': TryOnModeFromJSON(json['mode']),
         'generationOptions': GenerationOptionsFromJSON(json['generation_options']),
         'relatedJobId': json['related_job_id'] == null ? undefined : json['related_job_id'],
+        'outfitContext': json['outfit_context'] == null ? undefined : OutfitJobContextFromJSON(json['outfit_context']),
     };
 }
 
@@ -116,6 +128,7 @@ export function CreateJobRequestToJSONTyped(value?: CreateJobRequest | null, ign
         'mode': TryOnModeToJSON(value['mode']),
         'generation_options': GenerationOptionsToJSON(value['generationOptions']),
         'related_job_id': value['relatedJobId'],
+        'outfit_context': OutfitJobContextToJSON(value['outfitContext']),
     };
 }
 

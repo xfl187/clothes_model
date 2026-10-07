@@ -126,6 +126,13 @@ try {
         'logical_provider_id'
         'workflow_sha256'
         'manifest_sha256'
+        'OutfitSession'
+        'OutfitRevision'
+        'OutfitLayer'
+        'LayerTypeDefinition'
+        'outfit_context'
+        'pending_reapply'
+        'switchOutfitRoute'
     )
 
     foreach ($token in $requiredContractTokens) {
@@ -134,11 +141,11 @@ try {
         }
     }
 
-    if ($bundledText -match '/api/v1/outfits(?:/|:)') {
-        throw 'V1.1 Outfit paths must not be present in the Phase 1 contract.'
+    if ($bundledText -notmatch '/api/v1/outfits(?:/|:)') {
+        throw 'V1.1 Outfit paths are missing from the contract.'
     }
-    if ($bundledText -match '(?m)^\s*Outfit(?:Session|Revision|Layer):') {
-        throw 'V1.1 Outfit resource schemas must not be present in the Phase 1 contract.'
+    if ($bundledText -notmatch '(?m)^\s*OutfitSession:') {
+        throw 'V1.1 Outfit resource schemas are missing from the contract.'
     }
 
     $stdout = Join-Path ([System.IO.Path]::GetTempPath()) "clothes-model-prism-$MockPort.stdout.log"

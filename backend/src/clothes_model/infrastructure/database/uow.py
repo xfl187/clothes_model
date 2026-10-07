@@ -17,6 +17,7 @@ from clothes_model.infrastructure.database.repositories import (
     SqlAlchemyIdempotencyRepository,
     SqlAlchemyJobExecutionEventRepository,
     SqlAlchemyJobRepository,
+    SqlAlchemyOutfitRepository,
     SqlAlchemyOwnerScopeRepository,
     SqlAlchemyProviderConfigRepository,
     SqlAlchemySecurityAuditRepository,
@@ -93,6 +94,10 @@ class SqlAlchemyUnitOfWork(UnitOfWork):
     @property
     def workflows(self) -> SqlAlchemyWorkflowRepository:
         return SqlAlchemyWorkflowRepository(self.session)
+
+    @property
+    def outfits(self) -> SqlAlchemyOutfitRepository:
+        return SqlAlchemyOutfitRepository(self.session)
 
     @property
     def jobs(self) -> SqlAlchemyJobRepository:

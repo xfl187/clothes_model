@@ -789,3 +789,126 @@ storage_scans = Table(
     Column("actor_id", String(64), nullable=True),
     Column("created_at", utc_timestamp(), nullable=False),
 )
+
+layer_type_definitions = Table(
+    "layer_type_definitions",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("definition_version", Integer, nullable=False),
+    Column("role", String(24), nullable=False),
+    Column("body_region", String(48), nullable=False),
+    Column("layer_order", Integer, nullable=False),
+    Column("compatible_roles_json", Text, nullable=False, server_default="[]"),
+    Column("conflicting_roles_json", Text, nullable=False, server_default="[]"),
+    Column("required_capabilities_json", Text, nullable=False, server_default="[]"),
+    Column("created_at", utc_timestamp(), nullable=False),
+    CheckConstraint(
+        "role IN ('inner_top', 'outerwear', 'lower_body', 'dress')", name="role"
+    ),
+    UniqueConstraint("definition_version", "role", name="uq_layer_type_definition_role"),
+)
+
+outfit_sessions = Table(
+    "outfit_sessions",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("owner_scope_id", String(36), nullable=True),
+    Column("name", String(120), nullable=False),
+    Column("favorite", Boolean, nullable=False, server_default="0"),
+    Column(
+        "person_asset_id",
+        String(36),
+        ForeignKey("assets.id", ondelete="RESTRICT"),
+        nullable=False,
+    ),
+    Column("layer_definition_version", Integer, nullable=False),
+    Column("main_branch_id", String(36), nullable=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+    Column("updated_at", utc_timestamp(), nullable=False),
+)
+Index("ix_outfit_sessions_owner", outfit_sessions.c.owner_scope_id, outfit_sessions.c.created_at)
+
+outfit_branches = Table(
+    "outfit_branches",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column(
+        "session_id",
+        String(36),
+        ForeignKey("outfit_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("name", String(120), nullable=False),
+    Column("route", String(16), nullable=False),
+    Column("favorite", Boolean, nullable=False, server_default="0"),
+    Column("is_mainline", Boolean, nullable=False, server_default="0"),
+    Column("head_revision_id", String(36), nullable=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+    Column("updated_at", utc_timestamp(), nullable=False),
+    CheckConstraint("route IN ('split', 'dress')", name="route"),
+)
+Index("ix_outfit_branches_session", outfit_branches.c.session_id)
+
+outfit_revisions = Table(
+    "outfit_revisions",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column(
+        "session_id",
+        String(36),
+        ForeignKey("outfit_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "branch_id",
+        String(36),
+        ForeignKey("outfit_branches.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("base_revision_id", String(36), nullable=True),
+    Column("parent_revision_id", String(36), nullable=True),
+    Column("layers_json", Text, nullable=False, server_default="[]"),
+    Column("created_at", utc_timestamp(), nullable=False),
+)
+Index("ix_outfit_revisions_branch", outfit_revisions.c.branch_id, outfit_revisions.c.created_at)
+
+outfit_layers = Table(
+    "outfit_layers",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column(
+        "session_id",
+        String(36),
+        ForeignKey("outfit_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "branch_id",
+        String(36),
+        ForeignKey("outfit_branches.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("role", String(24), nullable=False),
+    Column(
+        "garment_asset_id",
+        String(36),
+        ForeignKey("assets.id", ondelete="RESTRICT"),
+        nullable=False,
+    ),
+    Column("layer_order", Integer, nullable=False),
+    Column("state", String(24), nullable=False, server_default="applied"),
+    Column("definition_version", Integer, nullable=False),
+    Column("source_layer_id", String(36), nullable=True),
+    Column("apply_job_id", String(36), ForeignKey("jobs.id", ondelete="SET NULL"), nullable=True),
+    Column(
+        "selected_output_id",
+        String(36),
+        ForeignKey("generated_outputs.id", ondelete="SET NULL"),
+        nullable=True,
+    ),
+    Column("created_at", utc_timestamp(), nullable=False),
+    Column("updated_at", utc_timestamp(), nullable=False),
+    CheckConstraint("role IN ('inner_top', 'outerwear', 'lower_body', 'dress')", name="role"),
+    CheckConstraint("state IN ('applied', 'pending_reapply')", name="state"),
+)
+Index("ix_outfit_layers_branch", outfit_layers.c.branch_id)

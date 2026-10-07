@@ -35,6 +35,14 @@ from clothes_model.modules.jobs.domain import (
     JobItem,
     JobPersonInput,
 )
+from clothes_model.modules.outfits.domain import (
+    TERMINAL_JOB_STATES,
+    LayerTypeDefinition,
+    OutfitBranch,
+    OutfitLayer,
+    OutfitRevision,
+    OutfitSession,
+)
 from clothes_model.modules.providers.domain import (
     ProviderConfig,
     ProviderConfigRevision,
@@ -780,3 +788,161 @@ def _access_token(row: RowMapping) -> AccessToken:
 
 def _admin_session(row: RowMapping) -> AdminSession:
     return AdminSession(**dict(row))
+
+
+class SqlAlchemyOutfitRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def list_layer_types(self, definition_version: int) -> list[LayerTypeDefinition]:
+        result = await self._session.execute(
+            select(models.layer_type_definitions)
+            .where(models.layer_type_definitions.c.definition_version == definition_version)
+            .order_by(models.layer_type_definitions.c.layer_order)
+        )
+        return [LayerTypeDefinition(**dict(row)) for row in result.mappings().all()]
+
+    async def asset_available(
+        self, asset_id: str, kind: str, owner_scope_id: str | None
+    ) -> bool:
+        statement = select(models.assets.c.id).where(
+            models.assets.c.id == asset_id,
+            models.assets.c.kind == kind,
+            models.assets.c.content_state == "available",
+        )
+        if owner_scope_id is not None:
+            statement = statement.where(models.assets.c.owner_scope_id == owner_scope_id)
+        return await self._session.scalar(statement) is not None
+
+    async def add_session(self, session: OutfitSession) -> None:
+        await _insert(self._session, models.outfit_sessions, asdict(session))
+
+    async def get_session(
+        self, session_id: str, owner_scope_id: str | None
+    ) -> OutfitSession | None:
+        statement = select(models.outfit_sessions).where(models.outfit_sessions.c.id == session_id)
+        if owner_scope_id is not None:
+            statement = statement.where(
+                models.outfit_sessions.c.owner_scope_id == owner_scope_id
+            )
+        row = await _one_mapping(self._session, statement)
+        return None if row is None else OutfitSession(**dict(row))
+
+    async def list_sessions(
+        self, owner_scope_id: str | None, *, limit: int = 50
+    ) -> list[OutfitSession]:
+        statement = select(models.outfit_sessions)
+        if owner_scope_id is not None:
+            statement = statement.where(
+                models.outfit_sessions.c.owner_scope_id == owner_scope_id
+            )
+        statement = statement.order_by(
+            models.outfit_sessions.c.created_at.desc(), models.outfit_sessions.c.id.desc()
+        ).limit(limit)
+        result = await self._session.execute(statement)
+        return [OutfitSession(**dict(row)) for row in result.mappings().all()]
+
+    async def update_session(self, session: OutfitSession) -> None:
+        await self._session.execute(
+            update(models.outfit_sessions)
+            .where(models.outfit_sessions.c.id == session.id)
+            .values(**asdict(session))
+        )
+
+    async def delete_session(self, session_id: str) -> None:
+        await self._session.execute(
+            delete(models.outfit_sessions).where(models.outfit_sessions.c.id == session_id)
+        )
+
+    async def add_branch(self, branch: OutfitBranch) -> None:
+        await _insert(self._session, models.outfit_branches, asdict(branch))
+
+    async def get_branch(self, branch_id: str) -> OutfitBranch | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.outfit_branches).where(models.outfit_branches.c.id == branch_id),
+        )
+        return None if row is None else OutfitBranch(**dict(row))
+
+    async def list_branches(self, session_id: str) -> list[OutfitBranch]:
+        result = await self._session.execute(
+            select(models.outfit_branches)
+            .where(models.outfit_branches.c.session_id == session_id)
+            .order_by(models.outfit_branches.c.created_at, models.outfit_branches.c.id)
+        )
+        return [OutfitBranch(**dict(row)) for row in result.mappings().all()]
+
+    async def update_branch(self, branch: OutfitBranch) -> None:
+        await self._session.execute(
+            update(models.outfit_branches)
+            .where(models.outfit_branches.c.id == branch.id)
+            .values(**asdict(branch))
+        )
+
+    async def delete_branch(self, branch_id: str) -> None:
+        await self._session.execute(
+            delete(models.outfit_branches).where(models.outfit_branches.c.id == branch_id)
+        )
+
+    async def add_revision(self, revision: OutfitRevision) -> None:
+        await _insert(self._session, models.outfit_revisions, asdict(revision))
+
+    async def get_revision(self, revision_id: str) -> OutfitRevision | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.outfit_revisions).where(models.outfit_revisions.c.id == revision_id),
+        )
+        return None if row is None else OutfitRevision(**dict(row))
+
+    async def list_revisions(self, branch_id: str) -> list[OutfitRevision]:
+        result = await self._session.execute(
+            select(models.outfit_revisions)
+            .where(models.outfit_revisions.c.branch_id == branch_id)
+            .order_by(models.outfit_revisions.c.created_at, models.outfit_revisions.c.id)
+        )
+        return [OutfitRevision(**dict(row)) for row in result.mappings().all()]
+
+    async def add_layer(self, layer: OutfitLayer) -> None:
+        await _insert(self._session, models.outfit_layers, asdict(layer))
+
+    async def get_layer(self, layer_id: str) -> OutfitLayer | None:
+        row = await _one_mapping(
+            self._session,
+            select(models.outfit_layers).where(models.outfit_layers.c.id == layer_id),
+        )
+        return None if row is None else OutfitLayer(**dict(row))
+
+    async def list_layers(self, branch_id: str) -> list[OutfitLayer]:
+        result = await self._session.execute(
+            select(models.outfit_layers)
+            .where(models.outfit_layers.c.branch_id == branch_id)
+            .order_by(models.outfit_layers.c.layer_order, models.outfit_layers.c.created_at)
+        )
+        return [OutfitLayer(**dict(row)) for row in result.mappings().all()]
+
+    async def update_layer(self, layer: OutfitLayer) -> None:
+        await self._session.execute(
+            update(models.outfit_layers)
+            .where(models.outfit_layers.c.id == layer.id)
+            .values(**asdict(layer))
+        )
+
+    async def delete_layer(self, layer_id: str) -> None:
+        await self._session.execute(
+            delete(models.outfit_layers).where(models.outfit_layers.c.id == layer_id)
+        )
+
+    async def count_unfinished_jobs(self, *, session_id: str) -> int:
+        result = await self._session.execute(
+            select(models.outfit_layers.c.apply_job_id)
+            .select_from(
+                models.outfit_layers.join(
+                    models.jobs, models.jobs.c.id == models.outfit_layers.c.apply_job_id
+                )
+            )
+            .where(
+                models.outfit_layers.c.session_id == session_id,
+                models.jobs.c.state.notin_(TERMINAL_JOB_STATES),
+            )
+        )
+        return len(list(result.scalars().all()))

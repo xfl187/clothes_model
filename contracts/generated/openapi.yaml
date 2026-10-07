@@ -29,6 +29,8 @@ tags:
     description: Capacity status, cleanup preview, and confirmed cleanup commands.
   - name: Diagnostics
     description: Redacted, timestamped operational diagnostics for administrators.
+  - name: Outfits
+    description: V1.1 layered-outfit sessions, branches, revisions, and layers.
 paths:
   /health/live:
     get:
@@ -1799,6 +1801,423 @@ paths:
           $ref: '#/components/responses/Problem'
         '409':
           $ref: '#/components/responses/JobStateConflict'
+  /api/v1/outfits:
+    get:
+      tags:
+        - Outfits
+      operationId: listOutfitSessions
+      summary: List outfit sessions for the current owner
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Outfit session page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSessionPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Outfits
+      operationId: createOutfitSession
+      summary: Create a layered-outfit session from one original person image
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOutfitSessionRequest'
+      responses:
+        '201':
+          description: Session created with a locked layer-definition version and an initial main branch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/outfits/{session_id}:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    get:
+      tags:
+        - Outfits
+      operationId: getOutfitSession
+      summary: Read a session with its branches and current confirmed revision
+      security:
+        - AppBearer: []
+      responses:
+        '200':
+          description: Outfit session details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+    patch:
+      tags:
+        - Outfits
+      operationId: updateOutfitSession
+      summary: Rename or favorite a session
+      security:
+        - AppBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOutfitSessionRequest'
+      responses:
+        '200':
+          description: Updated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags:
+        - Outfits
+      operationId: deleteOutfitSession
+      summary: Delete a whole session after confirming revision and result impact
+      security:
+        - AppBearer: []
+      responses:
+        '204':
+          description: Session deleted; shared assets and other sessions are unchanged.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/outfits/{session_id}/branches:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Outfits
+      operationId: createOutfitBranch
+      summary: Create a branch from an optional base revision or the original person image
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOutfitBranchRequest'
+      responses:
+        '201':
+          description: Branch created; no generation task or fee is created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/outfits/{session_id}/branches/{branch_id}:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - name: branch_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    patch:
+      tags:
+        - Outfits
+      operationId: updateOutfitBranch
+      summary: Rename, favorite, or set a branch as the current mainline
+      description: Setting mainline moves the session mainline. A branch with unfinished tasks cannot be deleted, and the current mainline must be changed before it can be deleted.
+      security:
+        - AppBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOutfitBranchRequest'
+      responses:
+        '200':
+          description: Updated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags:
+        - Outfits
+      operationId: deleteOutfitBranch
+      summary: Delete a branch without cascading into shared assets or other branches
+      security:
+        - AppBearer: []
+      responses:
+        '200':
+          description: Branch deleted; updated session returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/outfits/{session_id}/branches/{branch_id}/layers:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - name: branch_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Outfits
+      operationId: addOutfitLayer
+      summary: Add a garment layer by creating a linked single-garment try-on job
+      description: Requires a Provider that declares sequential layering and the target layer role. Adding a middle layer marks subsequent layers pending_reapply; no later task is created automatically.
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddOutfitLayerRequest'
+      responses:
+        '201':
+          description: Layer job created and linked to the session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitLayerResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/ProviderNotUsable'
+  /api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - name: branch_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - name: layer_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    delete:
+      tags:
+        - Outfits
+      operationId: removeOutfitLayer
+      summary: Remove or revert a layer and mark subsequent layers pending_reapply
+      security:
+        - AppBearer: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveOutfitLayerRequest'
+      responses:
+        '200':
+          description: Updated session; no automatic generation or fee.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}/reapply:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - name: branch_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - name: layer_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Outfits
+      operationId: reapplyOutfitLayer
+      summary: Reapply a pending layer, preferring the original Provider and parameters
+      description: Always creates a new traceable job. If the original Provider is unavailable or incompatible, an explicit compatible Provider must be supplied; otherwise the layer stays pending_reapply and no job is created.
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReapplyOutfitLayerRequest'
+      responses:
+        '201':
+          description: Reapply job created and linked to the session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitLayerResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/ProviderNotUsable'
+  /api/v1/outfits/{session_id}/branches/{branch_id}/revisions/{revision_id}/select:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - name: branch_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+      - name: revision_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Outfits
+      operationId: selectOutfitRevision
+      summary: Commit a new immutable revision from an explicit candidate selection
+      description: Only an explicit candidate selection commits a new confirmed revision. Failed, cancelled, or needs_attention attempts never change the current revision.
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectOutfitRevisionRequest'
+      responses:
+        '200':
+          description: New confirmed revision committed; updated session returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/JobStateConflict'
+  /api/v1/outfits/{session_id}/route:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Outfits
+      operationId: switchOutfitRoute
+      summary: Switch split/dress route by creating a new branch from the original person image
+      description: Removes route-conflicting layers and keeps compatible outerwear as pending_reapply. The original branch is unchanged, and no generation task or fee is created by the switch.
+      security:
+        - AppBearer: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwitchOutfitRouteRequest'
+      responses:
+        '200':
+          description: New branch created for the target route; updated session returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
 components:
   securitySchemes:
     AppBearer:
@@ -2883,6 +3302,33 @@ components:
           nullable: true
         has_more:
           type: boolean
+    LayerRole:
+      type: string
+      enum:
+        - inner_top
+        - outerwear
+        - lower_body
+        - dress
+        - unknown
+    OutfitJobContext:
+      type: object
+      additionalProperties: false
+      required:
+        - session_id
+        - branch_id
+        - layer_id
+        - role
+      properties:
+        session_id:
+          $ref: '#/components/schemas/Identifier'
+        branch_id:
+          $ref: '#/components/schemas/Identifier'
+        base_revision_id:
+          $ref: '#/components/schemas/Identifier'
+        layer_id:
+          $ref: '#/components/schemas/Identifier'
+        role:
+          $ref: '#/components/schemas/LayerRole'
     CreateJobRequest:
       type: object
       additionalProperties: false
@@ -2915,6 +3361,10 @@ components:
           type: string
           format: uuid
           description: Links a mask-correction job to the original job without overwriting it.
+        outfit_context:
+          allOf:
+            - $ref: '#/components/schemas/OutfitJobContext'
+          description: Present only for V1.1 layered-outfit layer jobs. V1 jobs omit it and keep their behavior.
     JobCommandResult:
       type: object
       additionalProperties: false
@@ -3899,6 +4349,309 @@ components:
                 type: string
               conclusion:
                 type: string
+    LayerTypeDefinition:
+      type: object
+      additionalProperties: false
+      required:
+        - key
+        - body_region
+        - order
+        - compatible_roles
+        - conflicting_roles
+      properties:
+        key:
+          $ref: '#/components/schemas/LayerRole'
+        body_region:
+          type: string
+        order:
+          type: integer
+          minimum: 0
+        compatible_roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/LayerRole'
+        conflicting_roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/LayerRole'
+        required_capabilities:
+          type: array
+          items:
+            type: string
+    LayerApplyState:
+      type: string
+      enum:
+        - applied
+        - pending_reapply
+        - unknown
+    OutfitLayer:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - role
+        - garment_asset_id
+        - order
+        - state
+        - definition_version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        role:
+          $ref: '#/components/schemas/LayerRole'
+        garment_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        order:
+          type: integer
+          minimum: 0
+        state:
+          $ref: '#/components/schemas/LayerApplyState'
+        definition_version:
+          type: integer
+          minimum: 1
+        source_layer_id:
+          $ref: '#/components/schemas/Identifier'
+        apply_job_id:
+          $ref: '#/components/schemas/Identifier'
+        selected_output_id:
+          $ref: '#/components/schemas/Identifier'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    OutfitRevision:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - branch_id
+        - layers
+        - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        branch_id:
+          $ref: '#/components/schemas/Identifier'
+        base_revision_id:
+          $ref: '#/components/schemas/Identifier'
+        parent_revision_id:
+          $ref: '#/components/schemas/Identifier'
+        layers:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutfitLayer'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+    OutfitRoute:
+      type: string
+      enum:
+        - split
+        - dress
+        - unknown
+    OutfitBranch:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - route
+        - is_mainline
+        - favorite
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        name:
+          type: string
+        route:
+          $ref: '#/components/schemas/OutfitRoute'
+        is_mainline:
+          type: boolean
+        favorite:
+          type: boolean
+        head_revision_id:
+          $ref: '#/components/schemas/Identifier'
+        revision_count:
+          type: integer
+          minimum: 0
+        unfinished_job_count:
+          type: integer
+          minimum: 0
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    OutfitSession:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - favorite
+        - person_asset_id
+        - layer_definition_version
+        - layer_types
+        - branches
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        name:
+          type: string
+        favorite:
+          type: boolean
+        person_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        layer_definition_version:
+          type: integer
+          minimum: 1
+        layer_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/LayerTypeDefinition'
+        main_branch_id:
+          $ref: '#/components/schemas/Identifier'
+        head_revision:
+          $ref: '#/components/schemas/OutfitRevision'
+        branches:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutfitBranch'
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        updated_at:
+          $ref: '#/components/schemas/Timestamp'
+    OutfitSessionPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+        - has_more
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutfitSession'
+        next_cursor:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+    CreateOutfitSessionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - person_asset_id
+      properties:
+        person_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        name:
+          type: string
+          maxLength: 120
+    UpdateOutfitSessionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        favorite:
+          type: boolean
+    CreateOutfitBranchRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        base_revision_id:
+          $ref: '#/components/schemas/Identifier'
+        route:
+          $ref: '#/components/schemas/OutfitRoute'
+    UpdateOutfitBranchRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        favorite:
+          type: boolean
+        mainline:
+          type: boolean
+    AddOutfitLayerRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - role
+        - garment_asset_id
+      properties:
+        role:
+          $ref: '#/components/schemas/LayerRole'
+        garment_asset_id:
+          $ref: '#/components/schemas/Identifier'
+        provider_id:
+          $ref: '#/components/schemas/Identifier'
+        candidate_count:
+          type: integer
+          minimum: 1
+          maximum: 4
+        mask_asset_id:
+          $ref: '#/components/schemas/Identifier'
+    OutfitLayerResult:
+      type: object
+      additionalProperties: false
+      required:
+        - session
+        - job
+      properties:
+        session:
+          $ref: '#/components/schemas/OutfitSession'
+        job:
+          $ref: '#/components/schemas/TryOnJob'
+    RemoveOutfitLayerRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          type: string
+          enum:
+            - remove
+            - revert
+    ReapplyOutfitLayerRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        provider_id:
+          $ref: '#/components/schemas/Identifier'
+        candidate_count:
+          type: integer
+          minimum: 1
+          maximum: 4
+    SelectOutfitRevisionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - job_item_id
+        - output_id
+      properties:
+        job_item_id:
+          $ref: '#/components/schemas/Identifier'
+        output_id:
+          $ref: '#/components/schemas/Identifier'
+    SwitchOutfitRouteRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - route
+      properties:
+        route:
+          $ref: '#/components/schemas/OutfitRoute'
   examples:
     Unauthorized:
       summary: App token is invalid or has been rotated

@@ -631,6 +631,25 @@ class JobPage(BaseModel):
     has_more: bool
 
 
+class LayerRole(Enum):
+    inner_top = 'inner_top'
+    outerwear = 'outerwear'
+    lower_body = 'lower_body'
+    dress = 'dress'
+    unknown = 'unknown'
+
+
+class OutfitJobContext(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    session_id: Identifier
+    branch_id: Identifier
+    base_revision_id: Identifier | None = None
+    layer_id: Identifier
+    role: LayerRole
+
+
 class CreateJobRequest(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -649,6 +668,10 @@ class CreateJobRequest(BaseModel):
     related_job_id: UUID | None = Field(
         None,
         description='Links a mask-correction job to the original job without overwriting it.',
+    )
+    outfit_context: OutfitJobContext | None = Field(
+        None,
+        description='Present only for V1.1 layered-outfit layer jobs. V1 jobs omit it and keep their behavior.',
     )
 
 
@@ -1309,3 +1332,186 @@ class DiagnosticJobDetail(BaseModel):
     job: TryOnJob
     snapshot_at: Timestamp
     redacted_external_events: list[RedactedExternalEvent]
+
+
+class LayerTypeDefinition(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    key: LayerRole
+    body_region: str
+    order: int = Field(..., ge=0)
+    compatible_roles: list[LayerRole]
+    conflicting_roles: list[LayerRole]
+    required_capabilities: list[str] | None = None
+
+
+class LayerApplyState(Enum):
+    applied = 'applied'
+    pending_reapply = 'pending_reapply'
+    unknown = 'unknown'
+
+
+class OutfitLayer(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Identifier
+    role: LayerRole
+    garment_asset_id: Identifier
+    order: int = Field(..., ge=0)
+    state: LayerApplyState
+    definition_version: int = Field(..., ge=1)
+    source_layer_id: Identifier | None = None
+    apply_job_id: Identifier | None = None
+    selected_output_id: Identifier | None = None
+    created_at: Timestamp
+    updated_at: Timestamp
+
+
+class OutfitRevision(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Identifier
+    branch_id: Identifier
+    base_revision_id: Identifier | None = None
+    parent_revision_id: Identifier | None = None
+    layers: list[OutfitLayer]
+    created_at: Timestamp
+
+
+class OutfitRoute(Enum):
+    split = 'split'
+    dress = 'dress'
+    unknown = 'unknown'
+
+
+class OutfitBranch(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Identifier
+    name: str
+    route: OutfitRoute
+    is_mainline: bool
+    favorite: bool
+    head_revision_id: Identifier | None = None
+    revision_count: int | None = Field(None, ge=0)
+    unfinished_job_count: int | None = Field(None, ge=0)
+    created_at: Timestamp
+    updated_at: Timestamp
+
+
+class OutfitSession(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Identifier
+    name: str
+    favorite: bool
+    person_asset_id: Identifier
+    layer_definition_version: int = Field(..., ge=1)
+    layer_types: list[LayerTypeDefinition]
+    main_branch_id: Identifier | None = None
+    head_revision: OutfitRevision | None = None
+    branches: list[OutfitBranch]
+    created_at: Timestamp
+    updated_at: Timestamp
+
+
+class OutfitSessionPage(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    items: list[OutfitSession]
+    next_cursor: str
+    has_more: bool
+
+
+class CreateOutfitSessionRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    person_asset_id: Identifier
+    name: str | None = Field(None, max_length=120)
+
+
+class UpdateOutfitSessionRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    name: str | None = Field(None, max_length=120)
+    favorite: bool | None = None
+
+
+class CreateOutfitBranchRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    name: str | None = Field(None, max_length=120)
+    base_revision_id: Identifier | None = None
+    route: OutfitRoute | None = None
+
+
+class UpdateOutfitBranchRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    name: str | None = Field(None, max_length=120)
+    favorite: bool | None = None
+    mainline: bool | None = None
+
+
+class AddOutfitLayerRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    role: LayerRole
+    garment_asset_id: Identifier
+    provider_id: Identifier | None = None
+    candidate_count: int | None = Field(None, ge=1, le=4)
+    mask_asset_id: Identifier | None = None
+
+
+class OutfitLayerResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    session: OutfitSession
+    job: TryOnJob
+
+
+class Mode2(Enum):
+    remove = 'remove'
+    revert = 'revert'
+
+
+class RemoveOutfitLayerRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    mode: Mode2 | None = None
+
+
+class ReapplyOutfitLayerRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    provider_id: Identifier | None = None
+    candidate_count: int | None = Field(None, ge=1, le=4)
+
+
+class SelectOutfitRevisionRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    job_item_id: Identifier
+    output_id: Identifier
+
+
+class SwitchOutfitRouteRequest(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    route: OutfitRoute

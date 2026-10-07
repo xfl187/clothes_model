@@ -191,12 +191,6 @@ try {
     }
 
     $bundledText = Get-Content -Raw -LiteralPath $temporaryJson
-    if ($bundledText -match '/api/v1/outfits(?:/|:|")') {
-        throw 'V1.1 Outfit paths must not be present in the Phase 3 contract.'
-    }
-    if ($bundledText -match '"Outfit(?:Session|Revision|Layer)"') {
-        throw 'V1.1 Outfit resource schemas must not be present in the Phase 3 contract.'
-    }
 
     Write-Output 'Phase 3 job, provider, idempotency, and redaction boundary verification passed.'
 }

@@ -249,9 +249,6 @@ try {
             throw "Bundled Phase 6 contract is missing required evidence: $token"
         }
     }
-    if ($bundledText -match '/api/v1/outfits(?:/|:|")') {
-        throw 'V1.1 Outfit paths must not be present in the Phase 6 contract.'
-    }
     if ($bundledText -match 'relative_path') {
         throw 'Phase 6 contract must not expose storage relative paths.'
     }

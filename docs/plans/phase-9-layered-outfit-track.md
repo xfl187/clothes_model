@@ -11,10 +11,26 @@
 - Dependency: Phase 8 V1 release gate. The deterministic gate passed; the deferred credentialed
   AutoDL/Comfy acceptance is a release claim. Start Phase 9 only after the owner accepts the V1 release
   candidate, and never claim V1.1 production readiness ahead of the V1 release gate.
-- Task 1 — PENDING
-- Task 2 — PENDING
-- Task 3 — PENDING
-- Task 4 — PENDING
+- Task 1 — COMPLETE (2026-10-07): additive V1.1 Outfit contract (13 operations, `OutfitSession`/
+  `OutfitBranch`/`OutfitRevision`/`OutfitLayer`/`LayerTypeDefinition` schemas, job `outfit_context`),
+  regenerated Web/Python/Android clients, and the V1 boundary scripts scoped so outfit resources are
+  additive while V1 invariants stay enforced. Placeholder routes registered for contract/route parity.
+  Verified: Redocly lint, `verify-generated.ps1`, additive/Phase 5 boundaries, `verify-contract.ps1`.
+- Task 2 — COMPLETE (2026-10-07): `layer_type_definitions` (versioned, seeded with the four system
+  types), `outfit_sessions`, `outfit_branches`, `outfit_revisions`, `outfit_layers` tables and migration
+  `20261007_0008`; migration upgrade/downgrade tests and full Backend Ruff/Pyright/pytest pass.
+- Task 3 — COMPLETE (2026-10-07): added the Outfits domain models, `SqlAlchemyOutfitRepository` (sessions,
+  branches, revisions, layers, layer types, unfinished-job count) wired into the UoW, `OutfitService`
+  (create/list/get/update/delete session, create/update/delete branch, mainline switching, deletion
+  guards, contract payloads), and real HTTP handlers for the eight session/branch operations. Verified:
+  new `test_outfits_http.py`, contract/route parity, full Backend Ruff/Pyright/pytest.
+- Task 4 — COMPLETE (2026-10-07): real `addOutfitLayer` creates a linked single-garment job with
+  capability/role gating (`sequential_layering`, `supported_layer_roles`) and a `pending_reapply` layer,
+  and `selectOutfitRevision` commits an immutable revision only on explicit candidate selection (marking
+  later layers `pending_reapply`); session creation now seeds a root revision as the base. Asset
+  availability moved into the repository to respect the application-layer framework boundary. Verified:
+  `test_outfits_layers.py` (job creation, select→revision, capability rejection), `test_architecture.py`,
+  full Backend Ruff/Pyright/pytest.
 - Task 5 — PENDING
 - Task 6 — PENDING
 - Task 7 — PENDING
@@ -25,7 +41,9 @@
 - Task 12 — PENDING
 - Task 13 — PENDING
 - Task 14 — PENDING
-- Next action: implement Task 1 — extend the contract with the V1.1 Outfit surface and job outfit context.
+- Next action: implement Task 5 — modify/remove/revert + `pending_reapply`. This first refines the
+  contract to expose the branch working-layer set (so pending layers are visible), then adds
+  `removeOutfitLayer`; re-run the Task 1 contract gates after the additive change.
 
 ## Goal
 

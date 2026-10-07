@@ -89,6 +89,11 @@ CreateJobRequest:
       type: string
       format: uuid
       description: Links a mask-correction job to the original job without overwriting it.
+    outfit_context:
+      allOf:
+        - $ref: ../outfits/schemas.yaml#/OutfitJobContext
+      description: >-
+        Present only for V1.1 layered-outfit layer jobs. V1 jobs omit it and keep their behavior.
 
 GeneratedOutput:
   type: object

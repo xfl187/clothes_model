@@ -216,9 +216,6 @@ try {
     if ($bundledText -match '"credential"\s*:\s*"[^"<]') {
         throw 'Bundled Phase 5 examples must not contain a Comfy credential value.'
     }
-    if ($bundledText -match '/api/v1/outfits(?:/|:|")') {
-        throw 'V1.1 Outfit paths must not be present in the Phase 5 contract.'
-    }
 
     Write-Output 'Phase 5 Comfy node, immutable Workflow, locking, and recovery boundary verification passed.'
 }

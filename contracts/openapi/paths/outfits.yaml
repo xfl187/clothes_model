@@ -1,0 +1,415 @@
+Collection:
+  get:
+    tags: [Outfits]
+    operationId: listOutfitSessions
+    summary: List outfit sessions for the current owner
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/Cursor
+      - $ref: ../openapi.yaml#/components/parameters/Limit
+    responses:
+      '200':
+        description: Outfit session page.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSessionPage
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+  post:
+    tags: [Outfits]
+    operationId: createOutfitSession
+    summary: Create a layered-outfit session from one original person image
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/outfits/schemas.yaml#/CreateOutfitSessionRequest
+    responses:
+      '201':
+        description: Session created with a locked layer-definition version and an initial main branch.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Session:
+  parameters:
+    - name: session_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  get:
+    tags: [Outfits]
+    operationId: getOutfitSession
+    summary: Read a session with its branches and current confirmed revision
+    security:
+      - AppBearer: []
+    responses:
+      '200':
+        description: Outfit session details.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+  patch:
+    tags: [Outfits]
+    operationId: updateOutfitSession
+    summary: Rename or favorite a session
+    security:
+      - AppBearer: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/outfits/schemas.yaml#/UpdateOutfitSessionRequest
+    responses:
+      '200':
+        description: Updated session.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+  delete:
+    tags: [Outfits]
+    operationId: deleteOutfitSession
+    summary: Delete a whole session after confirming revision and result impact
+    security:
+      - AppBearer: []
+    responses:
+      '204':
+        description: Session deleted; shared assets and other sessions are unchanged.
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Branches:
+  parameters:
+    - name: session_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Outfits]
+    operationId: createOutfitBranch
+    summary: Create a branch from an optional base revision or the original person image
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: ../components/outfits/schemas.yaml#/CreateOutfitBranchRequest
+    responses:
+      '201':
+        description: Branch created; no generation task or fee is created.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Branch:
+  parameters:
+    - name: session_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+    - name: branch_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  patch:
+    tags: [Outfits]
+    operationId: updateOutfitBranch
+    summary: Rename, favorite, or set a branch as the current mainline
+    description: >-
+      Setting mainline moves the session mainline. A branch with unfinished tasks cannot be deleted,
+      and the current mainline must be changed before it can be deleted.
+    security:
+      - AppBearer: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/outfits/schemas.yaml#/UpdateOutfitBranchRequest
+    responses:
+      '200':
+        description: Updated session.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+  delete:
+    tags: [Outfits]
+    operationId: deleteOutfitBranch
+    summary: Delete a branch without cascading into shared assets or other branches
+    security:
+      - AppBearer: []
+    responses:
+      '200':
+        description: Branch deleted; updated session returned.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+Layers:
+  parameters:
+    - name: session_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+    - name: branch_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Outfits]
+    operationId: addOutfitLayer
+    summary: Add a garment layer by creating a linked single-garment try-on job
+    description: >-
+      Requires a Provider that declares sequential layering and the target layer role. Adding a middle
+      layer marks subsequent layers pending_reapply; no later task is created automatically.
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/outfits/schemas.yaml#/AddOutfitLayerRequest
+    responses:
+      '201':
+        description: Layer job created and linked to the session.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitLayerResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/ProviderNotUsable
+Layer:
+  parameters:
+    - name: session_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+    - name: branch_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+    - name: layer_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  delete:
+    tags: [Outfits]
+    operationId: removeOutfitLayer
+    summary: Remove or revert a layer and mark subsequent layers pending_reapply
+    security:
+      - AppBearer: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: ../components/outfits/schemas.yaml#/RemoveOutfitLayerRequest
+    responses:
+      '200':
+        description: Updated session; no automatic generation or fee.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
+ReapplyLayer:
+  parameters:
+    - name: session_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+    - name: branch_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+    - name: layer_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Outfits]
+    operationId: reapplyOutfitLayer
+    summary: Reapply a pending layer, preferring the original Provider and parameters
+    description: >-
+      Always creates a new traceable job. If the original Provider is unavailable or incompatible,
+      an explicit compatible Provider must be supplied; otherwise the layer stays pending_reapply and
+      no job is created.
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/outfits/schemas.yaml#/ReapplyOutfitLayerRequest
+    responses:
+      '201':
+        description: Reapply job created and linked to the session.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitLayerResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/ProviderNotUsable
+SelectRevision:
+  parameters:
+    - name: session_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+    - name: branch_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+    - name: revision_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Outfits]
+    operationId: selectOutfitRevision
+    summary: Commit a new immutable revision from an explicit candidate selection
+    description: >-
+      Only an explicit candidate selection commits a new confirmed revision. Failed, cancelled, or
+      needs_attention attempts never change the current revision.
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/outfits/schemas.yaml#/SelectOutfitRevisionRequest
+    responses:
+      '200':
+        description: New confirmed revision committed; updated session returned.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict
+Route:
+  parameters:
+    - name: session_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Outfits]
+    operationId: switchOutfitRoute
+    summary: Switch split/dress route by creating a new branch from the original person image
+    description: >-
+      Removes route-conflicting layers and keeps compatible outerwear as pending_reapply. The original
+      branch is unchanged, and no generation task or fee is created by the switch.
+    security:
+      - AppBearer: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/outfits/schemas.yaml#/SwitchOutfitRouteRequest
+    responses:
+      '200':
+        description: New branch created for the target route; updated session returned.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/outfits/schemas.yaml#/OutfitSession
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/Problem
