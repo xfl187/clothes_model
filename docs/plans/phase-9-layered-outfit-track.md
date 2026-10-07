@@ -36,8 +36,13 @@
   later layers `pending_reapply` and creating no task/fee; per-layer asset references. Verified:
   `test_outfits_layers.py` (remove/revert, no new jobs), regenerated clients, contract gates,
   `verify-generated.ps1`, full Backend Ruff/Pyright/pytest.
-- Task 6 — PENDING
-- Task 7 — PENDING
+- Task 6 — COMPLETE (2026-10-07): `switchOutfitRoute` creates a new branch from the original person image,
+  removes route-conflicting layers, preserves compatible outerwear as `pending_reapply`, leaves the
+  original branch unchanged, and creates no task or fee. Verified by focused route-switch test.
+- Task 7 — COMPLETE (2026-10-07): `reapplyOutfitLayer` prefers the original Provider, requires an explicit
+  compatible Provider when the original is unavailable/incompatible (no silent switch), keeps
+  `pending_reapply` with no job when none is available, and records the actual locked version. All outfit
+  operations are now real (no placeholders). Verified by focused reapply test.
 - Task 8 — PENDING
 - Task 9 — PENDING
 - Task 10 — PENDING
@@ -45,8 +50,7 @@
 - Task 12 — PENDING
 - Task 13 — PENDING
 - Task 14 — PENDING
-- Next action: implement Task 6 — Route switching (split ↔ dress) with new-branch creation and preserved
-  compatible outerwear as `pending_reapply`.
+- Next action: implement Task 8 — reference protection and cleanup integration for outfit references.
 
 ## Goal
 

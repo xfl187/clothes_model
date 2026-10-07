@@ -8,7 +8,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from clothes_model.core.problems import AppProblem
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
-from clothes_model.modules._stub import StubRoute, add_stub_routes
 from clothes_model.modules.auth.application import VerifiedCredential
 from clothes_model.modules.auth.http import require_app
 from clothes_model.modules.outfits.application.service import OutfitError, OutfitService
@@ -63,6 +62,17 @@ class SelectRevisionBody(BaseModel):
 class RemoveLayerBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     mode: Literal["remove", "revert"] = "remove"
+
+
+class SwitchRouteBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    route: Literal["split", "dress"]
+
+
+class ReapplyBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    provider_id: str | None = None
+    candidate_count: int = Field(default=1, ge=1, le=4)
 
 
 def _service(request: Request) -> OutfitService:
@@ -318,14 +328,53 @@ async def remove_outfit_layer(
         raise _problem(error) from error
 
 
-add_stub_routes(
-    router,
-    (
-        StubRoute(
-            "/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}/reapply",
-            "POST",
-            "reapplyOutfitLayer",
-        ),
-        StubRoute("/api/v1/outfits/{session_id}/route", "POST", "switchOutfitRoute"),
-    ),
+@router.post(
+    "/api/v1/outfits/{session_id}/route",
+    operation_id="switchOutfitRoute",
 )
+async def switch_outfit_route(
+    request: Request,
+    session_id: str,
+    body: SwitchRouteBody,
+    identity: AppIdentity,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del idempotency_key
+    try:
+        return await _service(request).switch_route(
+            session_id=session_id,
+            owner_scope_id=identity.owner_scope_id,
+            route=body.route,
+        )
+    except OutfitError as error:
+        raise _problem(error) from error
+
+
+@router.post(
+    "/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}/reapply",
+    status_code=201,
+    operation_id="reapplyOutfitLayer",
+)
+async def reapply_outfit_layer(
+    request: Request,
+    session_id: str,
+    branch_id: str,
+    layer_id: str,
+    body: ReapplyBody,
+    identity: AppIdentity,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del idempotency_key
+    try:
+        return await _service(request).reapply_layer(
+            session_id=session_id,
+            branch_id=branch_id,
+            layer_id=layer_id,
+            owner_scope_id=identity.owner_scope_id,
+            provider_service=_provider_service(request),
+            capacity=lambda: _capacity(request),
+            provider_id=body.provider_id,
+            candidate_count=body.candidate_count,
+        )
+    except OutfitError as error:
+        raise _problem(error) from error

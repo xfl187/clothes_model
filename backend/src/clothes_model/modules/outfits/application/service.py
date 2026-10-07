@@ -503,6 +503,196 @@ class OutfitService:
             session = await self._require_session(uow, session.id, owner_scope_id)
             return await self._session_payload(uow, session)
 
+    async def switch_route(
+        self, *, session_id: str, owner_scope_id: str | None, route: str
+    ) -> dict[str, object]:
+        if route not in {"split", "dress"}:
+            raise OutfitError(422, "invalid_route", "不支持的穿搭路线。")
+        now = datetime.now(UTC)
+        async with self._uow_factory() as uow:
+            session = await self._require_session(uow, session_id, owner_scope_id)
+            branches = await uow.outfits.list_branches(session.id)
+            main = next(
+                (b for b in branches if b.id == session.main_branch_id),
+                branches[0] if branches else None,
+            )
+            if main is None:
+                raise OutfitError(404, "outfit_branch_not_found", "穿搭分支不存在。")
+            main_layers = await uow.outfits.list_layers(main.id)
+            definitions = await uow.outfits.list_layer_types(session.layer_definition_version)
+            outerwear_order = next(
+                (d.layer_order for d in definitions if d.role == "outerwear"), 3
+            )
+            new_branch_id, root_revision_id = str(uuid4()), str(uuid4())
+            await uow.outfits.add_branch(
+                OutfitBranch(
+                    id=new_branch_id,
+                    session_id=session.id,
+                    name="连衣裙路线" if route == "dress" else "分体路线",
+                    route=route,
+                    favorite=False,
+                    is_mainline=False,
+                    head_revision_id=root_revision_id,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            await uow.outfits.add_revision(
+                OutfitRevision(
+                    id=root_revision_id,
+                    session_id=session.id,
+                    branch_id=new_branch_id,
+                    base_revision_id=None,
+                    parent_revision_id=None,
+                    layers_json="[]",
+                    created_at=now,
+                )
+            )
+            for layer in main_layers:
+                if layer.role != "outerwear":
+                    continue
+                new_layer_id = str(uuid4())
+                await uow.outfits.add_layer(
+                    OutfitLayer(
+                        id=new_layer_id,
+                        session_id=session.id,
+                        branch_id=new_branch_id,
+                        role="outerwear",
+                        garment_asset_id=layer.garment_asset_id,
+                        layer_order=outerwear_order,
+                        state="pending_reapply",
+                        definition_version=session.layer_definition_version,
+                        source_layer_id=layer.id,
+                        apply_job_id=None,
+                        selected_output_id=None,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+                for asset_id in (layer.garment_asset_id, session.person_asset_id):
+                    await uow.asset_references.add(
+                        AssetReference(
+                            id=str(uuid4()),
+                            asset_id=asset_id,
+                            source_kind="outfit_layer",
+                            source_id=new_layer_id,
+                            active=True,
+                            created_at=now,
+                            display_label="分层穿搭",
+                        )
+                    )
+            await uow.commit()
+            session = await self._require_session(uow, session.id, owner_scope_id)
+            return await self._session_payload(uow, session)
+
+    async def reapply_layer(
+        self,
+        *,
+        session_id: str,
+        branch_id: str,
+        layer_id: str,
+        owner_scope_id: str | None,
+        provider_service: ProviderConfigService,
+        capacity: Callable[[], bool],
+        provider_id: str | None,
+        candidate_count: int,
+    ) -> dict[str, object]:
+        now = datetime.now(UTC)
+        async with self._uow_factory() as uow:
+            session = await self._require_session(uow, session_id, owner_scope_id)
+            branch = await self._require_branch(uow, session.id, branch_id)
+            layer = await uow.outfits.get_layer(layer_id)
+            if layer is None or layer.branch_id != branch.id:
+                raise OutfitError(404, "outfit_layer_not_found", "层不存在。")
+            if layer.state != "pending_reapply":
+                raise OutfitError(409, "outfit_layer_not_pending", "该层已应用。")
+            chosen_provider = provider_id
+            if chosen_provider is None:
+                original = (
+                    await uow.jobs.get_job(layer.apply_job_id)
+                    if layer.apply_job_id is not None
+                    else None
+                )
+                if original is None:
+                    raise OutfitError(
+                        409, "provider_not_usable", "原 Provider 不可用，请显式选择兼容 Provider。"
+                    )
+                chosen_provider = original.provider_id
+            config = await provider_service.get(chosen_provider)
+            revision = await provider_service.current_revision(chosen_provider)
+            if config is None or revision is None or config.state not in {"active", "validated"}:
+                raise OutfitError(
+                    409, "provider_not_usable", "没有可用的兼容 Provider，请显式选择。"
+                )
+            capabilities = _as_mapping(json.loads(revision.capabilities_json or "{}"))
+            roles = _as_mapping(capabilities.get("supported_layer_roles")).get("values")
+            if not _capability_supported(capabilities, "sequential_layering"):
+                raise OutfitError(
+                    409, "provider_not_usable", "所选 Provider 不支持分层穿搭。"
+                )
+            if isinstance(roles, list) and roles and layer.role not in roles:
+                raise OutfitError(
+                    409, "provider_not_usable", "所选 Provider 不支持该层级角色。"
+                )
+            if not capacity():
+                raise OutfitError(507, "storage_capacity", "存储空间不足，暂时不能创建任务。")
+            availability = await provider_service.availability_for(config, revision)
+            waiting = availability == "temporarily_offline"
+            job_id = str(uuid4())
+            snapshot = {
+                "label": f"{config.display_name} · {revision.model}",
+                "adapter_type": revision.adapter_type,
+                "model": revision.model,
+                "semantic_parameters": json.loads(revision.vendor_parameters_json or "{}"),
+                "capabilities_schema_version": 1,
+                "capabilities": json.loads(revision.capabilities_json or "{}"),
+            }
+            job = Job(
+                id=job_id,
+                owner_scope_id=session.owner_scope_id,
+                mode="precise_try_on",
+                state="waiting_provider" if waiting else "queued",
+                candidate_count=candidate_count,
+                garment_asset_id=layer.garment_asset_id,
+                provider_id=chosen_provider,
+                provider_revision_id=revision.id,
+                provider_snapshot_json=json.dumps(snapshot, separators=(",", ":"), sort_keys=True),
+                block_reason="provider_offline" if waiting else None,
+                blocked_detail="Provider 暂时离线，恢复后任务会自动继续。" if waiting else None,
+                created_at=now,
+                updated_at=now,
+            )
+            await uow.jobs.add_job(job)
+            await uow.jobs.add_person_input(
+                JobPersonInput(
+                    job_id=job_id,
+                    person_asset_id=session.person_asset_id,
+                    ordinal=0,
+                    created_at=now,
+                )
+            )
+            for candidate_index in range(candidate_count):
+                await uow.jobs.add_item(
+                    JobItem(
+                        id=str(uuid4()),
+                        job_id=job_id,
+                        person_asset_id=session.person_asset_id,
+                        candidate_index=candidate_index,
+                        attempt=1,
+                        state="waiting_provider" if waiting else "queued",
+                        block_reason="provider_offline" if waiting else None,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+            await uow.outfits.update_layer(replace(layer, apply_job_id=job_id, updated_at=now))
+            await uow.commit()
+            session = await self._require_session(uow, session.id, owner_scope_id)
+            return {
+                "session": await self._session_payload(uow, session),
+                "job": await job_payload(uow, job),
+            }
+
     # -- helpers ---------------------------------------------------------
 
     async def _require_session(

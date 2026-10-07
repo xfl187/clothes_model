@@ -351,6 +351,117 @@ def test_remove_layer_marks_later_layers_pending_without_new_jobs(tmp_path: Path
         assert [layer["state"] for layer in after] == ["pending_reapply"]
 
 
+def test_switch_route_preserves_outerwear_without_new_jobs(tmp_path: Path) -> None:
+    client, credentials, seeded = _build(tmp_path)
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'outfit-layers.db').as_posix()}"
+    headers = {"Authorization": f"Bearer {credentials['app']}"}
+
+    def job_count() -> int:
+        import sqlite3
+
+        with sqlite3.connect(tmp_path / "outfit-layers.db") as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+
+    with client:
+        created = client.post(
+            "/api/v1/outfits",
+            json={"person_asset_id": seeded["person"]},
+            headers={**headers, "Idempotency-Key": "ol-route-session"},
+        ).json()
+        session_id = created["id"]
+        branch_id = created["branches"][0]["id"]
+
+        layer = client.post(
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers",
+            json={
+                "role": "outerwear",
+                "garment_asset_id": seeded["garment"],
+                "provider_id": seeded["provider"],
+                "candidate_count": 1,
+            },
+            headers={**headers, "Idempotency-Key": "ol-route-outer"},
+        ).json()
+        item_id = layer["job"]["items"][0]["id"]
+        output_id = _seed_output(database_url, item_id)
+        applied = client.post(
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/revisions/"
+            f"{created['head_revision']['id']}/select",
+            json={"job_item_id": item_id, "output_id": output_id},
+            headers={**headers, "Idempotency-Key": "ol-route-select"},
+        ).json()
+        assert applied["branches"][0]["layers"][0]["state"] == "applied"
+        jobs_before = job_count()
+
+        switched = client.post(
+            f"/api/v1/outfits/{session_id}/route",
+            json={"route": "dress"},
+            headers={**headers, "Idempotency-Key": "ol-route-switch"},
+        )
+        assert switched.status_code == 200, switched.text
+        branches = switched.json()["branches"]
+        assert len(branches) == 2
+        new_branch = next(b for b in branches if b["route"] == "dress")
+        assert [layer["role"] for layer in new_branch["layers"]] == ["outerwear"]
+        assert new_branch["layers"][0]["state"] == "pending_reapply"
+        original = next(b for b in branches if b["id"] == branch_id)
+        assert original["layers"][0]["state"] == "applied"  # original branch unchanged
+        assert job_count() == jobs_before  # switching created no task
+
+
+def _disable_provider(database_url: str, provider_id: str) -> None:
+    import sqlite3
+
+    path = database_url.split("///", 1)[1]
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "UPDATE provider_configs SET state='disabled' WHERE id=?", (provider_id,)
+        )
+        connection.commit()
+
+
+def test_reapply_requires_explicit_provider_and_never_silently_switches(tmp_path: Path) -> None:
+    client, credentials, seeded = _build(tmp_path)
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'outfit-layers.db').as_posix()}"
+    headers = {"Authorization": f"Bearer {credentials['app']}"}
+    with client:
+        created = client.post(
+            "/api/v1/outfits",
+            json={"person_asset_id": seeded["person"]},
+            headers={**headers, "Idempotency-Key": "ol-re-session"},
+        ).json()
+        session_id = created["id"]
+        branch_id = created["branches"][0]["id"]
+        layer = client.post(
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers",
+            json={
+                "role": "outerwear",
+                "garment_asset_id": seeded["garment"],
+                "provider_id": seeded["provider"],
+                "candidate_count": 1,
+            },
+            headers={**headers, "Idempotency-Key": "ol-re-outer"},
+        ).json()
+        layer_id = layer["session"]["branches"][0]["layers"][0]["id"]
+        first_job = layer["job"]["id"]
+
+        explicit = client.post(
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}/reapply",
+            json={"provider_id": seeded["provider"], "candidate_count": 1},
+            headers={**headers, "Idempotency-Key": "ol-re-explicit"},
+        )
+        assert explicit.status_code == 201, explicit.text
+        assert explicit.json()["job"]["id"] != first_job
+
+        _disable_provider(database_url, seeded["provider"])
+        blocked = client.post(
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}/reapply",
+            json={"candidate_count": 1},
+            headers={**headers, "Idempotency-Key": "ol-re-blocked"},
+        )
+        assert blocked.status_code == 409
+        assert blocked.json()["code"] == "provider_not_usable"
+
+
 def test_add_layer_rejects_provider_without_layering(tmp_path: Path) -> None:
     client, credentials, seeded = _build(tmp_path, sequential=False)
     headers = {"Authorization": f"Bearer {credentials['app']}"}
