@@ -24,7 +24,7 @@ Phase 4 added the production Seedream adapter, synchronous paid-call safety, exp
 - Phase boundaries: [Implementation Roadmap](docs/roadmap/implementation-roadmap.md)
 - Completed implementation evidence: [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md)
 - Completed implementation plans: [Phase 5](docs/plans/phase-5-comfyui-workflow-recovery.md), [Phase 6 Android V1 Completion](docs/plans/phase-6-android-v1-completion.md), [Phase 7 Web Admin and Operations Completion](docs/plans/phase-7-web-admin-operations-completion.md), [Phase 8 V1 Hardening and Release Gate](docs/plans/phase-8-v1-hardening-release-gate.md), the cross-cutting [Local-first Asset Library](docs/plans/local-first-asset-library.md) (Backend migration `20260929_0006`, owner scopes, and opt-in 24-hour input-binary cleanup; follow its rollout order and keep cleanup disabled until migrated content is acknowledged on device), and the [Provider Archive Lifecycle](docs/plans/provider-archive-lifecycle.md)
-- Current implementation plan: none — Phase 8 complete; V1 release candidate gated by `verify-phase8.ps1`, pending the deferred credentialed AutoDL/Comfy acceptance before claiming Comfy production readiness
+- Current implementation plan: [Phase 9 — V1.1 Layered Outfit Track](docs/plans/phase-9-layered-outfit-track.md) (start with Task 1 after accepting the V1 release candidate)
 - UI behavior: the Android and Web Admin UI Specs under `docs/superpowers/specs/`
 - Visual language: [DESIGN.md](DESIGN.md)
 - Long-lived technical decisions: [Architecture Decision Records](docs/adr/README.md)

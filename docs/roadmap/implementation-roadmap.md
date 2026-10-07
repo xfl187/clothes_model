@@ -12,7 +12,7 @@
 - Phase 7 — COMPLETE ([plan](../plans/phase-7-web-admin-operations-completion.md)); Web Admin `概览 / 配置 / 运行维护` A00–A12, Backend overview/retention/scan/cleanup/App-Token rotation/admin diagnostics, and `web-admin/verify-phase7.ps1` passed
 - Phase 8 — COMPLETE ([plan](../plans/phase-8-v1-hardening-release-gate.md)); V1 acceptance matrix, fault/security/backup verification, runbooks, and the full `verify-phase8.ps1` gate passed end-to-end
 - Deferred release evidence — credentialed AutoDL/Comfy acceptance after a real Workflow/node exists
-- Next — after the deferred credentialed gate, start Phase 9 (V1.1 layered outfits)
+- Phase 9 — PLAN READY ([plan](../plans/phase-9-layered-outfit-track.md)); implement Task 1 (V1.1 Outfit contract) next, after accepting the V1 release candidate
 
 ## Current Repository State
 
