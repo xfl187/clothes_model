@@ -39,6 +39,18 @@ class ValidationOutcome:
     steps: tuple[ValidationStep, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class AvailabilityAssessment:
+    status: str
+    unavailable_reason: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionOutcome:
+    status: str
+    steps: tuple[ValidationStep, ...]
+
+
 def _as_parameters(raw: dict[str, Any] | None) -> dict[str, Any]:
     return dict(raw or {})
 
@@ -351,19 +363,39 @@ class ProviderConfigService:
     async def availability_for(
         self, config: ProviderConfig, revision: ProviderConfigRevision
     ) -> str:
+        return (await self.assess_availability_for(config, revision)).status
+
+    async def assess_availability_for(
+        self, config: ProviderConfig, revision: ProviderConfigRevision
+    ) -> AvailabilityAssessment:
         credential = None
         if config.secret_envelope is not None:
             if self._cipher is None:
-                return "unavailable_configuration"
+                return AvailabilityAssessment(
+                    "unavailable_configuration",
+                    "服务端加密主密钥未配置，无法读取 Provider 凭据。",
+                )
             try:
                 credential = self._cipher.decrypt(
                     config.secret_envelope, purpose=SECRET_PURPOSE, record_id=config.id
                 )
             except SecretCryptoError:
-                return "unavailable_configuration"
+                return AvailabilityAssessment(
+                    "unavailable_configuration",
+                    "Provider 凭据无法用当前服务端主密钥解密，请管理员重新保存 API Key。",
+                )
         invocation = self._invocation(config, revision, credential)
         adapter = self._registry.resolve(revision.adapter_type)
-        return str(await adapter.availability(invocation))
+        status = str(await adapter.availability(invocation))
+        if status == "temporarily_offline":
+            reason = "Provider 暂时离线，任务可以排队等待恢复。"
+        elif status == "unavailable_configuration" and config.secret_envelope is None:
+            reason = "Provider 凭据或配置不完整，请管理员检查并重新验证。"
+        elif status == "unavailable_configuration":
+            reason = "Provider 地址、模型或超时配置无效，请管理员检查并重新验证。"
+        else:
+            reason = None
+        return AvailabilityAssessment(status, reason)
 
     async def validate(self, provider_id: str) -> ValidationOutcome:
         invocation, config, revision = await self.resolve_invocation(provider_id)
@@ -423,6 +455,30 @@ class ProviderConfigService:
             capabilities=capabilities,
             steps=tuple(steps),
         )
+
+    async def connection_test(self, provider_id: str) -> ConnectionOutcome:
+        invocation, _config, _revision = await self.resolve_invocation(provider_id)
+        adapter = self._registry.resolve(invocation.adapter_type)
+        availability = str(await adapter.availability(invocation))
+        capabilities = await adapter.capabilities(invocation)
+        steps: list[ValidationStep] = [
+            ValidationStep(
+                "credentials",
+                "passed" if invocation.credential else "skipped",
+                None if invocation.credential else "未配置凭据，仅验证网络与协议。",
+            ),
+            ValidationStep(
+                "connection",
+                "passed" if availability == "available" else "failed",
+                None if availability == "available" else f"可用性 {availability}",
+            ),
+            ValidationStep(
+                "capabilities",
+                "passed" if capabilities.verification != "unavailable" else "failed",
+            ),
+        ]
+        passed = availability == "available" and all(step.status != "failed" for step in steps)
+        return ConnectionOutcome("passed" if passed else "failed", tuple(steps))
 
     async def enable(self, provider_id: str) -> ProviderConfig:
         async with self._uow_factory() as uow:

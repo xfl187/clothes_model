@@ -274,3 +274,117 @@ DiagnosticJobDetail:
             type: string
           conclusion:
             type: string
+
+SystemOverviewVerdict:
+  type: string
+  enum: [ok, limited, action_required, unknown]
+
+SystemDependencyKey:
+  type: string
+  enum: [business_service, database, storage, comfyui, unknown]
+
+SystemDependencyState:
+  type: string
+  enum: [ok, degraded, unavailable, unknown]
+
+SystemDependency:
+  type: object
+  additionalProperties: false
+  required: [key, state]
+  properties:
+    key:
+      $ref: '#/SystemDependencyKey'
+    state:
+      $ref: '#/SystemDependencyState'
+    detail:
+      type: string
+      nullable: true
+
+SystemBlockerKind:
+  type: string
+  enum:
+    - waiting_provider
+    - storage_blocked_queue
+    - needs_attention
+    - configuration_fault
+    - unknown
+
+SystemBlocker:
+  type: object
+  additionalProperties: false
+  required: [kind, count]
+  properties:
+    kind:
+      $ref: '#/SystemBlockerKind'
+    count:
+      type: integer
+      minimum: 0
+    deep_link:
+      type: string
+      nullable: true
+
+SystemActionSeverity:
+  type: string
+  enum: [warning, critical, unknown]
+
+SystemActionTargetKind:
+  type: string
+  enum: [job, comfy_node, workflow, provider, storage, unknown]
+
+SystemActionItem:
+  type: object
+  additionalProperties: false
+  required: [id, severity, summary, target_kind]
+  properties:
+    id:
+      type: string
+    severity:
+      $ref: '#/SystemActionSeverity'
+    summary:
+      type: string
+    target_kind:
+      $ref: '#/SystemActionTargetKind'
+    target_id:
+      type: string
+      nullable: true
+
+EffectiveConfiguration:
+  type: object
+  additionalProperties: false
+  properties:
+    default_provider:
+      $ref: ../common/schemas.yaml#/ProviderConfigRef
+    active_llm_provider:
+      $ref: ../common/schemas.yaml#/ProviderConfigRef
+    active_workflow:
+      $ref: ../common/schemas.yaml#/WorkflowVersionRef
+
+SystemOverview:
+  type: object
+  additionalProperties: false
+  required:
+    - verdict
+    - snapshot_at
+    - dependencies
+    - blockers
+    - action_items
+    - effective_configuration
+  properties:
+    verdict:
+      $ref: '#/SystemOverviewVerdict'
+    snapshot_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    dependencies:
+      type: array
+      items:
+        $ref: '#/SystemDependency'
+    blockers:
+      type: array
+      items:
+        $ref: '#/SystemBlocker'
+    action_items:
+      type: array
+      items:
+        $ref: '#/SystemActionItem'
+    effective_configuration:
+      $ref: '#/EffectiveConfiguration'

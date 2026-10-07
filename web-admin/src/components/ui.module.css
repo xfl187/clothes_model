@@ -1,0 +1,237 @@
+.page {
+  padding: 28px clamp(20px, 4vw, 48px) 64px;
+  max-width: 1320px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.header h1 {
+  margin: 4px 0 6px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.section h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-top: 20px;
+  background: var(--surface-raised);
+  border-left: 4px solid var(--rule-strong);
+}
+
+.verdict[data-verdict='ok'] {
+  border-left-color: var(--success);
+}
+
+.verdict[data-verdict='limited'] {
+  border-left-color: var(--warning-ink);
+}
+
+.verdict[data-verdict='action_required'] {
+  border-left-color: var(--danger);
+}
+
+.verdictLabel {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.verdictMeta {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ledger {
+  border-top: 1px solid var(--rule);
+}
+
+.ledgerRow {
+  display: grid;
+  grid-template-columns: 180px 140px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+}
+
+.ledgerLabel {
+  color: var(--muted);
+}
+
+.statusMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.statusMark::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.statusMark[data-state='ok'],
+.statusMark[data-state='healthy'],
+.statusMark[data-state='active'],
+.statusMark[data-state='available'],
+.statusMark[data-state='passed'],
+.statusMark[data-state='compatible'] {
+  color: var(--success);
+}
+
+.statusMark[data-state='degraded'],
+.statusMark[data-state='offline'],
+.statusMark[data-state='warning'],
+.statusMark[data-state='waiting_provider'],
+.statusMark[data-state='needs_attention'],
+.statusMark[data-state='unchecked'] {
+  color: var(--warning-ink);
+}
+
+.statusMark[data-state='unavailable'],
+.statusMark[data-state='blocked'],
+.statusMark[data-state='incompatible'],
+.statusMark[data-state='failed'],
+.statusMark[data-state='disabled'] {
+  color: var(--danger);
+}
+
+.statusMark[data-state='unknown'],
+.statusMark[data-state='retired'],
+.statusMark[data-state='inactive'] {
+  color: var(--muted);
+}
+
+.rail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.railStep {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  background: var(--surface-raised);
+  font-size: 13px;
+}
+
+.railIndex {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  border: 1px solid var(--rule);
+  background: var(--surface-raised);
+  padding: 18px 20px;
+}
+
+.card + .card {
+  margin-top: 14px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid[data-columns='2'] {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.stateBlock {
+  padding: 20px;
+  border: 1px dashed var(--rule-strong);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.moduleError {
+  padding: 16px 18px;
+  border-left: 4px solid var(--danger);
+  background: var(--surface-raised);
+  font-size: 14px;
+}
+
+.moduleError button {
+  margin-top: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.table tbody tr[data-selected='true'] {
+  background: var(--selection-wash);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

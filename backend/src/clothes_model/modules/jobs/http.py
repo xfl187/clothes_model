@@ -19,7 +19,7 @@ from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.infrastructure.database import models as db
 from clothes_model.modules.assets.domain import AssetReference, IdempotencyRecord
 from clothes_model.modules.auth.application import VerifiedCredential
-from clothes_model.modules.auth.http import require_app
+from clothes_model.modules.auth.http import AdminIdentity, require_admin, require_app
 from clothes_model.modules.jobs.domain import Job, JobItem, JobPersonInput
 from clothes_model.modules.jobs.infrastructure.commands import JobCommandError, JobCommandService
 from clothes_model.modules.jobs.payloads import item_payload, job_payload
@@ -27,6 +27,7 @@ from clothes_model.modules.providers.application.services import ProviderConfigS
 
 router = APIRouter(tags=["Jobs"])
 AppIdentity = Annotated[VerifiedCredential, Depends(require_app)]
+AdminIdentityDep = Annotated[AdminIdentity, Depends(require_admin)]
 
 
 class RetryJobItemBody(BaseModel):
@@ -495,6 +496,108 @@ async def finish_failed_job_item(
 ) -> dict[str, object]:
     del idempotency_key
     await _require_owned_job(request, identity, item_id=job_item_id)
+    try:
+        job = await _command_service(request).finish_failed(job_item_id, body.reason)
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job)}
+
+
+@router.post(
+    "/api/v1/admin/diagnostics/jobs/{job_id}/cancel",
+    tags=["Diagnostics"],
+    operation_id="adminCancelJob",
+)
+async def admin_cancel_job(
+    request: Request,
+    job_id: str,
+    identity: AdminIdentityDep,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    try:
+        job = await _command_service(request).cancel_job(job_id)
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job)}
+
+
+@router.post(
+    "/api/v1/admin/diagnostics/job-items/{job_item_id}/cancel",
+    tags=["Diagnostics"],
+    operation_id="adminCancelJobItem",
+)
+async def admin_cancel_job_item(
+    request: Request,
+    job_item_id: str,
+    identity: AdminIdentityDep,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    try:
+        job = await _command_service(request).cancel_item(job_item_id)
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job)}
+
+
+@router.post(
+    "/api/v1/admin/diagnostics/job-items/{job_item_id}/retry",
+    tags=["Diagnostics"],
+    status_code=201,
+    operation_id="adminRetryJobItem",
+)
+async def admin_retry_job_item(
+    request: Request,
+    job_item_id: str,
+    identity: AdminIdentityDep,
+    body: RetryJobItemBody | None = None,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    reason = body.reason if body is not None else None
+    provider_id = body.provider_id if body is not None else None
+    try:
+        job, new_item_id = await _command_service(request).retry_item(
+            job_item_id, reason=reason, provider_id=provider_id
+        )
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job), "created_job_item_id": new_item_id}
+
+
+@router.post(
+    "/api/v1/admin/diagnostics/job-items/{job_item_id}/requery",
+    tags=["Diagnostics"],
+    operation_id="adminRequeryJobItem",
+)
+async def admin_requery_job_item(
+    request: Request,
+    job_item_id: str,
+    identity: AdminIdentityDep,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    try:
+        job = await _command_service(request).requery_item(job_item_id)
+    except JobCommandError as error:
+        raise _command_problem(error) from error
+    return {"job": await _job_response(request, job)}
+
+
+@router.post(
+    "/api/v1/admin/diagnostics/job-items/{job_item_id}/finish-failed",
+    tags=["Diagnostics"],
+    operation_id="adminFinishJobItemAsFailed",
+)
+async def admin_finish_failed_job_item(
+    request: Request,
+    job_item_id: str,
+    body: FinishFailedBody,
+    identity: AdminIdentityDep,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
     try:
         job = await _command_service(request).finish_failed(job_item_id, body.reason)
     except JobCommandError as error:

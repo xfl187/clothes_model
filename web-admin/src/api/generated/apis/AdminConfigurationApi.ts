@@ -53,6 +53,11 @@ import {
     RetentionPolicyUpdateRequestFromJSON,
     RetentionPolicyUpdateRequestToJSON,
 } from '../models/RetentionPolicyUpdateRequest';
+import {
+    type SystemOverview,
+    SystemOverviewFromJSON,
+    SystemOverviewToJSON,
+} from '../models/SystemOverview';
 
 export interface TestComfyNodeConnectionRequest {
     /**
@@ -151,6 +156,27 @@ export interface AdminConfigurationApiInterface {
      * Read runtime retention policy
      */
     getRetentionPolicy(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RetentionPolicy>;
+
+    /**
+     * Creates request options for getSystemOverview without sending the request
+     * @throws {RequiredError}
+     * @memberof AdminConfigurationApiInterface
+     */
+    getSystemOverviewRequestOpts(): Promise<runtime.RequestOpts>;
+
+    /**
+     * 
+     * @summary Aggregate dependency health, run blockers, action items, and effective configuration
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AdminConfigurationApiInterface
+     */
+    getSystemOverviewRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SystemOverview>>;
+
+    /**
+     * Aggregate dependency health, run blockers, action items, and effective configuration
+     */
+    getSystemOverview(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SystemOverview>;
 
     /**
      * Creates request options for testComfyNodeConnection without sending the request
@@ -359,6 +385,43 @@ export class AdminConfigurationApi extends runtime.BaseAPI implements AdminConfi
      */
     async getRetentionPolicy(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RetentionPolicy> {
         const response = await this.getRetentionPolicyRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getSystemOverview without sending the request
+     */
+    async getSystemOverviewRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/admin/system/overview`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Aggregate dependency health, run blockers, action items, and effective configuration
+     */
+    async getSystemOverviewRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SystemOverview>> {
+        const requestOptions = await this.getSystemOverviewRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SystemOverviewFromJSON(jsonValue));
+    }
+
+    /**
+     * Aggregate dependency health, run blockers, action items, and effective configuration
+     */
+    async getSystemOverview(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SystemOverview> {
+        const response = await this.getSystemOverviewRaw(initOverrides);
         return await response.value();
     }
 

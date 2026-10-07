@@ -4,12 +4,15 @@ import type { PropsWithChildren } from 'react';
 
 import type { ContractGateway } from '../api/contractGateway';
 import { ContractGatewayProvider } from './ContractGatewayContext';
+import { AdminApiProvider } from '../api/AdminApiContext';
 import { AdminSessionProvider } from '../features/auth/AdminSessionContext';
+import type { AdminApi } from '../api/adminApi';
 
 export function AppProviders({
   children,
   gateway,
-}: PropsWithChildren<{ gateway?: ContractGateway }>) {
+  adminApi,
+}: PropsWithChildren<{ gateway?: ContractGateway; adminApi?: AdminApi }>) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -21,7 +24,11 @@ export function AppProviders({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ContractGatewayProvider gateway={gateway}><AdminSessionProvider>{children}</AdminSessionProvider></ContractGatewayProvider>
+      <ContractGatewayProvider gateway={gateway}>
+        <AdminApiProvider api={adminApi}>
+          <AdminSessionProvider>{children}</AdminSessionProvider>
+        </AdminApiProvider>
+      </ContractGatewayProvider>
     </QueryClientProvider>
   );
 }

@@ -24,6 +24,7 @@ const archive = vi.fn();
 const restore = vi.fn();
 const gateway: ProviderAdminGateway = {
   list, save, validate,
+  connectionTest: vi.fn().mockResolvedValue({ status: 'passed', checkedAt: new Date(), steps: [] }),
   enable: vi.fn().mockResolvedValue(provider),
   archive,
   restore,
@@ -34,7 +35,7 @@ const gateway: ProviderAdminGateway = {
 function renderPage() {
   return render(<AdminSessionContext.Provider value={{
     state: 'authenticated', session: { authenticated: true, expiresAt: new Date(), csrfToken: 'csrf' },
-    login: vi.fn(), logout: vi.fn(),
+    login: vi.fn(), logout: vi.fn(), expire: vi.fn(),
   }}><ProviderAdminPage gateway={gateway} /></AdminSessionContext.Provider>);
 }
 
@@ -65,7 +66,7 @@ test('archives a provider into read-only history and restores it as inactive', a
   await user.click(screen.getByRole('button', { name: '查看 Seedream' }));
   expect(screen.getByText('此 Provider 已归档，仅保留历史关联。恢复后才能修改、验证或再次启用。')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '保存配置' })).toBeDisabled();
-  expect(screen.queryByRole('button', { name: '验证连接与生成' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '最小生成测试（付费）' })).not.toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: '恢复 Seedream' }));
   expect(await screen.findByText('未启用 · 密钥已保存')).toBeInTheDocument();
@@ -85,7 +86,7 @@ test('retains redacted secret and requires explicit paid validation confirmation
   await user.click(screen.getByRole('button', { name: '保存配置' }));
   expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ apiKey: 'ark-test-key' }), 'provider-1');
 
-  await user.click(screen.getByRole('button', { name: '验证连接与生成' }));
+  await user.click(screen.getByRole('button', { name: '最小生成测试（付费）' }));
   expect(screen.getByRole('dialog', { name: '确认一次付费验证' })).toBeInTheDocument();
   expect(validate).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button', { name: '确认并验证一次' }));

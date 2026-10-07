@@ -147,6 +147,47 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/CsrfRejected'
+  /api/v1/admin/app-credential:
+    get:
+      tags:
+        - Authentication
+      operationId: getAppCredentialStatus
+      summary: Read App Token metadata without exposing the token value
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: App credential metadata; never the token value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppCredentialStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+        - Authentication
+      operationId: rotateAppCredential
+      summary: Rotate the App Token, invalidating the previous token and returning the new value once
+      description: Immediately revokes all active App Tokens and issues one new token. Server-side work is not cancelled. The new plaintext token is returned exactly once and cannot be read again.
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: New App Token returned once; the previous token is invalid immediately.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppCredentialRotation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/CsrfRejected'
   /api/v1/uploads:
     post:
       tags:
@@ -1059,6 +1100,35 @@ paths:
           $ref: '#/components/responses/Problem'
         '409':
           $ref: '#/components/responses/Problem'
+  /api/v1/admin/provider-configs/{provider_id}/connection-test:
+    parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Providers
+      operationId: testProviderConnection
+      summary: Test connectivity and protocol without performing a paid generation
+      description: Free reachability/protocol/metadata check. It does not run a generation, spend Provider credit, enable the Provider, or change the default. The paid minimal generation test remains validateProviderConfig.
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Connection test result; no generation or cost is incurred.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderConnectionTestResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
   /api/v1/admin/workflows:
     get:
       tags:
@@ -1423,6 +1493,23 @@ paths:
                 $ref: '#/components/schemas/RetentionPolicy'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /api/v1/admin/system/overview:
+    get:
+      tags:
+        - Admin Configuration
+      operationId: getSystemOverview
+      summary: Aggregate dependency health, run blockers, action items, and effective configuration
+      security:
+        - AdminSession: []
+      responses:
+        '200':
+          description: System overview snapshot with real, degraded, or partial dependency conclusions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemOverview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /api/v1/admin/storage:
     get:
       tags:
@@ -1550,6 +1637,168 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/Problem'
+  /api/v1/admin/diagnostics/jobs/{job_id}/cancel:
+    parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Diagnostics
+      operationId: adminCancelJob
+      summary: Best-effort cancel every unfinished candidate for an administrator
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Updated aggregate job state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/JobStateConflict'
+  /api/v1/admin/diagnostics/job-items/{job_item_id}/cancel:
+    parameters:
+      - name: job_item_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Diagnostics
+      operationId: adminCancelJobItem
+      summary: Best-effort cancel one unfinished candidate without affecting others
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Updated aggregate job state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/JobStateConflict'
+  /api/v1/admin/diagnostics/job-items/{job_item_id}/retry:
+    parameters:
+      - name: job_item_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Diagnostics
+      operationId: adminRetryJobItem
+      summary: Create a new traceable JobItem attempt without overwriting the original
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetryJobItemRequest'
+      responses:
+        '201':
+          description: New JobItem created and aggregate job recalculated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/JobStateConflict'
+  /api/v1/admin/diagnostics/job-items/{job_item_id}/requery:
+    parameters:
+      - name: job_item_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Diagnostics
+      operationId: adminRequeryJobItem
+      summary: Requery an uncertain external execution without starting a new one
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Job synchronized with the known external state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/JobStateConflict'
+  /api/v1/admin/diagnostics/job-items/{job_item_id}/finish-failed:
+    parameters:
+      - name: job_item_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Identifier'
+    post:
+      tags:
+        - Diagnostics
+      operationId: adminFinishJobItemAsFailed
+      summary: End needs_attention processing as a retained failure
+      security:
+        - AdminSession: []
+          AdminCsrf: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinishFailedRequest'
+      responses:
+        '200':
+          description: JobItem ended as failed and aggregate job recalculated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobCommandResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/JobStateConflict'
 components:
   securitySchemes:
     AppBearer:
@@ -1838,6 +2087,41 @@ components:
           type: string
           minLength: 32
           writeOnly: true
+    AppCredentialStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - token_id
+        - status
+        - created_at
+      properties:
+        token_id:
+          type: string
+          description: Non-secret token identifier; never the token value.
+        status:
+          type: string
+          enum:
+            - active
+            - unknown
+        created_at:
+          $ref: '#/components/schemas/Timestamp'
+        rotated_at:
+          $ref: '#/components/schemas/Timestamp'
+    AppCredentialRotation:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+        - token_id
+        - rotated_at
+      properties:
+        token:
+          type: string
+          description: One-time plaintext App Token. It is shown once and never returned again; the previous token is invalid immediately.
+        token_id:
+          type: string
+        rotated_at:
+          $ref: '#/components/schemas/Timestamp'
     AssetKind:
       type: string
       enum:
@@ -2866,6 +3150,41 @@ components:
                 nullable: true
         capabilities:
           $ref: '#/components/schemas/ProviderCapabilities'
+    ProviderConnectionTestResult:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - checked_at
+        - steps
+      properties:
+        status:
+          type: string
+          enum:
+            - passed
+            - failed
+        checked_at:
+          $ref: '#/components/schemas/Timestamp'
+        steps:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - key
+              - status
+            properties:
+              key:
+                type: string
+              status:
+                type: string
+                enum:
+                  - passed
+                  - failed
+                  - skipped
+              detail:
+                type: string
+                nullable: true
     WorkflowState:
       type: string
       enum:
@@ -3276,6 +3595,139 @@ components:
         intermediate_file_days:
           type: integer
           minimum: 1
+    SystemOverviewVerdict:
+      type: string
+      enum:
+        - ok
+        - limited
+        - action_required
+        - unknown
+    SystemDependencyKey:
+      type: string
+      enum:
+        - business_service
+        - database
+        - storage
+        - comfyui
+        - unknown
+    SystemDependencyState:
+      type: string
+      enum:
+        - ok
+        - degraded
+        - unavailable
+        - unknown
+    SystemDependency:
+      type: object
+      additionalProperties: false
+      required:
+        - key
+        - state
+      properties:
+        key:
+          $ref: '#/components/schemas/SystemDependencyKey'
+        state:
+          $ref: '#/components/schemas/SystemDependencyState'
+        detail:
+          type: string
+          nullable: true
+    SystemBlockerKind:
+      type: string
+      enum:
+        - waiting_provider
+        - storage_blocked_queue
+        - needs_attention
+        - configuration_fault
+        - unknown
+    SystemBlocker:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - count
+      properties:
+        kind:
+          $ref: '#/components/schemas/SystemBlockerKind'
+        count:
+          type: integer
+          minimum: 0
+        deep_link:
+          type: string
+          nullable: true
+    SystemActionSeverity:
+      type: string
+      enum:
+        - warning
+        - critical
+        - unknown
+    SystemActionTargetKind:
+      type: string
+      enum:
+        - job
+        - comfy_node
+        - workflow
+        - provider
+        - storage
+        - unknown
+    SystemActionItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - severity
+        - summary
+        - target_kind
+      properties:
+        id:
+          type: string
+        severity:
+          $ref: '#/components/schemas/SystemActionSeverity'
+        summary:
+          type: string
+        target_kind:
+          $ref: '#/components/schemas/SystemActionTargetKind'
+        target_id:
+          type: string
+          nullable: true
+    EffectiveConfiguration:
+      type: object
+      additionalProperties: false
+      properties:
+        default_provider:
+          $ref: '#/components/schemas/ProviderConfigRef'
+        active_llm_provider:
+          $ref: '#/components/schemas/ProviderConfigRef'
+        active_workflow:
+          $ref: '#/components/schemas/WorkflowVersionRef'
+    SystemOverview:
+      type: object
+      additionalProperties: false
+      required:
+        - verdict
+        - snapshot_at
+        - dependencies
+        - blockers
+        - action_items
+        - effective_configuration
+      properties:
+        verdict:
+          $ref: '#/components/schemas/SystemOverviewVerdict'
+        snapshot_at:
+          $ref: '#/components/schemas/Timestamp'
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/SystemDependency'
+        blockers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SystemBlocker'
+        action_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SystemActionItem'
+        effective_configuration:
+          $ref: '#/components/schemas/EffectiveConfiguration'
     StorageStatus:
       type: object
       additionalProperties: false

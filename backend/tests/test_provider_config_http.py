@@ -171,6 +171,9 @@ def test_provider_config_lifecycle_and_app_availability(tmp_path: Path) -> None:
         )
         assert degraded.status_code == 200
         assert degraded.json()["items"][0]["availability"] == "unavailable_configuration"
+        assert degraded.json()["items"][0]["unavailable_reason"] == (
+            "Provider 凭据无法用当前服务端主密钥解密，请管理员重新保存 API Key。"
+        )
 
         default_delete = client.delete(
             f"/api/v1/admin/provider-configs/{provider_id}",

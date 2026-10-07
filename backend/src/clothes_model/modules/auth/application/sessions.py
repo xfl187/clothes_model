@@ -99,8 +99,18 @@ class AdminSessionService:
     async def _failed_login(self, key: str, now: datetime) -> None:
         async with self._uow_factory() as uow:
             current = await uow.auth_throttles.get_by_key(key)
-            if current is None or current.window_started_at + self._window <= now:
+            if current is None:
                 await uow.auth_throttles.add(AuthThrottle(str(uuid4()), key, 1, now, now))
+            elif current.window_started_at + self._window <= now:
+                await uow.auth_throttles.replace(
+                    replace(
+                        current,
+                        failed_count=1,
+                        window_started_at=now,
+                        blocked_until=None,
+                        updated_at=now,
+                    )
+                )
             else:
                 count = current.failed_count + 1
                 blocked = now + self._window if count >= self._max_failures else None

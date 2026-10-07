@@ -84,3 +84,45 @@ AdminSession:
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '403':
         $ref: ../openapi.yaml#/components/responses/CsrfRejected
+AdminAppCredential:
+  get:
+    tags: [Authentication]
+    operationId: getAppCredentialStatus
+    summary: Read App Token metadata without exposing the token value
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: App credential metadata; never the token value.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/auth/schemas.yaml#/AppCredentialStatus
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/Forbidden
+  post:
+    tags: [Authentication]
+    operationId: rotateAppCredential
+    summary: Rotate the App Token, invalidating the previous token and returning the new value once
+    description: >-
+      Immediately revokes all active App Tokens and issues one new token. Server-side
+      work is not cancelled. The new plaintext token is returned exactly once and
+      cannot be read again.
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: New App Token returned once; the previous token is invalid immediately.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/auth/schemas.yaml#/AppCredentialRotation
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '403':
+        $ref: ../openapi.yaml#/components/responses/CsrfRejected

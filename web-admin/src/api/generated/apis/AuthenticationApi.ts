@@ -29,6 +29,16 @@ import {
     AppAuthStatusToJSON,
 } from '../models/AppAuthStatus';
 import {
+    type AppCredentialRotation,
+    AppCredentialRotationFromJSON,
+    AppCredentialRotationToJSON,
+} from '../models/AppCredentialRotation';
+import {
+    type AppCredentialStatus,
+    AppCredentialStatusFromJSON,
+    AppCredentialStatusToJSON,
+} from '../models/AppCredentialStatus';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -39,6 +49,13 @@ export interface CreateAdminSessionRequest {
      * 
      */
     adminSessionCreateRequest: AdminSessionCreateRequest;
+}
+
+export interface RotateAppCredentialRequest {
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
 }
 
 /**
@@ -134,6 +151,51 @@ export interface AuthenticationApiInterface {
      * Validate the App Token without returning secret material
      */
     getAppAuthStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppAuthStatus>;
+
+    /**
+     * Creates request options for getAppCredentialStatus without sending the request
+     * @throws {RequiredError}
+     * @memberof AuthenticationApiInterface
+     */
+    getAppCredentialStatusRequestOpts(): Promise<runtime.RequestOpts>;
+
+    /**
+     * 
+     * @summary Read App Token metadata without exposing the token value
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AuthenticationApiInterface
+     */
+    getAppCredentialStatusRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppCredentialStatus>>;
+
+    /**
+     * Read App Token metadata without exposing the token value
+     */
+    getAppCredentialStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppCredentialStatus>;
+
+    /**
+     * Creates request options for rotateAppCredential without sending the request
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @throws {RequiredError}
+     * @memberof AuthenticationApiInterface
+     */
+    rotateAppCredentialRequestOpts(requestParameters: RotateAppCredentialRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * Immediately revokes all active App Tokens and issues one new token. Server-side work is not cancelled. The new plaintext token is returned exactly once and cannot be read again.
+     * @summary Rotate the App Token, invalidating the previous token and returning the new value once
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AuthenticationApiInterface
+     */
+    rotateAppCredentialRaw(requestParameters: RotateAppCredentialRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppCredentialRotation>>;
+
+    /**
+     * Immediately revokes all active App Tokens and issues one new token. Server-side work is not cancelled. The new plaintext token is returned exactly once and cannot be read again.
+     * Rotate the App Token, invalidating the previous token and returning the new value once
+     */
+    rotateAppCredential(requestParameters: RotateAppCredentialRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppCredentialRotation>;
 
 }
 
@@ -310,6 +372,97 @@ export class AuthenticationApi extends runtime.BaseAPI implements Authentication
      */
     async getAppAuthStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppAuthStatus> {
         const response = await this.getAppAuthStatusRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getAppCredentialStatus without sending the request
+     */
+    async getAppCredentialStatusRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/admin/app-credential`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Read App Token metadata without exposing the token value
+     */
+    async getAppCredentialStatusRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppCredentialStatus>> {
+        const requestOptions = await this.getAppCredentialStatusRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AppCredentialStatusFromJSON(jsonValue));
+    }
+
+    /**
+     * Read App Token metadata without exposing the token value
+     */
+    async getAppCredentialStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppCredentialStatus> {
+        const response = await this.getAppCredentialStatusRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for rotateAppCredential without sending the request
+     */
+    async rotateAppCredentialRequestOpts(requestParameters: RotateAppCredentialRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling rotateAppCredential().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/app-credential`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Immediately revokes all active App Tokens and issues one new token. Server-side work is not cancelled. The new plaintext token is returned exactly once and cannot be read again.
+     * Rotate the App Token, invalidating the previous token and returning the new value once
+     */
+    async rotateAppCredentialRaw(requestParameters: RotateAppCredentialRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AppCredentialRotation>> {
+        const requestOptions = await this.rotateAppCredentialRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AppCredentialRotationFromJSON(jsonValue));
+    }
+
+    /**
+     * Immediately revokes all active App Tokens and issues one new token. Server-side work is not cancelled. The new plaintext token is returned exactly once and cannot be read again.
+     * Rotate the App Token, invalidating the previous token and returning the new value once
+     */
+    async rotateAppCredential(requestParameters: RotateAppCredentialRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppCredentialRotation> {
+        const response = await this.rotateAppCredentialRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

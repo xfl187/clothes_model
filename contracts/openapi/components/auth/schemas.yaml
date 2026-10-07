@@ -55,3 +55,34 @@ AppAuthStatus:
         It is independent of token rotation and reserves future account isolation.
     server_time:
       $ref: ../common/schemas.yaml#/Timestamp
+
+AppCredentialStatus:
+  type: object
+  additionalProperties: false
+  required: [token_id, status, created_at]
+  properties:
+    token_id:
+      type: string
+      description: Non-secret token identifier; never the token value.
+    status:
+      type: string
+      enum: [active, unknown]
+    created_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    rotated_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+
+AppCredentialRotation:
+  type: object
+  additionalProperties: false
+  required: [token, token_id, rotated_at]
+  properties:
+    token:
+      type: string
+      description: >-
+        One-time plaintext App Token. It is shown once and never returned again;
+        the previous token is invalid immediately.
+    token_id:
+      type: string
+    rotated_at:
+      $ref: ../common/schemas.yaml#/Timestamp

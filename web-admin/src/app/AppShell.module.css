@@ -98,6 +98,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.offlineBanner {
+  padding: 10px 32px;
+  color: var(--warning-ink);
+  background: #f3dfb7;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+}
+
+.scope a {
+  color: var(--sidebar-muted);
+}
+
 @media (max-width: 1050px) {
   .layout {
     grid-template-columns: 72px minmax(0, 1fr);

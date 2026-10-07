@@ -7,6 +7,7 @@ export interface AdminSessionValue {
   session?: AdminSessionSnapshot;
   login(token: string): Promise<void>;
   logout(): Promise<void>;
+  expire(): void;
 }
 
 export const AdminSessionContext = createContext<AdminSessionValue | null>(null);

@@ -1,10 +1,12 @@
 """HTTP authentication boundaries for App and Admin callers."""
 
 import hashlib
+import json
 import secrets
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import APIRouter, Cookie, Depends, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
@@ -13,6 +15,7 @@ from sqlalchemy import select
 from clothes_model.core.problems import AppProblem
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.infrastructure.database import models as db
+from clothes_model.modules.assets.domain import IdempotencyRecord
 from clothes_model.modules.auth.application.services import TokenService, VerifiedCredential
 from clothes_model.modules.auth.application.sessions import AdminSessionService, digest
 
@@ -177,3 +180,70 @@ async def delete_admin_session(
     if not valid:
         raise _problem(401, "unauthorized")
     response.delete_cookie(COOKIE_NAME, path="/api/v1/admin")
+
+
+@router.get("/api/v1/admin/app-credential", operation_id="getAppCredentialStatus")
+async def get_app_credential(
+    request: Request,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+) -> dict[str, object]:
+    del identity
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        active = list(await uow.access_tokens.list_active("app"))
+    if not active:
+        raise AppProblem(404, "app_credential_missing", "App Token 不存在", "尚未初始化 App Token")
+    token = active[-1]
+    return {
+        "token_id": token.public_id,
+        "status": "active",
+        "created_at": token.created_at,
+        "rotated_at": token.created_at if token.rotated_from_id else None,
+    }
+
+
+@router.post("/api/v1/admin/app-credential", operation_id="rotateAppCredential")
+async def rotate_app_credential(
+    request: Request,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
+) -> dict[str, object]:
+    key_digest = hashlib.sha256(idempotency_key.encode()).hexdigest()
+    request_digest = hashlib.sha256(b"app-credential-rotate-v1").hexdigest()
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        existing = await uow.idempotency.get_bound(
+            "admin", identity.token_id, "app_credential.rotate", key_digest
+        )
+    if existing is not None:
+        raise AppProblem(
+            409,
+            "app_credential_already_rotated",
+            "App Token 已轮换",
+            "完整 Token 只在首次轮换时显示一次。如已丢失请再次轮换。",
+        )
+    issued = await _token_service(request).rotate_app()
+    timestamp = datetime.now(UTC)
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        await uow.idempotency.add(
+            IdempotencyRecord(
+                id=str(uuid4()),
+                actor_scope="admin",
+                actor_id=identity.token_id,
+                operation="app_credential.rotate",
+                key_digest=key_digest,
+                request_digest=request_digest,
+                state="completed",
+                response_status=200,
+                response_body=json.dumps(
+                    {"token_id": issued.public_id, "rotated_at": timestamp.isoformat()}
+                ),
+                resource_id=issued.public_id,
+                created_at=timestamp,
+                expires_at=timestamp + timedelta(hours=24),
+            )
+        )
+        await uow.commit()
+    return {
+        "token": issued.value,
+        "token_id": issued.public_id,
+        "rotated_at": timestamp,
+    }

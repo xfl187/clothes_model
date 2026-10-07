@@ -58,7 +58,7 @@ test('creates, confirms paid validation, enables, and selects Seedream', async (
   await page.goto('/providers');
   await page.getByLabel('API Key').fill('secret-value');
   await page.getByRole('button', { name: '保存配置' }).click();
-  await page.getByRole('button', { name: '验证连接与生成' }).click();
+  await page.getByRole('button', { name: '最小生成测试（付费）' }).click();
   await expect(page.getByRole('dialog', { name: '确认一次付费验证' })).toBeVisible();
   await page.getByRole('button', { name: '确认并验证一次' }).click();
   await expect(page.getByText('output_decode: passed')).toBeVisible();

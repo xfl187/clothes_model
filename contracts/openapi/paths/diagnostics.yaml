@@ -49,3 +49,160 @@ JobDetail:
         $ref: ../openapi.yaml#/components/responses/Unauthorized
       '404':
         $ref: ../openapi.yaml#/components/responses/Problem
+CancelJob:
+  parameters:
+    - name: job_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Diagnostics]
+    operationId: adminCancelJob
+    summary: Best-effort cancel every unfinished candidate for an administrator
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Updated aggregate job state.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict
+CancelJobItem:
+  parameters:
+    - name: job_item_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Diagnostics]
+    operationId: adminCancelJobItem
+    summary: Best-effort cancel one unfinished candidate without affecting others
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Updated aggregate job state.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict
+RetryJobItem:
+  parameters:
+    - name: job_item_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Diagnostics]
+    operationId: adminRetryJobItem
+    summary: Create a new traceable JobItem attempt without overwriting the original
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: ../components/jobs/schemas.yaml#/RetryJobItemRequest
+    responses:
+      '201':
+        description: New JobItem created and aggregate job recalculated.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict
+RequeryJobItem:
+  parameters:
+    - name: job_item_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Diagnostics]
+    operationId: adminRequeryJobItem
+    summary: Requery an uncertain external execution without starting a new one
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Job synchronized with the known external state.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict
+FinishFailedJobItem:
+  parameters:
+    - name: job_item_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Diagnostics]
+    operationId: adminFinishJobItemAsFailed
+    summary: End needs_attention processing as a retained failure
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: ../components/jobs/schemas.yaml#/FinishFailedRequest
+    responses:
+      '200':
+        description: JobItem ended as failed and aggregate job recalculated.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/jobs/schemas.yaml#/JobCommandResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem
+      '409':
+        $ref: ../openapi.yaml#/components/responses/JobStateConflict

@@ -259,3 +259,34 @@ RestoreConfig:
         $ref: ../openapi.yaml#/components/responses/Problem
       '409':
         $ref: ../openapi.yaml#/components/responses/Problem
+ConnectionTest:
+  parameters:
+    - name: provider_id
+      in: path
+      required: true
+      schema:
+        $ref: ../components/common/schemas.yaml#/Identifier
+  post:
+    tags: [Providers]
+    operationId: testProviderConnection
+    summary: Test connectivity and protocol without performing a paid generation
+    description: >-
+      Free reachability/protocol/metadata check. It does not run a generation, spend
+      Provider credit, enable the Provider, or change the default. The paid minimal
+      generation test remains validateProviderConfig.
+    security:
+      - AdminSession: []
+        AdminCsrf: []
+    parameters:
+      - $ref: ../openapi.yaml#/components/parameters/IdempotencyKey
+    responses:
+      '200':
+        description: Connection test result; no generation or cost is incurred.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/providers/schemas.yaml#/ProviderConnectionTestResult
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized
+      '404':
+        $ref: ../openapi.yaml#/components/responses/Problem

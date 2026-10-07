@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 import shutil
@@ -7,18 +8,23 @@ from typing import Annotated, cast
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, Query, Request
-from sqlalchemy import func, select
+from sqlalchemy import and_, or_, select
 
 from clothes_model.core.problems import AppProblem
 from clothes_model.generated.models import (
     ComfyNodeConfigurationRequest,
     DefaultProviderUpdateRequest,
+    RetentionPolicyUpdateRequest,
 )
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.infrastructure.database import models as db
-from clothes_model.modules._stub import StubRoute, add_stub_routes
 from clothes_model.modules.assets.domain import IdempotencyRecord
 from clothes_model.modules.auth.http import AdminIdentity, require_admin
+from clothes_model.modules.cleanup.service import (
+    get_retention_policy,
+    scan_storage,
+    update_retention_policy,
+)
 from clothes_model.modules.comfy.application import ComfyNodeError, ComfyNodeService
 from clothes_model.modules.comfy.domain import LOGICAL_COMFY_PROVIDER_ID, ComfyNodeConfig
 from clothes_model.modules.jobs.payloads import job_payload
@@ -64,7 +70,9 @@ def _comfy_problem(error: ComfyNodeError) -> AppProblem:
     return AppProblem(error.status, error.code, "ComfyUI 节点操作失败", error.detail)
 
 
-def _comfy_payload(config: ComfyNodeConfig) -> dict[str, object]:
+def _comfy_payload(
+    config: ComfyNodeConfig, active_workflow_compatibility: dict[str, object] | None = None
+) -> dict[str, object]:
     return {
         "endpoint": config.endpoint,
         "logical_provider_id": LOGICAL_COMFY_PROVIDER_ID,
@@ -75,9 +83,34 @@ def _comfy_payload(config: ComfyNodeConfig) -> dict[str, object]:
         "health": config.health_status,
         "health_detail": config.health_detail,
         "observed_server_version": config.observed_server_version,
+        "active_workflow_compatibility": active_workflow_compatibility,
         "last_checked_at": config.last_checked_at,
         "updated_at": config.updated_at,
     }
+
+
+async def _active_workflow_compatibility(
+    request: Request, config: ComfyNodeConfig
+) -> dict[str, object]:
+    if config.health_status == "offline":
+        state = "offline"
+    elif config.health_status == "incompatible":
+        state = "incompatible"
+    else:
+        async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+            active = await uow.session.scalar(
+                select(db.workflow_versions.c.id).where(
+                    db.workflow_versions.c.state == "active",
+                    db.workflow_versions.c.mode == "precise_try_on",
+                )
+            )
+        if active is None:
+            state = "unchecked"
+        elif config.health_status == "healthy":
+            state = "compatible"
+        else:
+            state = "unknown"
+    return {"status": state, "checked_at": datetime.now(UTC), "checks": []}
 
 
 @router.get(
@@ -136,14 +169,55 @@ async def update_default_provider(
     }
 
 
-add_stub_routes(
-    router,
-    (
-        StubRoute("/api/v1/admin/configuration/retention", "GET", "getRetentionPolicy"),
-        StubRoute("/api/v1/admin/configuration/retention", "PUT", "updateRetentionPolicy"),
-        StubRoute("/api/v1/admin/storage/scan", "POST", "scanStorage"),
-    ),
+@router.get(
+    "/api/v1/admin/configuration/retention",
+    operation_id="getRetentionPolicy",
 )
+async def get_retention(
+    request: Request,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+) -> dict[str, object]:
+    del identity
+    days = await get_retention_policy(request.app.state.database.sessions)
+    return {
+        "unfavorited_output_days": days[0],
+        "intermediate_file_days": days[1],
+        "updated_at": datetime.now(UTC),
+    }
+
+
+@router.put(
+    "/api/v1/admin/configuration/retention",
+    operation_id="updateRetentionPolicy",
+)
+async def update_retention(
+    request: Request,
+    body: RetentionPolicyUpdateRequest,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+) -> dict[str, object]:
+    del identity
+    days = await update_retention_policy(
+        request.app.state.database.sessions,
+        unfavorited_output_days=int(body.unfavorited_output_days),
+        intermediate_file_days=int(body.intermediate_file_days),
+    )
+    return {
+        "unfavorited_output_days": days[0],
+        "intermediate_file_days": days[1],
+        "updated_at": datetime.now(UTC),
+    }
+
+
+@router.post("/api/v1/admin/storage/scan", operation_id="scanStorage")
+async def scan_storage_route(
+    request: Request,
+    identity: Annotated[AdminIdentity, Depends(require_admin)],
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
+) -> dict[str, object]:
+    del idempotency_key
+    return await scan_storage(
+        request.app.state.database.sessions, actor_id=identity.session_id
+    )
 
 
 @router.get(
@@ -158,7 +232,7 @@ async def get_comfy_node(
     config = await _comfy_service(request).get()
     if config is None:
         raise AppProblem(404, "comfy_node_not_configured", "节点尚未配置", "请先保存节点配置。")
-    return _comfy_payload(config)
+    return _comfy_payload(config, await _active_workflow_compatibility(request, config))
 
 
 @router.put(
@@ -180,7 +254,7 @@ async def update_comfy_node(
         )
     except ComfyNodeError as error:
         raise _comfy_problem(error) from error
-    return _comfy_payload(config)
+    return _comfy_payload(config, await _active_workflow_compatibility(request, config))
 
 
 @router.post(
@@ -239,28 +313,69 @@ async def list_diagnostic_jobs(
     identity: Annotated[AdminIdentity, Depends(require_admin)],
     limit: int = Query(50, ge=1, le=100),
     state: str | None = None,
+    cursor: str | None = None,
 ) -> dict[str, object]:
     del identity
+    statement = (
+        select(db.jobs)
+        .order_by(db.jobs.c.created_at.desc(), db.jobs.c.id.desc())
+        .limit(limit + 1)
+    )
+    if state is not None:
+        statement = statement.where(db.jobs.c.state == state)
+    if cursor:
+        decoded = _decode_cursor(cursor)
+        if decoded is not None:
+            marker_time, marker_id = decoded
+            statement = statement.where(
+                or_(
+                    db.jobs.c.created_at < marker_time,
+                    and_(
+                        db.jobs.c.created_at == marker_time,
+                        db.jobs.c.id < marker_id,
+                    ),
+                )
+            )
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
-        jobs = await uow.jobs.list_jobs(state=state, limit=limit)
+        rows = (await uow.session.execute(statement)).mappings().all()
+        has_more = len(rows) > limit
+        page = rows[:limit]
         items: list[dict[str, object]] = []
-        for job in jobs:
-            items_count = len(await uow.jobs.list_items(job.id))
+        for row in page:
+            items_count = len(await uow.jobs.list_items(str(row["id"])))
             items.append(
                 {
-                    "job_id": job.id,
-                    "state": job.state,
-                    "provider_label": _provider_label(job.provider_snapshot_json),
+                    "job_id": row["id"],
+                    "state": row["state"],
+                    "provider_label": _provider_label(str(row["provider_snapshot_json"])),
                     "item_count": max(1, items_count),
-                    "updated_at": job.updated_at,
+                    "updated_at": row["updated_at"],
                 }
             )
+    next_cursor = None
+    if has_more and page:
+        last = page[-1]
+        next_cursor = _encode_cursor(last["created_at"], str(last["id"]))
     return {
         "items": items,
-        "next_cursor": None,
-        "has_more": False,
+        "next_cursor": next_cursor,
+        "has_more": has_more,
         "snapshot_at": datetime.now(UTC),
     }
+
+
+def _encode_cursor(created_at: object, job_id: str) -> str:
+    raw = f"{created_at}|{job_id}".encode()
+    return base64.urlsafe_b64encode(raw).decode("ascii")
+
+
+def _decode_cursor(cursor: str) -> tuple[datetime, str] | None:
+    try:
+        raw = base64.urlsafe_b64decode(cursor.encode("ascii")).decode()
+        created_text, _, job_id = raw.partition("|")
+        return datetime.fromisoformat(created_text), job_id
+    except (ValueError, UnicodeDecodeError):
+        return None
 
 
 @router.get("/api/v1/admin/diagnostics/jobs/{job_id}", operation_id="getDiagnosticJob")
@@ -298,17 +413,15 @@ async def storage_status(
 ) -> dict[str, object]:
     del identity
     usage = shutil.disk_usage(request.app.state.storage.root)
-    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
-        temporary = await uow.session.scalar(
-            select(func.coalesce(func.sum(db.upload_sessions.c.confirmed_offset), 0)).where(
-                db.upload_sessions.c.state.in_(("created", "uploading"))
-            )
-        )
     reserve = request.app.state.settings.storage_reserve_bytes
+    accepting = usage.free > reserve
+    used = usage.total - usage.free
     return {
+        "state": "healthy" if accepting else "blocked",
         "capacity_bytes": usage.total,
+        "used_bytes": used,
         "available_bytes": usage.free,
-        "reserved_bytes": reserve,
-        "temporary_bytes": int(temporary or 0),
-        "accepting_uploads": usage.free > reserve,
+        "accepting_new_work": accepting,
+        "block_reason": None if accepting else "storage_capacity",
+        "checked_at": datetime.now(UTC),
     }

@@ -106,6 +106,35 @@ class AdminSessionCreateRequest(BaseModel):
     admin_token: str = Field(..., min_length=32)
 
 
+class Status1(Enum):
+    active = 'active'
+    unknown = 'unknown'
+
+
+class AppCredentialStatus(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    token_id: str = Field(
+        ..., description='Non-secret token identifier; never the token value.'
+    )
+    status: Status1
+    created_at: Timestamp
+    rotated_at: Timestamp | None = None
+
+
+class AppCredentialRotation(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    token: str = Field(
+        ...,
+        description='One-time plaintext App Token. It is shown once and never returned again; the previous token is invalid immediately.',
+    )
+    token_id: str
+    rotated_at: Timestamp
+
+
 class AssetKind(Enum):
     person = 'person'
     garment = 'garment'
@@ -746,12 +775,12 @@ class ProviderConfigRequest(BaseModel):
     vendor_parameters: dict[str, Any] | None = None
 
 
-class Status1(Enum):
+class Status2(Enum):
     passed = 'passed'
     failed = 'failed'
 
 
-class Status2(Enum):
+class Status3(Enum):
     passed = 'passed'
     failed = 'failed'
     skipped = 'skipped'
@@ -762,7 +791,7 @@ class Step(BaseModel):
         extra='forbid',
     )
     key: str
-    status: Status2
+    status: Status3
     detail: str | None = None
 
 
@@ -770,10 +799,39 @@ class ProviderValidationResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    status: Status1
+    status: Status2
     checked_at: Timestamp
     steps: list[Step]
     capabilities: ProviderCapabilities
+
+
+class Status4(Enum):
+    passed = 'passed'
+    failed = 'failed'
+
+
+class Status5(Enum):
+    passed = 'passed'
+    failed = 'failed'
+    skipped = 'skipped'
+
+
+class Step1(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    key: str
+    status: Status5
+    detail: str | None = None
+
+
+class ProviderConnectionTestResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    status: Status4
+    checked_at: Timestamp
+    steps: list[Step1]
 
 
 class WorkflowState(Enum):
@@ -903,7 +961,7 @@ class WorkflowCreateRequest(BaseModel):
     )
 
 
-class Status3(Enum):
+class Status6(Enum):
     passed = 'passed'
     failed = 'failed'
 
@@ -912,7 +970,7 @@ class WorkflowValidationResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    status: Status3
+    status: Status6
     checked_at: Timestamp
     checks: list[WorkflowValidationCheck]
     compatibility: WorkflowCompatibilityResult | None = None
@@ -1037,7 +1095,7 @@ class ConnectionTestResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    status: Status3
+    status: Status6
     checked_at: Timestamp
     detail: str
 
@@ -1057,6 +1115,101 @@ class RetentionPolicyUpdateRequest(BaseModel):
     )
     unfavorited_output_days: int = Field(..., ge=1)
     intermediate_file_days: int = Field(..., ge=1)
+
+
+class SystemOverviewVerdict(Enum):
+    ok = 'ok'
+    limited = 'limited'
+    action_required = 'action_required'
+    unknown = 'unknown'
+
+
+class SystemDependencyKey(Enum):
+    business_service = 'business_service'
+    database = 'database'
+    storage = 'storage'
+    comfyui = 'comfyui'
+    unknown = 'unknown'
+
+
+class SystemDependencyState(Enum):
+    ok = 'ok'
+    degraded = 'degraded'
+    unavailable = 'unavailable'
+    unknown = 'unknown'
+
+
+class SystemDependency(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    key: SystemDependencyKey
+    state: SystemDependencyState
+    detail: str | None = None
+
+
+class SystemBlockerKind(Enum):
+    waiting_provider = 'waiting_provider'
+    storage_blocked_queue = 'storage_blocked_queue'
+    needs_attention = 'needs_attention'
+    configuration_fault = 'configuration_fault'
+    unknown = 'unknown'
+
+
+class SystemBlocker(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kind: SystemBlockerKind
+    count: int = Field(..., ge=0)
+    deep_link: str | None = None
+
+
+class SystemActionSeverity(Enum):
+    warning = 'warning'
+    critical = 'critical'
+    unknown = 'unknown'
+
+
+class SystemActionTargetKind(Enum):
+    job = 'job'
+    comfy_node = 'comfy_node'
+    workflow = 'workflow'
+    provider = 'provider'
+    storage = 'storage'
+    unknown = 'unknown'
+
+
+class SystemActionItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str
+    severity: SystemActionSeverity
+    summary: str
+    target_kind: SystemActionTargetKind
+    target_id: str | None = None
+
+
+class EffectiveConfiguration(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    default_provider: ProviderConfigRef | None = None
+    active_llm_provider: ProviderConfigRef | None = None
+    active_workflow: WorkflowVersionRef | None = None
+
+
+class SystemOverview(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    verdict: SystemOverviewVerdict
+    snapshot_at: Timestamp
+    dependencies: list[SystemDependency]
+    blockers: list[SystemBlocker]
+    action_items: list[SystemActionItem]
+    effective_configuration: EffectiveConfiguration
 
 
 class State(Enum):

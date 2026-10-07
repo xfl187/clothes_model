@@ -3,10 +3,11 @@ import { AdminConfigurationApi } from './generated/apis/AdminConfigurationApi';
 import { ProvidersApi } from './generated/apis/ProvidersApi';
 import type { ProviderConfig } from './generated/models/ProviderConfig';
 import type { ProviderConfigRequest } from './generated/models/ProviderConfigRequest';
+import type { ProviderConnectionTestResult } from './generated/models/ProviderConnectionTestResult';
 import type { ProviderValidationResult } from './generated/models/ProviderValidationResult';
 import { Configuration, ResponseError } from './generated/runtime';
 
-export type { ProviderConfig, ProviderConfigRequest, ProviderValidationResult };
+export type { ProviderConfig, ProviderConfigRequest, ProviderValidationResult, ProviderConnectionTestResult };
 
 export async function providerAdminErrorMessage(error: unknown): Promise<string> {
   if (error instanceof ResponseError) {
@@ -23,6 +24,7 @@ export async function providerAdminErrorMessage(error: unknown): Promise<string>
 export interface ProviderAdminGateway {
   list(): Promise<ProviderConfig[]>;
   save(request: ProviderConfigRequest, providerId?: string): Promise<ProviderConfig>;
+  connectionTest(providerId: string): Promise<ProviderConnectionTestResult>;
   validate(providerId: string): Promise<ProviderValidationResult>;
   enable(providerId: string): Promise<ProviderConfig>;
   archive(providerId: string): Promise<ProviderConfig>;
@@ -59,6 +61,13 @@ export class OpenApiProviderAdminGateway implements ProviderAdminGateway {
 
   async validate(providerId: string) {
     return this.providers.validateProviderConfig({
+      providerId,
+      idempotencyKey: crypto.randomUUID(),
+    });
+  }
+
+  async connectionTest(providerId: string) {
+    return this.providers.testProviderConnection({
       providerId,
       idempotencyKey: crypto.randomUUID(),
     });

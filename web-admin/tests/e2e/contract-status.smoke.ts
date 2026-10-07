@@ -33,7 +33,7 @@ test('protects routes, restores the cookie session, and logs out', async ({ page
   await expect(page.getByRole('heading', { name: '三端共享契约可以被 Web 消费。' })).toBeVisible();
   await page.reload();
   await expect(page).toHaveURL(/\/contract-status$/);
-  await page.getByRole('button', { name: '退出登录' }).click();
+  await page.getByRole('button', { name: '退出管理会话' }).click();
   await expect(page).toHaveURL(/\/login$/);
   expect(await page.evaluate(() => ({ ...localStorage, ...sessionStorage }))).toEqual({});
 });

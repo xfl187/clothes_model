@@ -766,3 +766,26 @@ Index(
     job_execution_events.c.job_item_id,
     job_execution_events.c.occurred_at,
 )
+
+retention_policy = Table(
+    "retention_policy",
+    metadata,
+    Column("id", String(16), primary_key=True),
+    Column("unfavorited_output_days", Integer, nullable=False, server_default="30"),
+    Column("intermediate_file_days", Integer, nullable=False, server_default="7"),
+    Column("updated_at", utc_timestamp(), nullable=False),
+    CheckConstraint("id = 'default'", name="singleton"),
+    CheckConstraint("unfavorited_output_days >= 1", name="unfavorited_output_days"),
+    CheckConstraint("intermediate_file_days >= 1", name="intermediate_file_days"),
+)
+
+storage_scans = Table(
+    "storage_scans",
+    metadata,
+    Column("id", String(36), primary_key=True),
+    Column("reclaimable_files", Integer, nullable=False),
+    Column("reclaimable_bytes", Integer, nullable=False),
+    Column("protected_files", Integer, nullable=False),
+    Column("actor_id", String(64), nullable=True),
+    Column("created_at", utc_timestamp(), nullable=False),
+)

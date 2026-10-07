@@ -15,6 +15,7 @@ import com.clothesmodel.contract.model.DefaultProviderUpdateRequest
 import com.clothesmodel.contract.model.ProblemDetails
 import com.clothesmodel.contract.model.RetentionPolicy
 import com.clothesmodel.contract.model.RetentionPolicyUpdateRequest
+import com.clothesmodel.contract.model.SystemOverview
 
 interface AdminConfigurationApi {
     /**
@@ -55,6 +56,19 @@ interface AdminConfigurationApi {
      */
     @GET("api/v1/admin/configuration/retention")
     suspend fun getRetentionPolicy(): Response<RetentionPolicy>
+
+    /**
+     * GET api/v1/admin/system/overview
+     * Aggregate dependency health, run blockers, action items, and effective configuration
+     * 
+     * Responses:
+     *  - 200: System overview snapshot with real, degraded, or partial dependency conclusions.
+     *  - 401: Authentication is missing or invalid.
+     *
+     * @return [SystemOverview]
+     */
+    @GET("api/v1/admin/system/overview")
+    suspend fun getSystemOverview(): Response<SystemOverview>
 
     /**
      * POST api/v1/admin/configuration/comfy-node/test

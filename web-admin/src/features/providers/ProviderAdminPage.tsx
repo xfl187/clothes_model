@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type {
   ProviderAdminGateway,
   ProviderConfig,
+  ProviderConnectionTestResult,
   ProviderValidationResult,
 } from '../../api/adminProviderGateway';
 import { OpenApiProviderAdminGateway, providerAdminErrorMessage } from '../../api/adminProviderGateway';
@@ -39,6 +40,7 @@ export function ProviderAdminPage({ gateway: supplied }: { gateway?: ProviderAdm
   const [archiving, setArchiving] = useState<ProviderConfig>();
   const [deleting, setDeleting] = useState<ProviderConfig>();
   const [validation, setValidation] = useState<ProviderValidationResult>();
+  const [connection, setConnection] = useState<ProviderConnectionTestResult>();
 
   useEffect(() => {
     let active = true;
@@ -124,10 +126,12 @@ export function ProviderAdminPage({ gateway: supplied }: { gateway?: ProviderAdm
           <button disabled={busy || archived} type="submit">保存配置</button>
         </form>
         {selected && !archived && <div className={styles.actions}>
-          <button disabled={busy} type="button" onClick={() => setConfirming(true)}>验证连接与生成</button>
+          <button disabled={busy} type="button" onClick={() => void run(async () => { setConnection(await gateway.connectionTest(selected.id)); })}>测试连接（免费）</button>
+          <button disabled={busy} type="button" onClick={() => setConfirming(true)}>最小生成测试（付费）</button>
           <button disabled={busy || selected.state === 'inactive'} type="button" onClick={() => void run(async () => { await gateway.enable(selected.id); })}>启用</button>
           <button disabled={busy || selected.state !== 'active'} type="button" onClick={() => void run(async () => { await gateway.setDefault(selected.id); })}>设为默认</button>
         </div>}
+        {connection && <section aria-label="连接测试结果" className={styles.validation}><strong>连接测试：{connection.status}</strong><ul>{connection.steps.map(step => <li key={step.key}>{step.key}: {step.status}{step.detail ? ` — ${step.detail}` : ''}</li>)}</ul></section>}
         {validation && <section aria-label="验证结果" className={styles.validation}><strong>验证：{validation.status}</strong><ul>{validation.steps.map(step => <li key={step.key}>{step.key}: {step.status}{step.detail ? ` — ${step.detail}` : ''}</li>)}</ul></section>}
       </section>
     </div>

@@ -115,16 +115,15 @@ async def list_available_providers(
         revision = await service.current_revision(config.id)
         if revision is None:
             continue
-        availability = await service.availability_for(config, revision)
+        assessment = await service.assess_availability_for(config, revision)
+        availability = assessment.status
         items.append(
             {
                 "id": config.id,
                 "display_name": config.display_name,
                 "type": config.provider_type,
                 "availability": availability,
-                "unavailable_reason": None
-                if availability == "available"
-                else "Provider 当前不可用。",
+                "unavailable_reason": assessment.unavailable_reason,
                 "is_default": config.id == default_provider_id,
                 "config_ref": _config_ref(config, revision),
                 "capabilities": _capabilities(revision),
@@ -356,6 +355,34 @@ async def validate_provider_config(
             for step in outcome.steps
         ],
         "capabilities": outcome.capabilities.to_payload(),
+    }
+
+
+@router.post(
+    "/api/v1/admin/provider-configs/{provider_id}/connection-test",
+    operation_id="testProviderConnection",
+)
+async def test_provider_connection(
+    request: Request,
+    provider_id: str,
+    identity: Admin,
+    idempotency_key: str = Header(alias="Idempotency-Key"),
+) -> dict[str, object]:
+    del identity, idempotency_key
+    service = _service(request)
+    await _current_or_404(service, provider_id)
+    try:
+        outcome = await service.connection_test(provider_id)
+    except ProviderError as error:
+        status = 404 if error.code == "provider_not_found" else 409
+        raise _problem(status, error.code, error.detail) from error
+    return {
+        "status": outcome.status,
+        "checked_at": datetime.now(UTC),
+        "steps": [
+            {"key": step.key, "status": step.status, "detail": step.detail}
+            for step in outcome.steps
+        ],
     }
 
 

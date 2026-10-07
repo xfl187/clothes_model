@@ -1,6 +1,6 @@
 # Provider Archive Lifecycle Implementation Plan
 
-Status: ready for implementation
+Status: complete
 Updated: 2026-09-30
 
 ## Progress
@@ -8,9 +8,9 @@ Updated: 2026-09-30
 - Task 1 — COMPLETE
 - Task 2 — COMPLETE
 - Task 3 — COMPLETE
-- Task 4 — NOT_STARTED
+- Task 4 — COMPLETE
 
-Last verified: 2026-09-30 — contract verification, generated artifact drift, Backend/Web generated-client type checks, Android generated-client compilation, focused Provider/job HTTP tests, Ruff, Pyright, Web unit tests, Web lint, and the production Web build passed.
+Last verified: 2026-09-30 — contract verification, generated artifact drift, Backend/Web generated-client type checks, Android generated-client compilation, focused Provider/job HTTP tests, Ruff, Pyright, Web unit tests, Web lint, production Web build, rebuilt development deployment, and real archive/restore/delete-conflict smoke passed.
 
 ## Goal
 

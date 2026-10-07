@@ -150,3 +150,19 @@ Retention:
               $ref: ../components/admin/schemas.yaml#/RetentionPolicy
       '401':
         $ref: ../openapi.yaml#/components/responses/Unauthorized
+SystemOverview:
+  get:
+    tags: [Admin Configuration]
+    operationId: getSystemOverview
+    summary: Aggregate dependency health, run blockers, action items, and effective configuration
+    security:
+      - AdminSession: []
+    responses:
+      '200':
+        description: System overview snapshot with real, degraded, or partial dependency conclusions.
+        content:
+          application/json:
+            schema:
+              $ref: ../components/admin/schemas.yaml#/SystemOverview
+      '401':
+        $ref: ../openapi.yaml#/components/responses/Unauthorized

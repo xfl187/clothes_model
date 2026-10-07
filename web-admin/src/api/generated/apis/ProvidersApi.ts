@@ -34,6 +34,11 @@ import {
     ProviderConfigRequestToJSON,
 } from '../models/ProviderConfigRequest';
 import {
+    type ProviderConnectionTestResult,
+    ProviderConnectionTestResultFromJSON,
+    ProviderConnectionTestResultToJSON,
+} from '../models/ProviderConnectionTestResult';
+import {
     type ProviderPage,
     ProviderPageFromJSON,
     ProviderPageToJSON,
@@ -114,6 +119,17 @@ export interface ListProviderConfigsRequest {
 }
 
 export interface RestoreProviderConfigRequest {
+    /**
+     * 
+     */
+    providerId: string;
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
+}
+
+export interface TestProviderConnectionRequest {
     /**
      * 
      */
@@ -351,6 +367,32 @@ export interface ProvidersApiInterface {
      * Restore an archived Provider to inactive state
      */
     restoreProviderConfig(requestParameters: RestoreProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfig>;
+
+    /**
+     * Creates request options for testProviderConnection without sending the request
+     * @param {string} providerId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @throws {RequiredError}
+     * @memberof ProvidersApiInterface
+     */
+    testProviderConnectionRequestOpts(requestParameters: TestProviderConnectionRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * Free reachability/protocol/metadata check. It does not run a generation, spend Provider credit, enable the Provider, or change the default. The paid minimal generation test remains validateProviderConfig.
+     * @summary Test connectivity and protocol without performing a paid generation
+     * @param {string} providerId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof ProvidersApiInterface
+     */
+    testProviderConnectionRaw(requestParameters: TestProviderConnectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProviderConnectionTestResult>>;
+
+    /**
+     * Free reachability/protocol/metadata check. It does not run a generation, spend Provider credit, enable the Provider, or change the default. The paid minimal generation test remains validateProviderConfig.
+     * Test connectivity and protocol without performing a paid generation
+     */
+    testProviderConnection(requestParameters: TestProviderConnectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConnectionTestResult>;
 
     /**
      * Creates request options for updateProviderConfig without sending the request
@@ -845,6 +887,68 @@ export class ProvidersApi extends runtime.BaseAPI implements ProvidersApiInterfa
      */
     async restoreProviderConfig(requestParameters: RestoreProviderConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConfig> {
         const response = await this.restoreProviderConfigRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for testProviderConnection without sending the request
+     */
+    async testProviderConnectionRequestOpts(requestParameters: TestProviderConnectionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['providerId'] == null) {
+            throw new runtime.RequiredError(
+                'providerId',
+                'Required parameter "providerId" was null or undefined when calling testProviderConnection().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling testProviderConnection().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/provider-configs/{provider_id}/connection-test`;
+        urlPath = urlPath.replace('{provider_id}', encodeURIComponent(String(requestParameters['providerId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Free reachability/protocol/metadata check. It does not run a generation, spend Provider credit, enable the Provider, or change the default. The paid minimal generation test remains validateProviderConfig.
+     * Test connectivity and protocol without performing a paid generation
+     */
+    async testProviderConnectionRaw(requestParameters: TestProviderConnectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProviderConnectionTestResult>> {
+        const requestOptions = await this.testProviderConnectionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProviderConnectionTestResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Free reachability/protocol/metadata check. It does not run a generation, spend Provider credit, enable the Provider, or change the default. The paid minimal generation test remains validateProviderConfig.
+     * Test connectivity and protocol without performing a paid generation
+     */
+    async testProviderConnection(requestParameters: TestProviderConnectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProviderConnectionTestResult> {
+        const response = await this.testProviderConnectionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

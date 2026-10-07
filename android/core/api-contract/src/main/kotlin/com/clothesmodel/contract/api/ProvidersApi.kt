@@ -11,6 +11,7 @@ import com.clothesmodel.contract.model.ProblemDetails
 import com.clothesmodel.contract.model.ProviderConfig
 import com.clothesmodel.contract.model.ProviderConfigPage
 import com.clothesmodel.contract.model.ProviderConfigRequest
+import com.clothesmodel.contract.model.ProviderConnectionTestResult
 import com.clothesmodel.contract.model.ProviderPage
 import com.clothesmodel.contract.model.ProviderValidationResult
 
@@ -142,6 +143,22 @@ interface ProvidersApi {
      */
     @POST("api/v1/admin/provider-configs/{provider_id}/restore")
     suspend fun restoreProviderConfig(@Path("provider_id") providerId: java.util.UUID, @Header("Idempotency-Key") idempotencyKey: kotlin.String): Response<ProviderConfig>
+
+    /**
+     * POST api/v1/admin/provider-configs/{provider_id}/connection-test
+     * Test connectivity and protocol without performing a paid generation
+     * Free reachability/protocol/metadata check. It does not run a generation, spend Provider credit, enable the Provider, or change the default. The paid minimal generation test remains validateProviderConfig.
+     * Responses:
+     *  - 200: Connection test result; no generation or cost is incurred.
+     *  - 401: Authentication is missing or invalid.
+     *  - 404: Request failed with a stable machine-readable error code.
+     *
+     * @param providerId 
+     * @param idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @return [ProviderConnectionTestResult]
+     */
+    @POST("api/v1/admin/provider-configs/{provider_id}/connection-test")
+    suspend fun testProviderConnection(@Path("provider_id") providerId: java.util.UUID, @Header("Idempotency-Key") idempotencyKey: kotlin.String): Response<ProviderConnectionTestResult>
 
     /**
      * PATCH api/v1/admin/provider-configs/{provider_id}

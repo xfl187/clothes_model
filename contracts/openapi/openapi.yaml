@@ -43,6 +43,8 @@ paths:
     $ref: ./paths/auth.yaml#/AppAuthStatus
   /api/v1/admin/auth/session:
     $ref: ./paths/auth.yaml#/AdminSession
+  /api/v1/admin/app-credential:
+    $ref: ./paths/auth.yaml#/AdminAppCredential
   /api/v1/uploads:
     $ref: ./paths/uploads.yaml#/Collection
   /api/v1/uploads/{upload_id}:
@@ -91,6 +93,8 @@ paths:
     $ref: ./paths/providers.yaml#/ArchiveConfig
   /api/v1/admin/provider-configs/{provider_id}/restore:
     $ref: ./paths/providers.yaml#/RestoreConfig
+  /api/v1/admin/provider-configs/{provider_id}/connection-test:
+    $ref: ./paths/providers.yaml#/ConnectionTest
   /api/v1/admin/workflows:
     $ref: ./paths/workflows.yaml#/Collection
   /api/v1/admin/workflows/{workflow_version_id}:
@@ -109,6 +113,8 @@ paths:
     $ref: ./paths/admin.yaml#/TestComfyNode
   /api/v1/admin/configuration/retention:
     $ref: ./paths/admin.yaml#/Retention
+  /api/v1/admin/system/overview:
+    $ref: ./paths/admin.yaml#/SystemOverview
   /api/v1/admin/storage:
     $ref: ./paths/storage.yaml#/Status
   /api/v1/admin/storage/scan:
@@ -119,6 +125,16 @@ paths:
     $ref: ./paths/diagnostics.yaml#/Jobs
   /api/v1/admin/diagnostics/jobs/{job_id}:
     $ref: ./paths/diagnostics.yaml#/JobDetail
+  /api/v1/admin/diagnostics/jobs/{job_id}/cancel:
+    $ref: ./paths/diagnostics.yaml#/CancelJob
+  /api/v1/admin/diagnostics/job-items/{job_item_id}/cancel:
+    $ref: ./paths/diagnostics.yaml#/CancelJobItem
+  /api/v1/admin/diagnostics/job-items/{job_item_id}/retry:
+    $ref: ./paths/diagnostics.yaml#/RetryJobItem
+  /api/v1/admin/diagnostics/job-items/{job_item_id}/requery:
+    $ref: ./paths/diagnostics.yaml#/RequeryJobItem
+  /api/v1/admin/diagnostics/job-items/{job_item_id}/finish-failed:
+    $ref: ./paths/diagnostics.yaml#/FinishFailedJobItem
 components:
   securitySchemes:
     AppBearer:

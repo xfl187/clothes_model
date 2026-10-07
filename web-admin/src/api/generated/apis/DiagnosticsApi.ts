@@ -24,6 +24,16 @@ import {
     DiagnosticJobPageToJSON,
 } from '../models/DiagnosticJobPage';
 import {
+    type FinishFailedRequest,
+    FinishFailedRequestFromJSON,
+    FinishFailedRequestToJSON,
+} from '../models/FinishFailedRequest';
+import {
+    type JobCommandResult,
+    JobCommandResultFromJSON,
+    JobCommandResultToJSON,
+} from '../models/JobCommandResult';
+import {
     type JobState,
     JobStateFromJSON,
     JobStateToJSON,
@@ -33,6 +43,74 @@ import {
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+import {
+    type RetryJobItemRequest,
+    RetryJobItemRequestFromJSON,
+    RetryJobItemRequestToJSON,
+} from '../models/RetryJobItemRequest';
+
+export interface AdminCancelJobRequest {
+    /**
+     * 
+     */
+    jobId: string;
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
+}
+
+export interface AdminCancelJobItemRequest {
+    /**
+     * 
+     */
+    jobItemId: string;
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
+}
+
+export interface AdminFinishJobItemAsFailedRequest {
+    /**
+     * 
+     */
+    jobItemId: string;
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
+    /**
+     * 
+     */
+    finishFailedRequest: FinishFailedRequest;
+}
+
+export interface AdminRequeryJobItemRequest {
+    /**
+     * 
+     */
+    jobItemId: string;
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
+}
+
+export interface AdminRetryJobItemRequest {
+    /**
+     * 
+     */
+    jobItemId: string;
+    /**
+     * Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     */
+    idempotencyKey: string;
+    /**
+     * 
+     */
+    retryJobItemRequest?: RetryJobItemRequest;
+}
 
 export interface GetDiagnosticJobRequest {
     /**
@@ -63,6 +141,135 @@ export interface ListDiagnosticJobsRequest {
  * @interface DiagnosticsApiInterface
  */
 export interface DiagnosticsApiInterface {
+    /**
+     * Creates request options for adminCancelJob without sending the request
+     * @param {string} jobId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminCancelJobRequestOpts(requestParameters: AdminCancelJobRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * 
+     * @summary Best-effort cancel every unfinished candidate for an administrator
+     * @param {string} jobId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminCancelJobRaw(requestParameters: AdminCancelJobRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>>;
+
+    /**
+     * Best-effort cancel every unfinished candidate for an administrator
+     */
+    adminCancelJob(requestParameters: AdminCancelJobRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult>;
+
+    /**
+     * Creates request options for adminCancelJobItem without sending the request
+     * @param {string} jobItemId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminCancelJobItemRequestOpts(requestParameters: AdminCancelJobItemRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * 
+     * @summary Best-effort cancel one unfinished candidate without affecting others
+     * @param {string} jobItemId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminCancelJobItemRaw(requestParameters: AdminCancelJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>>;
+
+    /**
+     * Best-effort cancel one unfinished candidate without affecting others
+     */
+    adminCancelJobItem(requestParameters: AdminCancelJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult>;
+
+    /**
+     * Creates request options for adminFinishJobItemAsFailed without sending the request
+     * @param {string} jobItemId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {FinishFailedRequest} finishFailedRequest 
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminFinishJobItemAsFailedRequestOpts(requestParameters: AdminFinishJobItemAsFailedRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * 
+     * @summary End needs_attention processing as a retained failure
+     * @param {string} jobItemId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {FinishFailedRequest} finishFailedRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminFinishJobItemAsFailedRaw(requestParameters: AdminFinishJobItemAsFailedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>>;
+
+    /**
+     * End needs_attention processing as a retained failure
+     */
+    adminFinishJobItemAsFailed(requestParameters: AdminFinishJobItemAsFailedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult>;
+
+    /**
+     * Creates request options for adminRequeryJobItem without sending the request
+     * @param {string} jobItemId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminRequeryJobItemRequestOpts(requestParameters: AdminRequeryJobItemRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * 
+     * @summary Requery an uncertain external execution without starting a new one
+     * @param {string} jobItemId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminRequeryJobItemRaw(requestParameters: AdminRequeryJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>>;
+
+    /**
+     * Requery an uncertain external execution without starting a new one
+     */
+    adminRequeryJobItem(requestParameters: AdminRequeryJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult>;
+
+    /**
+     * Creates request options for adminRetryJobItem without sending the request
+     * @param {string} jobItemId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {RetryJobItemRequest} [retryJobItemRequest] 
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminRetryJobItemRequestOpts(requestParameters: AdminRetryJobItemRequest): Promise<runtime.RequestOpts>;
+
+    /**
+     * 
+     * @summary Create a new traceable JobItem attempt without overwriting the original
+     * @param {string} jobItemId 
+     * @param {string} idempotencyKey Opaque client-generated key bound to the authenticated actor, operation, and canonical request payload. A successful replay returns the original stable result. Reusing a key with a different payload returns idempotency_key_reused. Streaming append is instead guarded by the server-confirmed Upload-Offset.
+     * @param {RetryJobItemRequest} [retryJobItemRequest] 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DiagnosticsApiInterface
+     */
+    adminRetryJobItemRaw(requestParameters: AdminRetryJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>>;
+
+    /**
+     * Create a new traceable JobItem attempt without overwriting the original
+     */
+    adminRetryJobItem(requestParameters: AdminRetryJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult>;
+
     /**
      * Creates request options for getDiagnosticJob without sending the request
      * @param {string} jobId 
@@ -119,6 +326,319 @@ export interface DiagnosticsApiInterface {
  * 
  */
 export class DiagnosticsApi extends runtime.BaseAPI implements DiagnosticsApiInterface {
+
+    /**
+     * Creates request options for adminCancelJob without sending the request
+     */
+    async adminCancelJobRequestOpts(requestParameters: AdminCancelJobRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['jobId'] == null) {
+            throw new runtime.RequiredError(
+                'jobId',
+                'Required parameter "jobId" was null or undefined when calling adminCancelJob().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling adminCancelJob().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/diagnostics/jobs/{job_id}/cancel`;
+        urlPath = urlPath.replace('{job_id}', encodeURIComponent(String(requestParameters['jobId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Best-effort cancel every unfinished candidate for an administrator
+     */
+    async adminCancelJobRaw(requestParameters: AdminCancelJobRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>> {
+        const requestOptions = await this.adminCancelJobRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => JobCommandResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Best-effort cancel every unfinished candidate for an administrator
+     */
+    async adminCancelJob(requestParameters: AdminCancelJobRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult> {
+        const response = await this.adminCancelJobRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for adminCancelJobItem without sending the request
+     */
+    async adminCancelJobItemRequestOpts(requestParameters: AdminCancelJobItemRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['jobItemId'] == null) {
+            throw new runtime.RequiredError(
+                'jobItemId',
+                'Required parameter "jobItemId" was null or undefined when calling adminCancelJobItem().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling adminCancelJobItem().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/diagnostics/job-items/{job_item_id}/cancel`;
+        urlPath = urlPath.replace('{job_item_id}', encodeURIComponent(String(requestParameters['jobItemId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Best-effort cancel one unfinished candidate without affecting others
+     */
+    async adminCancelJobItemRaw(requestParameters: AdminCancelJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>> {
+        const requestOptions = await this.adminCancelJobItemRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => JobCommandResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Best-effort cancel one unfinished candidate without affecting others
+     */
+    async adminCancelJobItem(requestParameters: AdminCancelJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult> {
+        const response = await this.adminCancelJobItemRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for adminFinishJobItemAsFailed without sending the request
+     */
+    async adminFinishJobItemAsFailedRequestOpts(requestParameters: AdminFinishJobItemAsFailedRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['jobItemId'] == null) {
+            throw new runtime.RequiredError(
+                'jobItemId',
+                'Required parameter "jobItemId" was null or undefined when calling adminFinishJobItemAsFailed().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling adminFinishJobItemAsFailed().'
+            );
+        }
+
+        if (requestParameters['finishFailedRequest'] == null) {
+            throw new runtime.RequiredError(
+                'finishFailedRequest',
+                'Required parameter "finishFailedRequest" was null or undefined when calling adminFinishJobItemAsFailed().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/diagnostics/job-items/{job_item_id}/finish-failed`;
+        urlPath = urlPath.replace('{job_item_id}', encodeURIComponent(String(requestParameters['jobItemId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: FinishFailedRequestToJSON(requestParameters['finishFailedRequest']),
+        };
+    }
+
+    /**
+     * End needs_attention processing as a retained failure
+     */
+    async adminFinishJobItemAsFailedRaw(requestParameters: AdminFinishJobItemAsFailedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>> {
+        const requestOptions = await this.adminFinishJobItemAsFailedRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => JobCommandResultFromJSON(jsonValue));
+    }
+
+    /**
+     * End needs_attention processing as a retained failure
+     */
+    async adminFinishJobItemAsFailed(requestParameters: AdminFinishJobItemAsFailedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult> {
+        const response = await this.adminFinishJobItemAsFailedRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for adminRequeryJobItem without sending the request
+     */
+    async adminRequeryJobItemRequestOpts(requestParameters: AdminRequeryJobItemRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['jobItemId'] == null) {
+            throw new runtime.RequiredError(
+                'jobItemId',
+                'Required parameter "jobItemId" was null or undefined when calling adminRequeryJobItem().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling adminRequeryJobItem().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/diagnostics/job-items/{job_item_id}/requery`;
+        urlPath = urlPath.replace('{job_item_id}', encodeURIComponent(String(requestParameters['jobItemId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Requery an uncertain external execution without starting a new one
+     */
+    async adminRequeryJobItemRaw(requestParameters: AdminRequeryJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>> {
+        const requestOptions = await this.adminRequeryJobItemRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => JobCommandResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Requery an uncertain external execution without starting a new one
+     */
+    async adminRequeryJobItem(requestParameters: AdminRequeryJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult> {
+        const response = await this.adminRequeryJobItemRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for adminRetryJobItem without sending the request
+     */
+    async adminRetryJobItemRequestOpts(requestParameters: AdminRetryJobItemRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['jobItemId'] == null) {
+            throw new runtime.RequiredError(
+                'jobItemId',
+                'Required parameter "jobItemId" was null or undefined when calling adminRetryJobItem().'
+            );
+        }
+
+        if (requestParameters['idempotencyKey'] == null) {
+            throw new runtime.RequiredError(
+                'idempotencyKey',
+                'Required parameter "idempotencyKey" was null or undefined when calling adminRetryJobItem().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-CSRF-Token"] = await this.configuration.apiKey("X-CSRF-Token"); // AdminCsrf authentication
+        }
+
+
+        let urlPath = `/api/v1/admin/diagnostics/job-items/{job_item_id}/retry`;
+        urlPath = urlPath.replace('{job_item_id}', encodeURIComponent(String(requestParameters['jobItemId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RetryJobItemRequestToJSON(requestParameters['retryJobItemRequest']),
+        };
+    }
+
+    /**
+     * Create a new traceable JobItem attempt without overwriting the original
+     */
+    async adminRetryJobItemRaw(requestParameters: AdminRetryJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JobCommandResult>> {
+        const requestOptions = await this.adminRetryJobItemRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => JobCommandResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Create a new traceable JobItem attempt without overwriting the original
+     */
+    async adminRetryJobItem(requestParameters: AdminRetryJobItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JobCommandResult> {
+        const response = await this.adminRetryJobItemRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getDiagnosticJob without sending the request

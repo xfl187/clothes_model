@@ -301,3 +301,29 @@ ProviderValidationResult:
             nullable: true
     capabilities:
       $ref: '#/ProviderCapabilities'
+
+ProviderConnectionTestResult:
+  type: object
+  additionalProperties: false
+  required: [status, checked_at, steps]
+  properties:
+    status:
+      type: string
+      enum: [passed, failed]
+    checked_at:
+      $ref: ../common/schemas.yaml#/Timestamp
+    steps:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [key, status]
+        properties:
+          key:
+            type: string
+          status:
+            type: string
+            enum: [passed, failed, skipped]
+          detail:
+            type: string
+            nullable: true

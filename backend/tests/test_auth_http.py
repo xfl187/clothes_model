@@ -1,4 +1,7 @@
 import asyncio
+import hashlib
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -65,8 +68,11 @@ def test_app_and_admin_auth_cookie_csrf_logout_and_throttle(tmp_path: Path) -> N
         assert client.get("/api/v1/admin/storage").status_code == 200
         assert client.post("/api/v1/admin/storage/scan").status_code == 403
         assert (
-            client.post("/api/v1/admin/storage/scan", headers={"X-CSRF-Token": csrf}).status_code
-            == 501
+            client.post(
+                "/api/v1/admin/storage/scan",
+                headers={"X-CSRF-Token": csrf, "Idempotency-Key": "scan-0001"},
+            ).status_code
+            == 200
         )
         assert (
             client.delete(
@@ -89,3 +95,48 @@ def test_app_and_admin_auth_cookie_csrf_logout_and_throttle(tmp_path: Path) -> N
 def test_production_rejects_insecure_admin_cookie() -> None:
     with pytest.raises(ValueError, match="secure Admin session"):
         Settings(environment="production", admin_session_cookie_secure=False)
+
+
+def test_expired_admin_login_throttle_window_resets_existing_row(tmp_path: Path) -> None:
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'expired-throttle.db').as_posix()}"
+    upgrade_database(database_url, tmp_path / "migration.lock")
+    settings = Settings(
+        environment="test",
+        database_url=database_url,
+        instance_lock_path=tmp_path / "instance.lock",
+        admin_session_cookie_secure=False,
+        admin_login_window_seconds=30,
+    )
+    throttle_key = "admin-login:" + hashlib.sha256(b"testclient").hexdigest()[:24]
+
+    with TestClient(create_app(settings)) as client:
+        assert (
+            client.post("/api/v1/admin/auth/session", json={"admin_token": "x" * 32}).status_code
+            == 401
+        )
+
+        async def expire_window() -> None:
+            runtime = create_database_runtime(database_url, 5000)
+            try:
+                async with SqlAlchemyUnitOfWork(runtime.sessions) as uow:
+                    throttle = await uow.auth_throttles.get_by_key(throttle_key)
+                    assert throttle is not None
+                    expired_at = datetime.now(UTC) - timedelta(seconds=31)
+                    await uow.auth_throttles.replace(
+                        replace(
+                            throttle,
+                            window_started_at=expired_at,
+                            updated_at=expired_at,
+                        )
+                    )
+                    await uow.commit()
+            finally:
+                await runtime.close()
+
+        asyncio.run(expire_window())
+
+        response = client.post(
+            "/api/v1/admin/auth/session", json={"admin_token": "y" * 32}
+        )
+        assert response.status_code == 401
+        assert response.json()["code"] == "unauthorized"
