@@ -1399,6 +1399,10 @@ class OutfitBranch(BaseModel):
     head_revision_id: Identifier | None = None
     revision_count: int | None = Field(None, ge=0)
     unfinished_job_count: int | None = Field(None, ge=0)
+    layers: list[OutfitLayer] | None = Field(
+        None,
+        description='Current working-layer set for this branch, including layers awaiting reapply. It may differ from the last confirmed revision.',
+    )
     created_at: Timestamp
     updated_at: Timestamp
 

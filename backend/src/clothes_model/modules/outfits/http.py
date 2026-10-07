@@ -60,6 +60,11 @@ class SelectRevisionBody(BaseModel):
     output_id: str = Field(min_length=1)
 
 
+class RemoveLayerBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    mode: Literal["remove", "revert"] = "remove"
+
+
 def _service(request: Request) -> OutfitService:
     return OutfitService(lambda: SqlAlchemyUnitOfWork(request.app.state.database.sessions))
 
@@ -289,14 +294,33 @@ async def select_outfit_revision(
         raise _problem(error) from error
 
 
+@router.delete(
+    "/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}",
+    operation_id="removeOutfitLayer",
+)
+async def remove_outfit_layer(
+    request: Request,
+    session_id: str,
+    branch_id: str,
+    layer_id: str,
+    identity: AppIdentity,
+    body: RemoveLayerBody | None = None,
+) -> dict[str, object]:
+    try:
+        return await _service(request).remove_layer(
+            session_id=session_id,
+            branch_id=branch_id,
+            layer_id=layer_id,
+            owner_scope_id=identity.owner_scope_id,
+            mode=body.mode if body else "remove",
+        )
+    except OutfitError as error:
+        raise _problem(error) from error
+
+
 add_stub_routes(
     router,
     (
-        StubRoute(
-            "/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}",
-            "DELETE",
-            "removeOutfitLayer",
-        ),
         StubRoute(
             "/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer_id}/reapply",
             "POST",

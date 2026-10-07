@@ -23,6 +23,7 @@
 
 package com.clothesmodel.contract.model
 
+import com.clothesmodel.contract.model.OutfitLayer
 import com.clothesmodel.contract.model.OutfitRoute
 
 import kotlinx.serialization.Serializable
@@ -47,6 +48,7 @@ import kotlinx.serialization.encoding.Encoder
  * @param headRevisionId Server-issued UUIDv7 represented as a canonical UUID string.
  * @param revisionCount 
  * @param unfinishedJobCount 
+ * @param layers Current working-layer set for this branch, including layers awaiting reapply. It may differ from the last confirmed revision.
  */
 @Serializable
 
@@ -84,7 +86,11 @@ data class OutfitBranch (
     val revisionCount: kotlin.Int? = null,
 
     @SerialName(value = "unfinished_job_count")
-    val unfinishedJobCount: kotlin.Int? = null
+    val unfinishedJobCount: kotlin.Int? = null,
+
+    /* Current working-layer set for this branch, including layers awaiting reapply. It may differ from the last confirmed revision. */
+    @SerialName(value = "layers")
+    val layers: kotlin.collections.List<OutfitLayer>? = null
 
 ) {
 

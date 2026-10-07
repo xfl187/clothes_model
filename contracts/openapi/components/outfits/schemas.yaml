@@ -116,6 +116,13 @@ OutfitBranch:
     unfinished_job_count:
       type: integer
       minimum: 0
+    layers:
+      type: array
+      description: >-
+        Current working-layer set for this branch, including layers awaiting reapply.
+        It may differ from the last confirmed revision.
+      items:
+        $ref: '#/OutfitLayer'
     created_at:
       $ref: ../common/schemas.yaml#/Timestamp
     updated_at:

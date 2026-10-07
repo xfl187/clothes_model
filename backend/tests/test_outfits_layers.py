@@ -157,6 +157,8 @@ def _seed_assets_and_provider(
 
 def _seed_output(database_url: str, job_item_id: str) -> str:
     output_id, asset_id, object_id = str(uuid4()), str(uuid4()), str(uuid4())
+    digest = uuid4().hex + uuid4().hex
+    relative_path = f"objects/{uuid4().hex}/output"
 
     async def run() -> None:
         runtime = create_database_runtime(database_url, 5000)
@@ -165,8 +167,8 @@ def _seed_output(database_url: str, job_item_id: str) -> str:
                 await uow.stored_objects.add(
                     StoredObject(
                         id=object_id,
-                        sha256="a" * 64,
-                        relative_path="objects/aa/output",
+                        sha256=digest,
+                        relative_path=relative_path,
                         content_type="image/png",
                         size_bytes=256,
                         width=16,
@@ -265,6 +267,88 @@ def test_add_layer_creates_job_and_select_commits_revision(tmp_path: Path) -> No
         assert [layer["role"] for layer in head["layers"]] == ["inner_top"]
         assert head["layers"][0]["selected_output_id"] == output_id
         assert job_id  # the linked job existed
+
+
+def test_remove_layer_marks_later_layers_pending_without_new_jobs(tmp_path: Path) -> None:
+    client, credentials, seeded = _build(tmp_path)
+    database_url = f"sqlite+aiosqlite:///{(tmp_path / 'outfit-layers.db').as_posix()}"
+    headers = {"Authorization": f"Bearer {credentials['app']}"}
+
+    def job_count() -> int:
+        import sqlite3
+
+        with sqlite3.connect(tmp_path / "outfit-layers.db") as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM jobs").fetchone()[0])
+
+    with client:
+        created = client.post(
+            "/api/v1/outfits",
+            json={"person_asset_id": seeded["person"]},
+            headers={**headers, "Idempotency-Key": "ol-rm-session"},
+        ).json()
+        session_id = created["id"]
+        branch_id = created["branches"][0]["id"]
+        base = created["head_revision"]["id"]
+
+        def add(role: str, key: str) -> tuple[str, str]:
+            response = client.post(
+                f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers",
+                json={
+                    "role": role,
+                    "garment_asset_id": seeded["garment"],
+                    "provider_id": seeded["provider"],
+                    "candidate_count": 1,
+                },
+                headers={**headers, "Idempotency-Key": key},
+            )
+            assert response.status_code == 201, response.text
+            payload = response.json()
+            item_id = payload["job"]["items"][0]["id"]
+            layer_id = payload["session"]["branches"][0]["layers"][-1]["id"]
+            return item_id, layer_id
+
+        def select(item_id: str, revision: str, key: str) -> dict:
+            output_id = _seed_output(database_url, item_id)
+            response = client.post(
+                f"/api/v1/outfits/{session_id}/branches/{branch_id}/revisions/{revision}/select",
+                json={"job_item_id": item_id, "output_id": output_id},
+                headers={**headers, "Idempotency-Key": key},
+            )
+            assert response.status_code == 200, response.text
+            return response.json()
+
+        item1, layer1 = add("inner_top", "ol-rm-l1")
+        session = select(item1, base, "ol-rm-s1")
+        revision1 = session["head_revision"]["id"]
+
+        item2, layer2 = add("lower_body", "ol-rm-l2")
+        session = select(item2, revision1, "ol-rm-s2")
+        roles = {layer["role"]: layer["state"] for layer in session["branches"][0]["layers"]}
+        assert roles == {"inner_top": "applied", "lower_body": "applied"}
+        jobs_before = job_count()
+
+        removed = client.request(
+            "DELETE",
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer1}",
+            json={"mode": "remove"},
+            headers=headers,
+        )
+        assert removed.status_code == 200, removed.text
+        remaining = removed.json()["branches"][0]["layers"]
+        assert [layer["role"] for layer in remaining] == ["lower_body"]
+        assert remaining[0]["state"] == "pending_reapply"
+        assert remaining[0]["id"] == layer2
+        assert job_count() == jobs_before  # the modification created no task
+
+        reverted = client.request(
+            "DELETE",
+            f"/api/v1/outfits/{session_id}/branches/{branch_id}/layers/{layer2}",
+            json={"mode": "revert"},
+            headers=headers,
+        )
+        assert reverted.status_code == 200
+        after = reverted.json()["branches"][0]["layers"]
+        assert [layer["state"] for layer in after] == ["pending_reapply"]
 
 
 def test_add_layer_rejects_provider_without_layering(tmp_path: Path) -> None:

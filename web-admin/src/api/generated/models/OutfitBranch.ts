@@ -20,6 +20,13 @@ import {
     OutfitRouteToJSON,
     OutfitRouteToJSONTyped,
 } from './OutfitRoute';
+import type { OutfitLayer } from './OutfitLayer';
+import {
+    OutfitLayerFromJSON,
+    OutfitLayerFromJSONTyped,
+    OutfitLayerToJSON,
+    OutfitLayerToJSONTyped,
+} from './OutfitLayer';
 
 /**
  * 
@@ -59,6 +66,10 @@ export interface OutfitBranch {
      * 
      */
     unfinishedJobCount?: number;
+    /**
+     * Current working-layer set for this branch, including layers awaiting reapply. It may differ from the last confirmed revision.
+     */
+    layers?: Array<OutfitLayer>;
     /**
      * UTC RFC 3339 timestamp.
      */
@@ -103,6 +114,7 @@ export function OutfitBranchFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'headRevisionId': json['head_revision_id'] == null ? undefined : json['head_revision_id'],
         'revisionCount': json['revision_count'] == null ? undefined : json['revision_count'],
         'unfinishedJobCount': json['unfinished_job_count'] == null ? undefined : json['unfinished_job_count'],
+        'layers': json['layers'] == null ? undefined : ((json['layers'] as Array<any>).map(OutfitLayerFromJSON)),
         'createdAt': (json['created_at'] == null ? json['created_at'] : parseDateTime(json['created_at'])),
         'updatedAt': (json['updated_at'] == null ? json['updated_at'] : parseDateTime(json['updated_at'])),
     };
@@ -127,6 +139,7 @@ export function OutfitBranchToJSONTyped(value?: OutfitBranch | null, ignoreDiscr
         'head_revision_id': value['headRevisionId'],
         'revision_count': value['revisionCount'],
         'unfinished_job_count': value['unfinishedJobCount'],
+        'layers': value['layers'] == null ? undefined : ((value['layers'] as Array<any>).map(OutfitLayerToJSON)),
         'created_at': value['createdAt'] == null ? value['createdAt'] : serializeDateTime(value['createdAt']),
         'updated_at': value['updatedAt'] == null ? value['updatedAt'] : serializeDateTime(value['updatedAt']),
     };

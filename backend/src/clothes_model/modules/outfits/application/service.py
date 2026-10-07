@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import Callable, Mapping
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any, cast
 from uuid import uuid4
@@ -369,8 +370,8 @@ class OutfitService:
                     AssetReference(
                         id=str(uuid4()),
                         asset_id=asset_id,
-                        source_kind="outfit",
-                        source_id=session.id,
+                        source_kind="outfit_layer",
+                        source_id=layer_id,
                         active=True,
                         created_at=now,
                         display_label="分层穿搭",
@@ -474,6 +475,34 @@ class OutfitService:
             session = await self._require_session(uow, session.id, owner_scope_id)
             return await self._session_payload(uow, session)
 
+    async def remove_layer(
+        self,
+        *,
+        session_id: str,
+        branch_id: str,
+        layer_id: str,
+        owner_scope_id: str | None,
+        mode: str,
+    ) -> dict[str, object]:
+        now = datetime.now(UTC)
+        async with self._uow_factory() as uow:
+            session = await self._require_session(uow, session_id, owner_scope_id)
+            branch = await self._require_branch(uow, session.id, branch_id)
+            layer = await uow.outfits.get_layer(layer_id)
+            if layer is None or layer.branch_id != branch.id:
+                raise OutfitError(404, "outfit_layer_not_found", "层不存在。")
+            layers = await uow.outfits.list_layers(branch.id)
+            if mode == "remove":
+                await uow.outfits.delete_layer(layer.id)
+            for existing in layers:
+                if existing.id != layer.id and existing.layer_order >= layer.layer_order:
+                    await uow.outfits.update_layer(
+                        replace(existing, state="pending_reapply", updated_at=now)
+                    )
+            await uow.commit()
+            session = await self._require_session(uow, session.id, owner_scope_id)
+            return await self._session_payload(uow, session)
+
     # -- helpers ---------------------------------------------------------
 
     async def _require_session(
@@ -501,6 +530,7 @@ class OutfitService:
         head_revision: dict[str, object] | None = None
         for branch in branches:
             revisions = await uow.outfits.list_revisions(branch.id)
+            working_layers = await uow.outfits.list_layers(branch.id)
             branch_payloads.append(
                 {
                     "id": branch.id,
@@ -511,6 +541,7 @@ class OutfitService:
                     "head_revision_id": branch.head_revision_id,
                     "revision_count": len(revisions),
                     "unfinished_job_count": 0,
+                    "layers": [_layer_payload(layer) for layer in working_layers],
                     "created_at": branch.created_at,
                     "updated_at": branch.updated_at,
                 }
@@ -569,6 +600,22 @@ async def _asset_available(
     uow: SqlAlchemyUnitOfWork, asset_id: str, kind: str, owner_scope_id: str | None
 ) -> bool:
     return await uow.outfits.asset_available(asset_id, kind, owner_scope_id)
+
+
+def _layer_payload(layer: OutfitLayer) -> dict[str, object]:
+    return {
+        "id": layer.id,
+        "role": layer.role,
+        "garment_asset_id": layer.garment_asset_id,
+        "order": layer.layer_order,
+        "state": layer.state,
+        "definition_version": layer.definition_version,
+        "source_layer_id": layer.source_layer_id,
+        "apply_job_id": layer.apply_job_id,
+        "selected_output_id": layer.selected_output_id,
+        "created_at": layer.created_at,
+        "updated_at": layer.updated_at,
+    }
 
 
 def _layer_snapshot(layer: OutfitLayer) -> dict[str, object]:

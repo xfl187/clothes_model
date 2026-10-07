@@ -31,7 +31,11 @@
   availability moved into the repository to respect the application-layer framework boundary. Verified:
   `test_outfits_layers.py` (job creation, select→revision, capability rejection), `test_architecture.py`,
   full Backend Ruff/Pyright/pytest.
-- Task 5 — PENDING
+- Task 5 — COMPLETE (2026-10-07): additive contract change exposing each branch's working-layer set;
+  real `removeOutfitLayer` supporting `remove` (deletes the layer) and `revert` (invalidates), marking
+  later layers `pending_reapply` and creating no task/fee; per-layer asset references. Verified:
+  `test_outfits_layers.py` (remove/revert, no new jobs), regenerated clients, contract gates,
+  `verify-generated.ps1`, full Backend Ruff/Pyright/pytest.
 - Task 6 — PENDING
 - Task 7 — PENDING
 - Task 8 — PENDING
@@ -41,9 +45,8 @@
 - Task 12 — PENDING
 - Task 13 — PENDING
 - Task 14 — PENDING
-- Next action: implement Task 5 — modify/remove/revert + `pending_reapply`. This first refines the
-  contract to expose the branch working-layer set (so pending layers are visible), then adds
-  `removeOutfitLayer`; re-run the Task 1 contract gates after the additive change.
+- Next action: implement Task 6 — Route switching (split ↔ dress) with new-branch creation and preserved
+  compatible outerwear as `pending_reapply`.
 
 ## Goal
 
