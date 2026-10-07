@@ -243,4 +243,110 @@ class OutfitWorkbenchViewModel @Inject constructor(
             }
         }
     }
+
+    fun reapplyLayer(layerId: UUID) {
+        val state = mutableState.value
+        val session = state.session ?: return
+        val branchId = session.mainBranchId ?: return
+        viewModelScope.launch {
+            mutableState.value = state.copy(busy = true, error = null)
+            val key = UUID.randomUUID().toString()
+            when (
+                val outcome = outfits.reapplyLayer(
+                    sessionId = session.id,
+                    branchId = branchId,
+                    layerId = layerId,
+                    providerId = state.selectedProviderId,
+                    candidateCount = state.candidates,
+                    idempotencyKey = key,
+                )
+            ) {
+                is Outcome.Success -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    session = outcome.value.session,
+                    pendingJob = outcome.value.job,
+                )
+
+                is Outcome.Problem -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    error = outcome.problem,
+                )
+
+                Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    authenticationExpired = true,
+                )
+            }
+        }
+    }
+
+    fun createBranch() {
+        val session = mutableState.value.session ?: return
+        viewModelScope.launch {
+            mutableState.value = mutableState.value.copy(busy = true, error = null)
+            val key = UUID.randomUUID().toString()
+            when (val outcome = outfits.createBranch(session.id, null, key)) {
+                is Outcome.Success -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    session = outcome.value,
+                )
+
+                is Outcome.Problem -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    error = outcome.problem,
+                )
+
+                Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    authenticationExpired = true,
+                )
+            }
+        }
+    }
+
+    fun setMainline(branchId: UUID) {
+        val session = mutableState.value.session ?: return
+        viewModelScope.launch {
+            mutableState.value = mutableState.value.copy(busy = true, error = null)
+            when (val outcome = outfits.setMainline(session.id, branchId)) {
+                is Outcome.Success -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    session = outcome.value,
+                )
+
+                is Outcome.Problem -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    error = outcome.problem,
+                )
+
+                Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    authenticationExpired = true,
+                )
+            }
+        }
+    }
+
+    fun deleteBranch(branchId: UUID) {
+        val session = mutableState.value.session ?: return
+        viewModelScope.launch {
+            mutableState.value = mutableState.value.copy(busy = true, error = null)
+            when (val outcome = outfits.deleteBranch(session.id, branchId)) {
+                is Outcome.Success -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    session = outcome.value,
+                )
+
+                is Outcome.Problem -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    error = outcome.problem,
+                )
+
+                Outcome.AuthenticationExpired -> mutableState.value = mutableState.value.copy(
+                    busy = false,
+                    authenticationExpired = true,
+                )
+            }
+        }
+    }
 }

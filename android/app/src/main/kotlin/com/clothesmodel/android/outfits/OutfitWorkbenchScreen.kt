@@ -56,7 +56,11 @@ fun OutfitWorkbenchRoute(
         onAddLayer = viewModel::addLayer,
         onSelectOutput = viewModel::selectOutput,
         onRemoveLayer = viewModel::removeLayer,
+        onReapplyLayer = viewModel::reapplyLayer,
         onSwitchRoute = viewModel::switchRoute,
+        onCreateBranch = viewModel::createBranch,
+        onSetMainline = viewModel::setMainline,
+        onDeleteBranch = viewModel::deleteBranch,
         onRefresh = viewModel::refresh,
     )
 }
@@ -72,7 +76,11 @@ fun OutfitWorkbenchScreen(
     onAddLayer: () -> Unit,
     onSelectOutput: (java.util.UUID) -> Unit,
     onRemoveLayer: (java.util.UUID) -> Unit,
+    onReapplyLayer: (java.util.UUID) -> Unit,
     onSwitchRoute: (OutfitRoute) -> Unit,
+    onCreateBranch: () -> Unit,
+    onSetMainline: (java.util.UUID) -> Unit,
+    onDeleteBranch: (java.util.UUID) -> Unit,
     onRefresh: () -> Unit,
 ) {
     AtelierScaffold(title = "穿搭工作台", onBack = onBack) {
@@ -133,6 +141,14 @@ fun OutfitWorkbenchScreen(
                     )
                 }
             }
+            Text("Provider（可选，默认使用系统默认后端）", style = MaterialTheme.typography.labelLarge)
+            state.providers.forEach { provider ->
+                SelectableChip(
+                    label = provider.displayName,
+                    selected = state.selectedProviderId == provider.id,
+                    onClick = { onSelectProvider(provider.id) },
+                )
+            }
             Text("候选数：${state.candidates}", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.sm)) {
                 listOf(1, 2, 3, 4).forEach { count ->
@@ -184,19 +200,64 @@ fun OutfitWorkbenchScreen(
             val branchId = session.mainBranchId
             val branch = session.branches.firstOrNull { it.id == branchId }
             branch?.layers.orEmpty().forEach { layer ->
+                val pending = layer.state == LayerApplyState.pending_reapply
                 LayerRow(
                     title = ROLE_LABELS[layer.role] ?: layer.role.value,
-                    subtitle = if (layer.state == LayerApplyState.pending_reapply) {
+                    subtitle = if (pending) {
                         "待重新应用 · 顺序 ${layer.order}"
                     } else {
                         "已应用 · 顺序 ${layer.order}"
                     },
                     action = {
-                        TextButton(
-                            onClick = { onRemoveLayer(layer.id) },
-                            enabled = !state.busy,
-                        ) {
-                            Text("移除")
+                        Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.xs)) {
+                            if (pending) {
+                                TextButton(
+                                    onClick = { onReapplyLayer(layer.id) },
+                                    enabled = !state.busy,
+                                ) {
+                                    Text("重新应用")
+                                }
+                            }
+                            TextButton(
+                                onClick = { onRemoveLayer(layer.id) },
+                                enabled = !state.busy,
+                            ) {
+                                Text("移除")
+                            }
+                        }
+                    },
+                )
+            }
+
+            SectionHeading(text = "分支历史")
+            AtelierButton(
+                onClick = onCreateBranch,
+                shape = AtelierShapes.Secondary,
+                enabled = !state.busy,
+            ) {
+                Text("新建分支")
+            }
+            session.branches.forEach { branchItem ->
+                LayerRow(
+                    title = branchItem.name,
+                    subtitle = "${branchItem.route.value} · " +
+                        if (branchItem.isMainline) "当前主线" else "分支",
+                    action = {
+                        if (!branchItem.isMainline) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(AtelierSpacing.xs)) {
+                                TextButton(
+                                    onClick = { onSetMainline(branchItem.id) },
+                                    enabled = !state.busy,
+                                ) {
+                                    Text("设为主线")
+                                }
+                                TextButton(
+                                    onClick = { onDeleteBranch(branchItem.id) },
+                                    enabled = !state.busy,
+                                ) {
+                                    Text("删除")
+                                }
+                            }
                         }
                     },
                 )

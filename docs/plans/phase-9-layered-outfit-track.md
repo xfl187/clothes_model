@@ -62,10 +62,13 @@
   switch actions; `OutfitRepository` extended with get/addLayer/selectRevision/removeLayer/switchRoute.
   Verified: Android `compileDebugKotlin`, `:app:testDebugUnitTest`, `:app:lintDebug`. Connected Compose
   tests for the workbench remain in the CI emulator scope.
-- Task 12 — PENDING
+- Task 12 — COMPLETE (2026-10-07): Android workbench gains explicit-Provider reapply for `pending_reapply`
+  layers, branch history (create / set mainline / delete) with the server deletion guards, and route
+  switch; `OutfitRepository` extended with createBranch/setMainline/deleteBranch/reapplyLayer. Verified:
+  Android `compileDebugKotlin`, `:app:testDebugUnitTest`, `:app:lintDebug`.
 - Task 13 — PENDING
 - Task 14 — PENDING
-- Next action: implement Task 12 — Android branches, route switch, reapply, and protected deletion.
+- Next action: implement Task 13 — integrated V1.1 verification (`verify-phase9.ps1`) and CI gate.
 
 ## Goal
 

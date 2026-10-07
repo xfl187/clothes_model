@@ -2,16 +2,19 @@ package com.clothesmodel.android.data
 
 import com.clothesmodel.contract.model.AddOutfitLayerRequest
 import com.clothesmodel.contract.model.CreateJobRequest
+import com.clothesmodel.contract.model.CreateOutfitBranchRequest
 import com.clothesmodel.contract.model.CreateOutfitSessionRequest
 import com.clothesmodel.contract.model.FinishFailedRequest
 import com.clothesmodel.contract.model.LayerRole
 import com.clothesmodel.contract.model.OutfitLayerResult
 import com.clothesmodel.contract.model.OutfitRoute
 import com.clothesmodel.contract.model.OutfitSession
+import com.clothesmodel.contract.model.ReapplyOutfitLayerRequest
 import com.clothesmodel.contract.model.RemoveOutfitLayerRequest
 import com.clothesmodel.contract.model.RetryJobItemRequest
 import com.clothesmodel.contract.model.SelectOutfitRevisionRequest
 import com.clothesmodel.contract.model.SwitchOutfitRouteRequest
+import com.clothesmodel.contract.model.UpdateOutfitBranchRequest
 import com.clothesmodel.contract.model.UpdateOutfitSessionRequest
 import java.io.IOException
 import java.util.UUID
@@ -254,6 +257,25 @@ interface OutfitRepository {
         route: OutfitRoute,
         idempotencyKey: String,
     ): Outcome<OutfitSession>
+
+    suspend fun createBranch(
+        sessionId: UUID,
+        name: String?,
+        idempotencyKey: String,
+    ): Outcome<OutfitSession>
+
+    suspend fun setMainline(sessionId: UUID, branchId: UUID): Outcome<OutfitSession>
+
+    suspend fun deleteBranch(sessionId: UUID, branchId: UUID): Outcome<OutfitSession>
+
+    suspend fun reapplyLayer(
+        sessionId: UUID,
+        branchId: UUID,
+        layerId: UUID,
+        providerId: UUID?,
+        candidateCount: Int,
+        idempotencyKey: String,
+    ): Outcome<OutfitLayerResult>
 }
 
 class NetworkOutfitRepository(
@@ -359,6 +381,58 @@ class NetworkOutfitRepository(
             sessionId,
             idempotencyKey,
             SwitchOutfitRouteRequest(route = route),
+        ).toOutcome(events) { it }
+    }
+
+    override suspend fun createBranch(
+        sessionId: UUID,
+        name: String?,
+        idempotencyKey: String,
+    ): Outcome<OutfitSession> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.createOutfitBranch(
+            sessionId,
+            idempotencyKey,
+            CreateOutfitBranchRequest(name = name),
+        ).toOutcome(events) { it }
+    }
+
+    override suspend fun setMainline(sessionId: UUID, branchId: UUID): Outcome<OutfitSession> =
+        networkSafe {
+            val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+            services.outfits.updateOutfitBranch(
+                sessionId,
+                branchId,
+                UpdateOutfitBranchRequest(mainline = true),
+            ).toOutcome(events) { it }
+        }
+
+    override suspend fun deleteBranch(
+        sessionId: UUID,
+        branchId: UUID,
+    ): Outcome<OutfitSession> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.deleteOutfitBranch(sessionId, branchId).toOutcome(events) { it }
+    }
+
+    override suspend fun reapplyLayer(
+        sessionId: UUID,
+        branchId: UUID,
+        layerId: UUID,
+        providerId: UUID?,
+        candidateCount: Int,
+        idempotencyKey: String,
+    ): Outcome<OutfitLayerResult> = networkSafe {
+        val services = factory.services() ?: return@networkSafe Outcome.AuthenticationExpired
+        services.outfits.reapplyOutfitLayer(
+            sessionId,
+            branchId,
+            layerId,
+            idempotencyKey,
+            ReapplyOutfitLayerRequest(
+                providerId = providerId,
+                candidateCount = candidateCount,
+            ),
         ).toOutcome(events) { it }
     }
 }

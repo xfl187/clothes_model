@@ -100,6 +100,31 @@ class OutfitSessionListViewModelTest {
             route: OutfitRoute,
             idempotencyKey: String,
         ): Outcome<OutfitSession> = throw UnsupportedOperationException()
+
+        override suspend fun createBranch(
+            sessionId: UUID,
+            name: String?,
+            idempotencyKey: String,
+        ): Outcome<OutfitSession> = throw UnsupportedOperationException()
+
+        override suspend fun setMainline(
+            sessionId: UUID,
+            branchId: UUID,
+        ): Outcome<OutfitSession> = throw UnsupportedOperationException()
+
+        override suspend fun deleteBranch(
+            sessionId: UUID,
+            branchId: UUID,
+        ): Outcome<OutfitSession> = throw UnsupportedOperationException()
+
+        override suspend fun reapplyLayer(
+            sessionId: UUID,
+            branchId: UUID,
+            layerId: UUID,
+            providerId: UUID?,
+            candidateCount: Int,
+            idempotencyKey: String,
+        ): Outcome<OutfitLayerResult> = throw UnsupportedOperationException()
     }
 
     @Test
