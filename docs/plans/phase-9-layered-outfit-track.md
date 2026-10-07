@@ -48,14 +48,16 @@
   scheduler/executor now excludes assets with active outfit references. Verified:
   `test_outfits_layers.py` (references listed, `asset_referenced`, release after removal), full Backend
   Ruff/Pyright/pytest.
-- Task 9 — PENDING
+- Task 9 — COMPLETE (2026-10-07): layer job creation enforces `sequential_layering` and
+  `supported_layer_roles` and locks the active Comfy Workflow via a shared infrastructure helper
+  (non-Comfy layer jobs stay Workflow-free; V1 job behavior unchanged). Verified: capability-rejection
+  test, Comfy-without-active-Workflow rejection test, and full Backend Ruff/Pyright/pytest.
 - Task 10 — PENDING
 - Task 11 — PENDING
 - Task 12 — PENDING
 - Task 13 — PENDING
 - Task 14 — PENDING
-- Next action: implement Task 9 — jobs/capability hardening (Comfy Workflow lock for layer jobs, keeping
-  V1 job behavior unchanged).
+- Next action: implement Task 10 — Android V1.1 entry and session list.
 
 ## Goal
 

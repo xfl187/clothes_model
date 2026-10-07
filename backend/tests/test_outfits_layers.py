@@ -69,7 +69,7 @@ def _bootstrap(database_url: str) -> dict[str, str]:
 
 
 def _seed_assets_and_provider(
-    database_url: str, *, sequential: bool = True
+    database_url: str, *, sequential: bool = True, adapter_type: str = "fake_image_edit"
 ) -> dict[str, str]:
     person_id, garment_id = str(uuid4()), str(uuid4())
     provider_id, revision_id = str(uuid4()), str(uuid4())
@@ -138,7 +138,7 @@ def _seed_assets_and_provider(
                         id=revision_id,
                         provider_id=provider_id,
                         revision=1,
-                        adapter_type="fake_image_edit",
+                        adapter_type=adapter_type,
                         endpoint="https://fake.local",
                         model="fake-model",
                         timeout_seconds=30,
@@ -209,11 +209,15 @@ def _seed_output(database_url: str, job_item_id: str) -> str:
     return output_id
 
 
-def _build(tmp_path: Path, *, sequential: bool = True) -> tuple[TestClient, dict, dict]:
+def _build(
+    tmp_path: Path, *, sequential: bool = True, adapter_type: str = "fake_image_edit"
+) -> tuple[TestClient, dict, dict]:
     database_url = f"sqlite+aiosqlite:///{(tmp_path / 'outfit-layers.db').as_posix()}"
     upgrade_database(database_url, tmp_path / "migration.lock")
     credentials = _bootstrap(database_url)
-    seeded = _seed_assets_and_provider(database_url, sequential=sequential)
+    seeded = _seed_assets_and_provider(
+        database_url, sequential=sequential, adapter_type=adapter_type
+    )
     settings = Settings(
         environment="test",
         database_url=database_url,
@@ -253,6 +257,7 @@ def test_add_layer_creates_job_and_select_commits_revision(tmp_path: Path) -> No
         job_id = result["job"]["id"]
         item_id = result["job"]["items"][0]["id"]
         assert result["job"]["garment_asset_id"] == seeded["garment"]
+        assert "workflow_version_ref" not in result["job"]  # non-Comfy job stays Workflow-free
 
         output_id = _seed_output(database_url, item_id)
         selected = client.post(
@@ -506,6 +511,29 @@ def test_outfit_layer_references_protect_and_release_assets(tmp_path: Path) -> N
         assert released == []
         deleted = client.delete(f"/api/v1/assets/{seeded['garment']}/content", headers=headers)
         assert deleted.status_code == 200, deleted.text
+
+
+def test_comfy_layer_job_requires_active_workflow(tmp_path: Path) -> None:
+    client, credentials, seeded = _build(tmp_path, adapter_type="comfyui")
+    headers = {"Authorization": f"Bearer {credentials['app']}"}
+    with client:
+        created = client.post(
+            "/api/v1/outfits",
+            json={"person_asset_id": seeded["person"]},
+            headers={**headers, "Idempotency-Key": "ol-comfy-session"},
+        ).json()
+        rejected = client.post(
+            f"/api/v1/outfits/{created['id']}/branches/{created['branches'][0]['id']}/layers",
+            json={
+                "role": "inner_top",
+                "garment_asset_id": seeded["garment"],
+                "provider_id": seeded["provider"],
+                "candidate_count": 1,
+            },
+            headers={**headers, "Idempotency-Key": "ol-comfy-layer"},
+        )
+        assert rejected.status_code == 409
+        assert rejected.json()["code"] == "workflow_not_active"
 
 
 def test_add_layer_rejects_provider_without_layering(tmp_path: Path) -> None:

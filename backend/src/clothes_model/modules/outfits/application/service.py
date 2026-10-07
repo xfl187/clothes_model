@@ -10,6 +10,10 @@ from uuid import uuid4
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.modules.assets.domain import AssetReference
 from clothes_model.modules.jobs.domain import Job, JobItem, JobPersonInput
+from clothes_model.modules.jobs.infrastructure.workflow_lock import (
+    WorkflowLockError,
+    lock_active_workflow,
+)
 from clothes_model.modules.jobs.payloads import job_payload
 from clothes_model.modules.outfits.domain import (
     DEFAULT_LAYER_DEFINITION_VERSION,
@@ -309,6 +313,18 @@ class OutfitService:
             if not capacity():
                 raise OutfitError(507, "storage_capacity", "存储空间不足，暂时不能创建任务。")
 
+            try:
+                workflow_lock = await lock_active_workflow(
+                    uow,
+                    adapter_type=revision.adapter_type,
+                    vendor_parameters_json=revision.vendor_parameters_json,
+                    garment_asset_id=garment_asset_id,
+                    mask_asset_id=mask_asset_id,
+                    candidate_count=candidate_count,
+                )
+            except WorkflowLockError as error:
+                raise OutfitError(409, error.code, error.detail) from error
+
             availability = await provider_service.availability_for(config, revision)
             waiting = availability == "temporarily_offline"
             job_id = str(uuid4())
@@ -333,6 +349,8 @@ class OutfitService:
                 block_reason="provider_offline" if waiting else None,
                 blocked_detail="Provider 暂时离线，恢复后任务会自动继续。" if waiting else None,
                 mask_asset_id=mask_asset_id,
+                workflow_version_id=workflow_lock[0] if workflow_lock else None,
+                workflow_snapshot_json=workflow_lock[1] if workflow_lock else None,
                 created_at=now,
                 updated_at=now,
             )
@@ -651,6 +669,17 @@ class OutfitService:
                 )
             if not capacity():
                 raise OutfitError(507, "storage_capacity", "存储空间不足，暂时不能创建任务。")
+            try:
+                workflow_lock = await lock_active_workflow(
+                    uow,
+                    adapter_type=revision.adapter_type,
+                    vendor_parameters_json=revision.vendor_parameters_json,
+                    garment_asset_id=layer.garment_asset_id,
+                    mask_asset_id=None,
+                    candidate_count=candidate_count,
+                )
+            except WorkflowLockError as error:
+                raise OutfitError(409, error.code, error.detail) from error
             availability = await provider_service.availability_for(config, revision)
             waiting = availability == "temporarily_offline"
             job_id = str(uuid4())
@@ -674,6 +703,8 @@ class OutfitService:
                 provider_snapshot_json=json.dumps(snapshot, separators=(",", ":"), sort_keys=True),
                 block_reason="provider_offline" if waiting else None,
                 blocked_detail="Provider 暂时离线，恢复后任务会自动继续。" if waiting else None,
+                workflow_version_id=workflow_lock[0] if workflow_lock else None,
+                workflow_snapshot_json=workflow_lock[1] if workflow_lock else None,
                 created_at=now,
                 updated_at=now,
             )
