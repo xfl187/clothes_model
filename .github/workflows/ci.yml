@@ -555,3 +555,50 @@ jobs:
         run: |
           echo "$NEEDS_JSON"
           test "$(echo "$NEEDS_JSON" | jq -r '[.[].result] | all(. == "success")')" = "true"
+
+  phase9-outfits:
+    name: V1.1 layered outfits
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.14.7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          version: 0.12.18
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install locked Backend dependencies
+        run: uv sync --project backend --locked
+
+      - name: Outfit Backend verification
+        working-directory: backend
+        run: |
+          uv run pytest \
+            tests/test_outfits_http.py \
+            tests/test_outfits_layers.py \
+            tests/test_migrations.py \
+            tests/test_architecture.py \
+            tests/test_contract_routes.py \
+            -q
+
+  phase9-exit:
+    name: Phase 9 V1.1 gate
+    if: always()
+    needs: [contract, backend, web, android, android-instrumentation, phase9-outfits]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every Phase 9 verification boundary
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+        run: |
+          echo "$NEEDS_JSON"
+          test "$(echo "$NEEDS_JSON" | jq -r '[.[].result] | all(. == "success")')" = "true"

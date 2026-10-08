@@ -2,7 +2,9 @@
 
 ## Progress
 
-- Status: READY FOR IMPLEMENTATION (dependency: V1 release gate)
+- Status: COMPLETE — all 14 Tasks implemented and the deterministic `verify-phase9.ps1` gate passed
+  (contract, Backend V1 regression + V1.1 outfits, Android build/unit/lint). V1.1 real layered generation
+  requires a Provider declaring `sequential_layering` in the acceptance environment.
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-10-07
 - Scope: V1.1 分层穿搭 (Layered Outfit Track) as an independent domain module and independent Android
@@ -66,9 +68,14 @@
   layers, branch history (create / set mainline / delete) with the server deletion guards, and route
   switch; `OutfitRepository` extended with createBranch/setMainline/deleteBranch/reapplyLayer. Verified:
   Android `compileDebugKotlin`, `:app:testDebugUnitTest`, `:app:lintDebug`.
-- Task 13 — PENDING
-- Task 14 — PENDING
-- Next action: implement Task 13 — integrated V1.1 verification (`verify-phase9.ps1`) and CI gate.
+- Task 13 — COMPLETE (2026-10-07): added root `verify-phase9.ps1` (contract, Backend V1 regression +
+  V1.1 outfit tests, Android build/unit/lint) and CI jobs `phase9-outfits` + `phase9-exit`. Verified:
+  `PHASE 9 V1.1 LAYERED OUTFIT GATE PASSED`.
+- Task 14 — COMPLETE (2026-10-07): roadmap and README updated to record V1.1 completion; no unclassified
+  V1.1 scenario remains. V1.1 real layered generation requires a Provider declaring `sequential_layering`
+  in the acceptance environment.
+- Next action: V1.1 complete. Ship V1/V1.1 after the deferred credentialed AutoDL/Comfy acceptance; then
+  plan the next roadmap phase.
 
 ## Goal
 
