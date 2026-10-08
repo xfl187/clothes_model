@@ -3,10 +3,13 @@ import { NavLink, Outlet } from 'react-router-dom';
 import styles from './AppShell.module.css';
 import { useOnline } from './useOnline';
 import { useAdminSession } from '../features/auth/adminSessionState';
+import type { ProductFeature } from '../api/generated/models/ProductFeature';
+import { useReleaseFeatures } from './useReleaseFeatures';
 
 interface NavItem {
   to: string;
   label: string;
+  feature?: ProductFeature;
 }
 
 const GROUPS: Array<{ label?: string; items: NavItem[] }> = [
@@ -14,8 +17,8 @@ const GROUPS: Array<{ label?: string; items: NavItem[] }> = [
   {
     label: '配置',
     items: [
-      { to: '/comfy', label: 'ComfyUI 节点' },
-      { to: '/workflows', label: 'Workflows' },
+      { to: '/comfy', label: 'ComfyUI 节点', feature: 'comfyui' },
+      { to: '/workflows', label: 'Workflows', feature: 'comfyui' },
       { to: '/providers', label: 'LLM Provider' },
       { to: '/default-backend', label: '默认后端' },
     ],
@@ -33,6 +36,7 @@ const GROUPS: Array<{ label?: string; items: NavItem[] }> = [
 export function AppShell() {
   const session = useAdminSession();
   const online = useOnline();
+  const release = useReleaseFeatures();
   return (
     <div className={styles.layout}>
       <aside className={styles.sidebar} aria-label="管理导航">
@@ -44,7 +48,7 @@ export function AppShell() {
           {GROUPS.map((group, index) => (
             <div key={group.label ?? `group-${index}`}>
               {group.label ? <p className={styles.groupLabel}>{group.label}</p> : null}
-              {group.items.map((item) => (
+              {group.items.filter((item) => !item.feature || release.hasFeature(item.feature)).map((item) => (
                 <NavLink
                   key={item.to}
                   className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}

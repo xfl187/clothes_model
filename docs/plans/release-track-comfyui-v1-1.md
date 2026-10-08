@@ -2,7 +2,7 @@
 
 ## Progress
 
-- Status: IN PROGRESS — Tasks 1–2 complete
+- Status: IN PROGRESS — Tasks 1–3 complete
 - Planning mode: `PLAN_UPDATE + MEDIUM`
 - Planned: 2026-10-08
 - Confirmed change: ComfyUI node, Workflow, selection, waiting/recovery, diagnostics, and credentialed
@@ -13,7 +13,7 @@
   deployment defaults.
 - Verified: contract lint/additive/boundary/Prism gates; generated drift, Python type checks, Web
   generated type checks, Android generated-client compilation; six focused Backend settings/health tests.
-- Next action: implement Task 3 Web Admin and Android presentation gating.
+- Next action: implement Task 4 split V1 and V1.1 deterministic gates.
 
 ## Goal
 
@@ -124,6 +124,8 @@ Verify:
 Dependencies: Task 1.
 
 ### Task 3 — Gate Web Admin and Android presentation
+
+Status: COMPLETE (2026-10-08)
 
 Affected:
 

@@ -12,6 +12,7 @@ import { RequireAdmin } from '../features/auth/RequireAdmin';
 import { SecurityPage } from '../features/security/SecurityPage';
 import { StoragePage } from '../features/storage/StoragePage';
 import { WorkflowsPage } from '../features/workflows/WorkflowsPage';
+import { RequireFeature } from './RequireFeature';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -24,8 +25,8 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate replace to="/overview" /> },
           { path: 'overview', element: <OverviewPage /> },
-          { path: 'comfy', element: <ComfyNodePage /> },
-          { path: 'workflows', element: <WorkflowsPage /> },
+          { path: 'comfy', element: <RequireFeature feature="comfyui"><ComfyNodePage /></RequireFeature> },
+          { path: 'workflows', element: <RequireFeature feature="comfyui"><WorkflowsPage /></RequireFeature> },
           { path: 'providers', element: <ProviderAdminPage /> },
           { path: 'default-backend', element: <DefaultBackendPage /> },
           { path: 'diagnostics', element: <DiagnosticsPage /> },

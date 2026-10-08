@@ -74,6 +74,15 @@ class CreateWizardLogicTest {
     }
 
     @Test
+    fun providerSelectionTrustsTheServerFilteredReleaseList() {
+        val directOnlyV1Response = listOf(provider("Ark"))
+        val v11Response = listOf(provider("Ark"), provider("ComfyUI"))
+
+        assertEquals(listOf("Ark"), selectableProviders(directOnlyV1Response).map { it.displayName })
+        assertEquals(listOf("Ark", "ComfyUI"), selectableProviders(v11Response).map { it.displayName })
+    }
+
+    @Test
     fun categoryCompatibilityUsesDeclaredValues() {
         val garmentOnly = provider("g", categories = listOf("upper_body"))
         assertTrue(categoryCompatible(garmentOnly, GarmentCategory.UPPER_BODY))

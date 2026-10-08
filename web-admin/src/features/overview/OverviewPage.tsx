@@ -37,6 +37,7 @@ const BLOCKER_LABEL: Record<string, string> = {
 export function OverviewPage() {
   const api = useAdminApi();
   const query = useAdminQuery(['system-overview'], () => api.overview());
+  const comfyEnabled = query.data?.effectiveConfiguration.enabledFeatures?.has('comfyui') ?? false;
 
   return (
     <div className="page">
@@ -56,7 +57,7 @@ export function OverviewPage() {
             label={VERDICT_LABEL[query.data.verdict] ?? '状态未知'}
             snapshotAt={query.data.snapshotAt}
           />
-          <Section title="四项系统依赖">
+          <Section title="系统依赖">
             <Ledger>
               {query.data.dependencies.map((dependency) => (
                 <LedgerRow
@@ -103,14 +104,17 @@ export function OverviewPage() {
           </Section>
           <Section title="当前生效摘要">
             <Card>
+              <p>产品版本：{query.data.effectiveConfiguration.productRelease === 'v1_1' ? 'V1.1' : 'V1'}</p>
               <p>默认 Provider：{query.data.effectiveConfiguration.defaultProvider?.providerId ?? '未设置'}</p>
               <p>活动 LLM 配置：{query.data.effectiveConfiguration.activeLlmProvider?.providerId ?? '无'}</p>
-              <p>
-                活动 Workflow：
-                {query.data.effectiveConfiguration.activeWorkflow
-                  ? `${query.data.effectiveConfiguration.activeWorkflow.workflowId} v${query.data.effectiveConfiguration.activeWorkflow.version}`
-                  : '无'}
-              </p>
+              {comfyEnabled ? (
+                <p>
+                  活动 Workflow：
+                  {query.data.effectiveConfiguration.activeWorkflow
+                    ? `${query.data.effectiveConfiguration.activeWorkflow.workflowId} v${query.data.effectiveConfiguration.activeWorkflow.version}`
+                    : '无'}
+                </p>
+              ) : null}
             </Card>
           </Section>
         </>
