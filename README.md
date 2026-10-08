@@ -2,7 +2,7 @@
 
 Private Android AI virtual try-on system with a fixed-server backend and a Web Admin control plane.
 
-The repository has completed the Phase 1–9 implementation baseline. **V1** now ships the credentialed and restart-verified Volcengine Ark direct-model path, Android precise try-on, the non-Comfy Web Admin/operations surface, and the deterministic Phase 8 gate. **ComfyUI belongs to V1.1**: its logical Provider, physical node, immutable Workflow versions, locking, waiting/recovery, diagnostics, and deterministic tests are already implemented, but real credentialed AutoDL/Comfy acceptance is required only before claiming V1.1 ComfyUI production readiness. **V1.1 layered outfits** are also implementation-complete through Phase 9. The current work is the [release-track rebaseline](docs/plans/release-track-comfyui-v1-1.md), which will make the version boundary enforceable in Backend, Web Admin, Android, and CI rather than documentary only. Historical evidence remains in the [Phase 4](docs/plans/phase-4-minimum-v1-e2e.md), [Phase 5](docs/plans/phase-5-comfyui-workflow-recovery.md), [Phase 6](docs/plans/phase-6-android-v1-completion.md), [Phase 7](docs/plans/phase-7-web-admin-operations-completion.md), [Phase 8](docs/plans/phase-8-v1-hardening-release-gate.md), and [Phase 9](docs/plans/phase-9-layered-outfit-track.md) plans.
+The repository has completed the Phase 1–9 implementation baseline and the [release-track rebaseline](docs/plans/release-track-comfyui-v1-1.md). **V1** ships the credentialed and restart-verified Volcengine Ark direct-model path, Android precise try-on, the non-Comfy Web Admin/operations surface, and the deterministic Phase 8 gate. **ComfyUI belongs to V1.1**: its logical Provider, physical node, immutable Workflow versions, locking, waiting/recovery, diagnostics, and deterministic tests are implemented and gated by `CLOTHES_MODEL_PRODUCT_RELEASE=v1_1`; real credentialed AutoDL/Comfy acceptance is required only before claiming V1.1 ComfyUI production readiness. **V1.1 layered outfits** are implementation-complete through Phase 9. Historical evidence remains in the [Phase 4](docs/plans/phase-4-minimum-v1-e2e.md), [Phase 5](docs/plans/phase-5-comfyui-workflow-recovery.md), [Phase 6](docs/plans/phase-6-android-v1-completion.md), [Phase 7](docs/plans/phase-7-web-admin-operations-completion.md), [Phase 8](docs/plans/phase-8-v1-hardening-release-gate.md), and [Phase 9](docs/plans/phase-9-layered-outfit-track.md) plans.
 
 
 ## Current scope
@@ -24,7 +24,7 @@ Phase 4 added the production Seedream adapter, synchronous paid-call safety, exp
 - Phase boundaries: [Implementation Roadmap](docs/roadmap/implementation-roadmap.md)
 - Completed implementation evidence: [Phase 4 Implementation Plan](docs/plans/phase-4-minimum-v1-e2e.md)
 - Completed implementation plans: [Phase 5](docs/plans/phase-5-comfyui-workflow-recovery.md), [Phase 6 Android V1 Completion](docs/plans/phase-6-android-v1-completion.md), [Phase 7 Web Admin and Operations Completion](docs/plans/phase-7-web-admin-operations-completion.md), [Phase 8 V1 Hardening and Release Gate](docs/plans/phase-8-v1-hardening-release-gate.md), [Phase 9 V1.1 Layered Outfit Track](docs/plans/phase-9-layered-outfit-track.md), the cross-cutting [Local-first Asset Library](docs/plans/local-first-asset-library.md), and the [Provider Archive Lifecycle](docs/plans/provider-archive-lifecycle.md)
-- Current implementation plan: [ComfyUI V1.1 Release-Track Plan](docs/plans/release-track-comfyui-v1-1.md); V1 no longer waits for AutoDL/Comfy acceptance, while V1.1 ComfyUI production readiness still does
+- Completed release-track plan: [ComfyUI V1.1 Release-Track Plan](docs/plans/release-track-comfyui-v1-1.md); V1 no longer waits for AutoDL/Comfy acceptance, while V1.1 ComfyUI production readiness still does
 - UI behavior: the Android and Web Admin UI Specs under `docs/superpowers/specs/`
 - Visual language: [DESIGN.md](DESIGN.md)
 - Long-lived technical decisions: [Architecture Decision Records](docs/adr/README.md)
@@ -44,7 +44,7 @@ When these artifacts differ, use the authority order recorded in the Phase Plan;
 | `.github/workflows/` | CI quality gates | Task 9 |
 | `docs/`, `prototypes/`, `DESIGN.md` | Confirmed product, design, planning, and prototype inputs | Preserved project memory |
 
-Phases 1–7 are complete. Jobs, the Seedream Provider, Comfy/Workflow persistence, the full Android V1 product surface, and the Web Admin control plane (overview, Comfy node, Workflows, LLM Provider, default backend, diagnostics, storage retention/scan/cleanup, and App Token rotation) are real behavior. Phase 8 addresses V1 hardening and the release gate.
+Phases 1–9 and the release-track split are implementation-complete. Phase 8 is the direct-model V1 gate; Phase 9 is the V1.1 deterministic gate. ComfyUI/Workflow and layered outfits are unavailable under the default `v1` profile and enabled only by `v1_1`.
 
 ## Repository policies
 

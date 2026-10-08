@@ -4,16 +4,15 @@
 
 - Status: COMPLETE FOR IMPLEMENTATION — all 14 Tasks implemented and the deterministic
   `verify-phase9.ps1` gate passed. Product scope changed on 2026-10-08: ComfyUI node/Workflow capability
-  now belongs to V1.1. V1.1 production readiness therefore remains pending the release-profile split
-  and real credentialed ComfyUI acceptance.
+  now belongs to V1.1. The release-profile split is complete; V1.1 ComfyUI production readiness remains
+  pending real credentialed ComfyUI acceptance.
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-10-07
 - Scope: V1.1 分层穿搭 (Layered Outfit Track) as an independent domain module and independent Android
   entry, without changing V1 精准换装 behavior or its historical data.
 - Execution rule: complete, verify, and Git-commit every Task before starting the next Task.
-- Dependency: Phase 8 V1 release gate. The deterministic gate passed; the deferred credentialed
-  AutoDL/Comfy acceptance is a release claim. Start Phase 9 only after the owner accepts the V1 release
-  candidate, and never claim V1.1 production readiness ahead of the V1 release gate.
+- Dependency: Phase 8 direct-model V1 release gate. The deterministic V1 and V1.1 gates now pass
+  independently; deferred credentialed AutoDL/Comfy acceptance applies only to V1.1 production use.
 - Task 1 — COMPLETE (2026-10-07): additive V1.1 Outfit contract (13 operations, `OutfitSession`/
   `OutfitBranch`/`OutfitRevision`/`OutfitLayer`/`LayerTypeDefinition` schemas, job `outfit_context`),
   regenerated Web/Python/Android clients, and the V1 boundary scripts scoped so outfit resources are
@@ -75,8 +74,8 @@
 - Task 14 — COMPLETE (2026-10-07): roadmap and README updated to record V1.1 completion; no unclassified
   V1.1 scenario remains. V1.1 real layered generation requires a Provider declaring `sequential_layering`
   in the acceptance environment.
-- Next action: implement `release-track-comfyui-v1-1.md`; ship V1 independently after its direct-model
-  gate passes, and ship the ComfyUI portion of V1.1 only after credentialed acceptance.
+- Release-track update (2026-10-08): `release-track-comfyui-v1-1.md` is complete. V1 ships independently;
+  ship the ComfyUI portion of V1.1 only after credentialed acceptance.
 
 ## Goal
 
@@ -529,8 +528,8 @@ Recommended implementation scope:
 Task 1 only, then Verify (contract-first; every consumer depends on the additive surface).
 
 Prerequisite:
-Accept the Phase 8 V1 release candidate (including the deferred credentialed AutoDL/Comfy acceptance)
-before starting V1.1 implementation.
+Accept the Phase 8 direct-model V1 release candidate before starting V1.1 implementation. Credentialed
+AutoDL/Comfy acceptance is required only before enabling the V1.1 ComfyUI release profile in production.
 
 Implementation session should:
 - read this persisted Plan and the Product Spec §2.3/§4.7/§9/§10/§18;

@@ -2,7 +2,7 @@
 
 ## Progress
 
-- Status: IN PROGRESS — Tasks 1–4 complete
+- Status: COMPLETE — all 5 Tasks implemented, verified, and committed
 - Planning mode: `PLAN_UPDATE + MEDIUM`
 - Planned: 2026-10-08
 - Confirmed change: ComfyUI node, Workflow, selection, waiting/recovery, diagnostics, and credentialed
@@ -13,7 +13,10 @@
   deployment defaults.
 - Verified: contract lint/additive/boundary/Prism gates; generated drift, Python type checks, Web
   generated type checks, Android generated-client compilation; six focused Backend settings/health tests.
-- Next action: implement Task 5 release-record and runbook rebaseline.
+- Verified: independent V1 and V1.1 Backend/Web gates, contract/generated drift and Kotlin compilation,
+  backup/restore, Android Phase 8 hardening, and repository-wide release wording scans.
+- External follow-up: record credentialed AutoDL/ComfyUI operator evidence before enabling V1.1
+  ComfyUI in production; this does not block V1.
 
 ## Goal
 
@@ -177,6 +180,8 @@ Verify:
 Dependencies: Tasks 2–3.
 
 ### Task 5 — Rebaseline release records and runbooks
+
+Status: COMPLETE (2026-10-08)
 
 Affected:
 

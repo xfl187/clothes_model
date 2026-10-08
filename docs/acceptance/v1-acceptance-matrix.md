@@ -4,8 +4,8 @@ Maps the Product Spec §18 direct-model V1 scenarios to evidence for the Phase 8
 ComfyUI scenarios 2–4, 8b, 9, 17, 19, and 22 moved to V1.1 on 2026-10-08; layered/local-first scenarios 23–43 remain V1.1.
 
 Status legend: `automated` = deterministic test/script in this repository; `operator` = scripted manual
-run against a real deployment; `deferred` = requires the real Comfy node/Workflow or a credentialed
-Provider (documented release prerequisite).
+run against a real deployment. ComfyUI rows marked `moved to V1.1` are not V1 release prerequisites;
+their evidence is tracked in [V1.1 ComfyUI acceptance](v1-1-comfyui-acceptance.md).
 
 | # | Scenario | Owner | Evidence | Status |
 |---|---|---|---|---|

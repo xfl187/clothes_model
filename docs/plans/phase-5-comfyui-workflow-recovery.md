@@ -31,13 +31,12 @@
 - Deferred release gate: configure the authenticated node, validate/activate the real immutable
   Workflow, execute/persist one real output, prove restart and compatible-node recovery, and retain
   sanitized cleanup evidence before enabling Comfy for production use.
-- Next action: implement Phase 6 Task 1 from
-  [the persisted Phase 6 plan](phase-6-android-v1-completion.md); restore the deferred live gate when
-  the real Workflow/node is available.
+- Release-track update (2026-10-08): this is an early V1.1 subsystem. The deterministic implementation
+  remains complete; restore the deferred live gate only before a V1.1 ComfyUI production claim.
 
 ## Goal
 
-Complete the V1 ComfyUI execution plane without changing the confirmed product model:
+Complete the V1.1 ComfyUI execution plane without changing the confirmed product model:
 
 - one replaceable physical ComfyUI/AutoDL node;
 - immutable API-format Workflow versions with validated bindings and capabilities;

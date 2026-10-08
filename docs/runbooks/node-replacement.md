@@ -2,6 +2,9 @@
 
 Goal: replace the single physical ComfyUI/AutoDL node without rewriting locked job configuration.
 
+Release scope: V1.1 only. Set `CLOTHES_MODEL_PRODUCT_RELEASE=v1_1`; this procedure is not a V1 release
+prerequisite.
+
 ## Prerequisites
 
 - A reachable replacement node with the models and custom nodes the active Workflow needs.

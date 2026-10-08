@@ -2,6 +2,9 @@
 
 Goal: maintain one active LLM (or ComfyUI) Provider safely and select the default for new jobs.
 
+Release scope: V1 permits direct-model LLM Providers only. ComfyUI configuration and selection require
+`CLOTHES_MODEL_PRODUCT_RELEASE=v1_1`.
+
 ## Prerequisites
 
 - Web Admin session (Admin Token).

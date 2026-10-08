@@ -15,12 +15,12 @@
 - Phase 9 — COMPLETE FOR IMPLEMENTATION ([plan](../plans/phase-9-layered-outfit-track.md)); V1.1 layered
   outfits and deterministic ComfyUI coverage are implemented, while real ComfyUI production acceptance
   remains the V1.1 release gate
-- Release-track rebaseline — PLANNED ([plan](../plans/release-track-comfyui-v1-1.md)); enforce `v1` versus
-  `v1_1` surfaces and split the deterministic gates before updating release claims
+- Release-track rebaseline — COMPLETE (2026-10-08; [plan](../plans/release-track-comfyui-v1-1.md));
+  `v1` versus `v1_1` API/UI surfaces and deterministic gates are enforced independently
 
 ## Current Repository State
 
-当前状态是“Phase 1–5 实现已完成；真实 Comfy 验收延期且不阻塞 Phase 6”：
+当前状态是“Phase 1–9 与发布轨拆分已完成；真实 Comfy 验收仅作为 V1.1 发布前置条件”：
 
 | 区域 | 当前状态 | 可复用程度 |
 |---|---|---|
@@ -269,7 +269,7 @@ Exit Criteria:
 ## Phase 5 — ComfyUI, Workflow Versioning and Recovery
 
 Goal:  
-完成 V1 最复杂的执行依赖：可替换 AutoDL 节点、不可变 Workflow 版本和完整恢复语义。
+提前完成 V1.1 最复杂的执行依赖：可替换 AutoDL 节点、不可变 Workflow 版本和完整恢复语义。
 
 Dependencies:  
 Phase 4。

@@ -2,6 +2,8 @@
 
 Goal: publish an immutable ComfyUI Workflow version, activate it for new jobs, and roll back safely.
 
+Release scope: V1.1 only. Workflow routes are intentionally unavailable in the `v1` profile.
+
 ## Prerequisites
 
 - Single ComfyUI node configured and reachable ([node replacement](node-replacement.md)).

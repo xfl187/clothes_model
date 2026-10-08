@@ -2,10 +2,9 @@
 
 ## Progress
 
-- Status: COMPLETE FOR CURRENT IMPLEMENTATION — all 9 Tasks implemented and the full deterministic
-  `verify-phase8.ps1` gate passed. Product scope changed on 2026-10-08: V1 is direct-model only and real
-  credentialed AutoDL/Comfy acceptance moved to V1.1. The gate still needs the release-profile split in
-  `release-track-comfyui-v1-1.md` before the updated V1 release claim is final.
+- Status: COMPLETE — all 9 Tasks and the release-profile split are implemented; the deterministic
+  `verify-phase8.ps1` gate passes with `product_release=v1`. V1 is direct-model only, and real
+  credentialed AutoDL/Comfy acceptance is a V1.1 prerequisite.
 - Environment fix (2026-10-07): `android/verify-phase6.ps1` now passes an explicit pytest `--basetemp`,
   so the gate no longer depends on the machine's default pytest temp directory being writable.
 - Planning mode: `PHASE_PLAN + LARGE`
@@ -35,8 +34,8 @@
 - Task 8 — COMPLETE (2026-10-07): root `verify-phase8.ps1` orchestrates contract, Backend, Web,
   backup/restore, and Android; CI gained `backup-restore` and `phase8-exit` jobs.
 - Task 9 — COMPLETE (2026-10-07): plan/roadmap/README updated; no unclassified V1 scenario remains.
-- Next action: implement the V1/V1.1 release-profile split from
-  `release-track-comfyui-v1-1.md`, then rerun the direct-model V1 gate.
+- Release-track verification (2026-10-08): direct ComfyUI API requests are rejected, ComfyUI/Workflow
+  Web routes are hidden/redirected, and the direct-model V1 gate passes independently.
 
 ## Goal
 
@@ -51,8 +50,7 @@ Harden the completed Phase 1–7 system into a V1 release candidate and prove th
 - aggregate every quality boundary into one deterministic Phase 8 exit matrix.
 
 This phase adds verification, fixtures, runbooks, and gate wiring. It does not add product behavior,
-does not pull V1.1 Outfits forward, and does not claim Comfy production readiness without the deferred
-credentialed acceptance.
+does not pull V1.1 Outfits or ComfyUI forward. Comfy production readiness is a separate V1.1 claim.
 
 ## Confirmed Inputs
 
@@ -136,11 +134,11 @@ checking referential integrity (assets ↔ stored objects ↔ jobs ↔ outputs) 
 readable only through authenticated routes. Backups never contain plaintext secrets beyond what the
 encrypted envelopes already require, and never enter source control.
 
-### Release gate is deterministic; credentialed Comfy stays manual
+### V1 release gate is deterministic; credentialed Comfy belongs to V1.1
 
-`verify-phase8.ps1` aggregates contract, Backend, Web, Android, and deployment gates. The real
-credentialed AutoDL/Comfy acceptance is documented as a required manual release step and is not
-invented as an automated test.
+`verify-phase8.ps1` aggregates contract, Backend, Web, Android, and deployment gates under `v1` without
+a ComfyUI dependency. Real credentialed AutoDL/Comfy acceptance is documented in the V1.1 acceptance
+record and is not invented as an automated test.
 
 No new ADR is required; the phase reuses existing durability, storage, and single-instance decisions.
 
@@ -238,7 +236,7 @@ Work:
   credentials; configure Provider/Comfy node; publish and roll back a Workflow; replace a physical node
   with compatible-node checks; recover from `needs_attention`, disk-full, backend-offline, and canceled
   jobs.
-- Include the deferred credentialed Comfy acceptance procedure as a release prerequisite.
+- Label the deferred credentialed Comfy acceptance procedure as a V1.1-only release prerequisite.
 
 Verify:
 
@@ -295,7 +293,7 @@ Work:
 
 - Orchestrate contract, Backend, Web, Android, deployment, backup/restore, and security gates into one
   command and one CI aggregation job that fails closed.
-- Document the manual credentialed release prerequisite in the gate output.
+- Make the gate output state that credentialed ComfyUI acceptance belongs to V1.1.
 
 Verify:
 
@@ -333,8 +331,8 @@ Dependencies: Task 8.
 - [ ] Operator runbooks let an operator configure a working system from empty and replace a node and
       roll back a Workflow.
 - [ ] One deterministic `verify-phase8.ps1` and CI `phase8-exit` gate aggregate all boundaries.
-- [ ] Credentialed AutoDL/Comfy acceptance is documented as a required manual release step; Comfy
-      production readiness is not claimed until it passes.
+- [x] Credentialed AutoDL/Comfy acceptance is documented as a V1.1 manual release step; it does not
+      block V1, and Comfy production readiness is not claimed until it passes.
 
 ## Risks
 
@@ -344,7 +342,7 @@ Dependencies: Task 8.
   supported method and verify.
 - The working tree currently holds uncommitted Phase 6 and Phase 7 work; commit or otherwise resolve it
   before starting Phase 8 so release evidence is isolated.
-- Real credentialed Comfy acceptance may slip; it must block the release claim, not the phase plan.
+- Real credentialed Comfy acceptance may slip; it must block only the V1.1 ComfyUI release claim.
 
 ## Upstream Conflicts
 
