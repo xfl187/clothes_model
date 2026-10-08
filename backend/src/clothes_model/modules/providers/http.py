@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Header, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
+from clothes_model.core.features import feature_enabled, require_feature
 from clothes_model.core.problems import AppProblem
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.modules.assets.domain import IdempotencyRecord
@@ -96,6 +97,23 @@ async def _current_or_404(
     return config, revision
 
 
+def _provider_enabled(request: Request, config: ProviderConfig) -> bool:
+    return config.provider_type != "comfyui" or feature_enabled(request, "comfyui")
+
+
+def _require_provider_enabled(request: Request, config: ProviderConfig) -> None:
+    if config.provider_type == "comfyui":
+        require_feature(request, "comfyui")
+
+
+async def _enabled_current_or_404(
+    request: Request, service: ProviderConfigService, provider_id: str
+) -> tuple[ProviderConfig, ProviderConfigRevision]:
+    config, revision = await _current_or_404(service, provider_id)
+    _require_provider_enabled(request, config)
+    return config, revision
+
+
 def _body_parameters(body: ProviderConfigBody) -> dict[str, object]:
     return dict(body.vendor_parameters)
 
@@ -110,6 +128,8 @@ async def list_available_providers(
     default_provider_id = default.provider_id if default else None
     items: list[dict[str, object]] = []
     for config in await service.list():
+        if not _provider_enabled(request, config):
+            continue
         if config.state not in {"active", "validated"}:
             continue
         revision = await service.current_revision(config.id)
@@ -138,6 +158,8 @@ async def list_provider_configs(request: Request, identity: Admin) -> dict[str, 
     service = _service(request)
     items: list[dict[str, object]] = []
     for config in await service.list():
+        if not _provider_enabled(request, config):
+            continue
         revision = await service.current_revision(config.id)
         if revision is None:
             continue
@@ -154,6 +176,8 @@ async def create_provider_config(
     identity: Admin,
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> dict[str, object]:
+    if body.type == "comfyui":
+        require_feature(request, "comfyui")
     request_digest = hashlib.sha256(body.model_dump_json().encode()).hexdigest()
     key_digest = hashlib.sha256(idempotency_key.encode()).hexdigest()
     service = _service(request)
@@ -165,7 +189,9 @@ async def create_provider_config(
         if existing is not None:
             if existing.request_digest != request_digest:
                 raise _problem(409, "idempotency_key_reused", "幂等键已绑定到不同请求。")
-            config, revision = await _current_or_404(service, str(existing.resource_id))
+            config, revision = await _enabled_current_or_404(
+                request, service, str(existing.resource_id)
+            )
             return _config_dict(config, revision)
         config = await service.create(
             display_name=body.display_name,
@@ -229,7 +255,7 @@ async def get_provider_config(
     request: Request, provider_id: str, identity: Admin
 ) -> dict[str, object]:
     del identity
-    config, revision = await _current_or_404(_service(request), provider_id)
+    config, revision = await _enabled_current_or_404(request, _service(request), provider_id)
     return _config_dict(config, revision)
 
 
@@ -244,6 +270,10 @@ async def update_provider_config(
 ) -> dict[str, object]:
     del identity
     service = _service(request)
+    current, _ = await _current_or_404(service, provider_id)
+    _require_provider_enabled(request, current)
+    if body.type == "comfyui":
+        require_feature(request, "comfyui")
     try:
         config = await service.update(
             provider_id,
@@ -273,6 +303,8 @@ async def delete_provider_config(
     request: Request, provider_id: str, identity: Admin
 ) -> Response:
     del identity
+    config, _ = await _current_or_404(_service(request), provider_id)
+    _require_provider_enabled(request, config)
     try:
         await _service(request).delete(provider_id)
     except ProviderError as error:
@@ -301,6 +333,8 @@ async def archive_provider_config(
 ) -> dict[str, object]:
     del identity, idempotency_key
     service = _service(request)
+    config, _ = await _current_or_404(service, provider_id)
+    _require_provider_enabled(request, config)
     try:
         config = await service.archive(provider_id)
     except ProviderError as error:
@@ -321,6 +355,8 @@ async def restore_provider_config(
 ) -> dict[str, object]:
     del identity, idempotency_key
     service = _service(request)
+    config, _ = await _current_or_404(service, provider_id)
+    _require_provider_enabled(request, config)
     try:
         config = await service.restore(provider_id)
     except ProviderError as error:
@@ -341,7 +377,7 @@ async def validate_provider_config(
 ) -> dict[str, object]:
     del identity, idempotency_key
     service = _service(request)
-    await _current_or_404(service, provider_id)
+    await _enabled_current_or_404(request, service, provider_id)
     try:
         outcome = await service.validate(provider_id)
     except ProviderError as error:
@@ -370,7 +406,7 @@ async def test_provider_connection(
 ) -> dict[str, object]:
     del identity, idempotency_key
     service = _service(request)
-    await _current_or_404(service, provider_id)
+    await _enabled_current_or_404(request, service, provider_id)
     try:
         outcome = await service.connection_test(provider_id)
     except ProviderError as error:
@@ -398,7 +434,7 @@ async def enable_provider_config(
 ) -> dict[str, object]:
     del identity, idempotency_key
     service = _service(request)
-    await _current_or_404(service, provider_id)
+    await _enabled_current_or_404(request, service, provider_id)
     try:
         config = await service.enable(provider_id)
     except ProviderError as error:

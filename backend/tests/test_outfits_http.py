@@ -81,6 +81,7 @@ def _build(tmp_path: Path) -> tuple[TestClient, dict[str, str], str]:
     person_id = _seed_person(database_url)
     settings = Settings(
         environment="test",
+        product_release="v1_1",
         database_url=database_url,
         instance_lock_path=tmp_path / "instance.lock",
         storage_root=tmp_path / "storage",

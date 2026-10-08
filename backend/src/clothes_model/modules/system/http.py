@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
 
 from clothes_model.core.problems import AppProblem
+from clothes_model.core.features import feature_enabled, unfinished_comfy_job_count
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.infrastructure.database import models as db
 from clothes_model.modules.auth.http import AdminIdentity, require_admin
@@ -45,23 +46,24 @@ async def _dependency_rows(request: Request) -> list[dict[str, object]]:
         storage_state = "unavailable"
     dependencies.append({"key": "storage", "state": storage_state, "detail": None})
 
-    comfy_state = "unknown"
-    try:
-        async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
-            health = await uow.session.scalar(
-                select(db.comfy_node_config.c.health_status).where(
-                    db.comfy_node_config.c.id == "default"
+    if feature_enabled(request, "comfyui"):
+        comfy_state = "unknown"
+        try:
+            async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+                health = await uow.session.scalar(
+                    select(db.comfy_node_config.c.health_status).where(
+                        db.comfy_node_config.c.id == "default"
+                    )
                 )
-            )
-        comfy_state = {
-            "healthy": "ok",
-            "offline": "degraded",
-            "incompatible": "degraded",
-            "unchecked": "unknown",
-        }.get(str(health), "unknown")
-    except Exception:
-        comfy_state = "unavailable"
-    dependencies.append({"key": "comfyui", "state": comfy_state, "detail": None})
+            comfy_state = {
+                "healthy": "ok",
+                "offline": "degraded",
+                "incompatible": "degraded",
+                "unchecked": "unknown",
+            }.get(str(health), "unknown")
+        except Exception:
+            comfy_state = "unavailable"
+        dependencies.append({"key": "comfyui", "state": comfy_state, "detail": None})
     return dependencies
 
 
@@ -152,7 +154,10 @@ def _summary(kind: str, count: int) -> str:
 
 
 async def _effective_configuration(request: Request) -> dict[str, Any]:
-    result: dict[str, Any] = {}
+    result: dict[str, Any] = {
+        "product_release": request.app.state.settings.product_release,
+        "enabled_features": list(request.app.state.settings.enabled_product_features()),
+    }
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
         default = (
             await uow.session.execute(
@@ -169,7 +174,17 @@ async def _effective_configuration(request: Request) -> dict[str, Any]:
                 .where(db.provider_default_selection.c.id == "default")
             )
         ).one_or_none()
+        default_is_comfy = False
         if default is not None:
+            selected_type = await uow.session.scalar(
+                select(db.provider_configs.c.provider_type).where(
+                    db.provider_configs.c.id == default[0]
+                )
+            )
+            default_is_comfy = selected_type == "comfyui"
+        if default is not None and not (
+            default_is_comfy and not feature_enabled(request, "comfyui")
+        ):
             result["default_provider"] = {
                 "provider_id": default[0],
                 "config_version_id": default[1],
@@ -215,7 +230,7 @@ async def _effective_configuration(request: Request) -> dict[str, Any]:
                 .limit(1)
             )
         ).first()
-        if workflow is not None:
+        if workflow is not None and feature_enabled(request, "comfyui"):
             result["active_workflow"] = {
                 "workflow_id": workflow[0],
                 "workflow_version_id": workflow[1],
@@ -246,6 +261,16 @@ async def get_system_overview(
     try:
         dependencies = await _dependency_rows(request)
         blockers = await _blockers(request)
+        if not feature_enabled(request, "comfyui"):
+            unfinished = await unfinished_comfy_job_count(request)
+            if unfinished:
+                blockers.append(
+                    {
+                        "kind": "configuration_fault",
+                        "count": unfinished,
+                        "deep_link": "/diagnostics",
+                    }
+                )
         effective = await _effective_configuration(request)
     except AppProblem:
         raise

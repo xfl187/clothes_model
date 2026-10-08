@@ -352,6 +352,16 @@ EffectiveConfiguration:
   type: object
   additionalProperties: false
   properties:
+    product_release:
+      description: Active server-authoritative product release track.
+      allOf:
+        - $ref: ../common/schemas.yaml#/ProductRelease
+    enabled_features:
+      type: array
+      uniqueItems: true
+      description: Stable product features enabled for the active release track.
+      items:
+        $ref: ../common/schemas.yaml#/ProductFeature
     default_provider:
       $ref: ../common/schemas.yaml#/ProviderConfigRef
     active_llm_provider:

@@ -1244,6 +1244,13 @@ class EffectiveConfiguration(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    product_release: ProductRelease | None = Field(
+        None, description='Active server-authoritative product release track.'
+    )
+    enabled_features: list[ProductFeature] | None = Field(
+        None,
+        description='Stable product features enabled for the active release track.',
+    )
     default_provider: ProviderConfigRef | None = None
     active_llm_provider: ProviderConfigRef | None = None
     active_workflow: WorkflowVersionRef | None = None

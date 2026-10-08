@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 import httpx2
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func, or_, select
 
 from clothes_model import __version__
 from clothes_model.api.middleware import RequestContextMiddleware
@@ -17,6 +18,7 @@ from clothes_model.core.config import Settings, get_settings
 from clothes_model.core.logging import configure_logging, get_logger
 from clothes_model.core.problems import register_problem_handlers
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork, create_database_runtime
+from clothes_model.infrastructure.database import models as db
 from clothes_model.infrastructure.scheduler import JobScheduler, SchedulerCoordinator
 from clothes_model.infrastructure.security import (
     AesGcmSecretCipher,
@@ -122,6 +124,35 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         cleanup_task: asyncio.Task[None] | None = None
         try:
             await reconcile_upload_sessions(database.sessions, storage)
+            if (
+                resolved_settings.product_release == "v1"
+                and resolved_settings.scheduler_enabled
+            ):
+                async with SqlAlchemyUnitOfWork(database.sessions) as uow:
+                    unfinished_comfy = int(
+                        await uow.session.scalar(
+                            select(func.count())
+                            .select_from(db.jobs)
+                            .join(
+                                db.provider_configs,
+                                db.provider_configs.c.id == db.jobs.c.provider_id,
+                            )
+                            .where(
+                                db.jobs.c.state.not_in(
+                                    ("succeeded", "partially_succeeded", "failed", "cancelled")
+                                ),
+                                or_(
+                                    db.provider_configs.c.provider_type == "comfyui",
+                                    db.jobs.c.workflow_version_id.is_not(None),
+                                ),
+                            )
+                        )
+                        or 0
+                    )
+                if unfinished_comfy:
+                    raise RuntimeError(
+                        "release downgrade blocked by unfinished ComfyUI jobs"
+                    )
             await scheduler.start()
             maintenance_task = asyncio.create_task(
                 maintain_uploads(), name="upload-session-maintenance"

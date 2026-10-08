@@ -43,11 +43,12 @@ def test_live_and_ready_match_contract(tmp_path: Path) -> None:
     assert checks["environment"] == "test"
     assert checks["scheduler"] == "disabled"
     assert set(checks) >= {
-        "comfy_node_health",
-        "active_workflow",
         "waiting_provider_items",
         "storage_blocked_items",
+        "release_downgrade",
     }
+    assert "comfy_node_health" not in checks
+    assert "active_workflow" not in checks
     assert live.headers["x-request-id"]
     assert ready.headers["x-request-id"]
 

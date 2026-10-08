@@ -399,6 +399,7 @@ def test_job_creation_blocked_when_storage_capacity_exhausted(tmp_path: Path) ->
     seeded = _seed_assets_and_provider(database_url)
     settings = Settings(
         environment="test",
+        product_release="v1_1",
         database_url=database_url,
         instance_lock_path=tmp_path / "instance.lock",
         storage_root=tmp_path / "storage",

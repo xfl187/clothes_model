@@ -57,6 +57,7 @@ def test_comfy_node_secret_retention_redaction_probe_and_idempotency(tmp_path: P
 
     settings = Settings(
         environment="test",
+        product_release="v1_1",
         database_url=database_url,
         instance_lock_path=tmp_path / "instance.lock",
         storage_root=tmp_path / "storage",
@@ -126,6 +127,7 @@ def test_comfy_node_rejects_untrusted_host_and_missing_secret_store(tmp_path: Pa
     credentials = _bootstrap(database_url)
     settings = Settings(
         environment="test",
+        product_release="v1_1",
         database_url=database_url,
         instance_lock_path=tmp_path / "instance.lock",
         storage_root=tmp_path / "storage",
@@ -174,6 +176,7 @@ def test_comfy_probe_maps_redirect_timeout_and_malformed_responses(tmp_path: Pat
 
     settings = Settings(
         environment="test",
+        product_release="v1_1",
         database_url=database_url,
         instance_lock_path=tmp_path / "instance.lock",
         storage_root=tmp_path / "storage",

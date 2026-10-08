@@ -10,6 +10,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Header, Query, Request
 from sqlalchemy import and_, or_, select
 
+from clothes_model.core.features import feature_enabled, require_feature
 from clothes_model.core.problems import AppProblem
 from clothes_model.generated.models import (
     ComfyNodeConfigurationRequest,
@@ -126,6 +127,11 @@ async def get_default_provider(
     selection = await service.get_default()
     if selection is None:
         raise _default_problem("default_provider_not_set", "默认 Provider 尚未设置。")
+    config = await service.get(selection.provider_id)
+    if config is None or (
+        config.provider_type == "comfyui" and not feature_enabled(request, "comfyui")
+    ):
+        raise _default_problem("default_provider_not_set", "当前版本没有可用的默认 Provider。")
     revision = await service.current_revision(selection.provider_id)
     if revision is None:
         raise _default_problem("default_provider_not_set", "默认 Provider 配置缺失。")
@@ -151,6 +157,9 @@ async def update_default_provider(
 ) -> dict[str, object]:
     del identity
     service = _provider_service(request)
+    config = await service.get(str(body.provider_id.root))
+    if config is not None and config.provider_type == "comfyui":
+        require_feature(request, "comfyui")
     try:
         selection = await service.set_default(str(body.provider_id.root))
     except ProviderError as error:
@@ -229,6 +238,7 @@ async def get_comfy_node(
     identity: Annotated[AdminIdentity, Depends(require_admin)],
 ) -> dict[str, object]:
     del identity
+    require_feature(request, "comfyui")
     config = await _comfy_service(request).get()
     if config is None:
         raise AppProblem(404, "comfy_node_not_configured", "节点尚未配置", "请先保存节点配置。")
@@ -244,6 +254,7 @@ async def update_comfy_node(
     body: ComfyNodeConfigurationRequest,
     identity: Annotated[AdminIdentity, Depends(require_admin)],
 ) -> dict[str, object]:
+    require_feature(request, "comfyui")
     try:
         config = await _comfy_service(request).update(
             endpoint=str(body.endpoint),
@@ -266,6 +277,7 @@ async def test_comfy_node(
     identity: Annotated[AdminIdentity, Depends(require_admin)],
     idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, object]:
+    require_feature(request, "comfyui")
     key_digest = hashlib.sha256(idempotency_key.encode()).hexdigest()
     request_digest = hashlib.sha256(b"comfy-node-test-v1").hexdigest()
     async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:

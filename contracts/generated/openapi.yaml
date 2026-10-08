@@ -4166,6 +4166,16 @@ components:
       type: object
       additionalProperties: false
       properties:
+        product_release:
+          description: Active server-authoritative product release track.
+          allOf:
+            - $ref: '#/components/schemas/ProductRelease'
+        enabled_features:
+          type: array
+          uniqueItems: true
+          description: Stable product features enabled for the active release track.
+          items:
+            $ref: '#/components/schemas/ProductFeature'
         default_provider:
           $ref: '#/components/schemas/ProviderConfigRef'
         active_llm_provider:

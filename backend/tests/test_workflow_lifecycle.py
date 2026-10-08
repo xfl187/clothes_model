@@ -67,6 +67,7 @@ def _png() -> bytes:
 def _settings(tmp_path: Path, *, lock_name: str = "instance.lock") -> Settings:
     return Settings(
         environment="test",
+        product_release="v1_1",
         database_url=f"sqlite+aiosqlite:///{(tmp_path / 'lifecycle.db').as_posix()}",
         instance_lock_path=tmp_path / lock_name,
         storage_root=tmp_path / "storage",

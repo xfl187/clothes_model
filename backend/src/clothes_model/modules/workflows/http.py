@@ -4,6 +4,7 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, Header, Query, Request
 from pydantic import ValidationError
 
+from clothes_model.core.features import require_feature
 from clothes_model.core.problems import AppProblem
 from clothes_model.generated.models import (
     WorkflowActivateRequest,
@@ -15,7 +16,11 @@ from clothes_model.modules.auth.http import AdminIdentity, require_admin
 from clothes_model.modules.comfy.application import ComfyWorkflowValidator
 from clothes_model.modules.workflows.application import WorkflowService, WorkflowServiceError
 
-router = APIRouter(tags=["Workflows"])
+async def _require_comfyui(request: Request) -> None:
+    require_feature(request, "comfyui")
+
+
+router = APIRouter(tags=["Workflows"], dependencies=[Depends(_require_comfyui)])
 
 
 def _service(request: Request) -> WorkflowService:

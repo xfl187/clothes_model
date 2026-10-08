@@ -72,6 +72,7 @@ def _client(tmp_path: Path) -> tuple[TestClient, str, Path]:
     app = create_app(
         Settings(
             environment="test",
+            product_release="v1_1",
             database_url=database_url,
             instance_lock_path=tmp_path / "instance.lock",
             storage_root=storage_root,
@@ -126,6 +127,7 @@ def test_workflow_create_read_restart_redaction_and_conflicts(tmp_path: Path) ->
         create_app(
             Settings(
                 environment="test",
+                product_release="v1_1",
                 database_url=database_url,
                 instance_lock_path=tmp_path / "instance-2.lock",
                 storage_root=storage_root,

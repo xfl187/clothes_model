@@ -23,6 +23,8 @@
 
 package com.clothesmodel.contract.model
 
+import com.clothesmodel.contract.model.ProductFeature
+import com.clothesmodel.contract.model.ProductRelease
 import com.clothesmodel.contract.model.ProviderConfigRef
 import com.clothesmodel.contract.model.WorkflowVersionRef
 
@@ -38,6 +40,8 @@ import kotlinx.serialization.encoding.Encoder
 /**
  * 
  *
+ * @param productRelease Active server-authoritative product release track.
+ * @param enabledFeatures Stable product features enabled for the active release track.
  * @param defaultProvider 
  * @param activeLlmProvider 
  * @param activeWorkflow 
@@ -45,6 +49,14 @@ import kotlinx.serialization.encoding.Encoder
 @Serializable
 
 data class EffectiveConfiguration (
+
+    /* Active server-authoritative product release track. */
+    @Contextual @SerialName(value = "product_release")
+    val productRelease: ProductRelease? = null,
+
+    /* Stable product features enabled for the active release track. */
+    @SerialName(value = "enabled_features")
+    val enabledFeatures: kotlin.collections.Set<@Contextual ProductFeature>? = null,
 
     @SerialName(value = "default_provider")
     val defaultProvider: ProviderConfigRef? = null,

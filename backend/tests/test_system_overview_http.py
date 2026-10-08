@@ -47,6 +47,7 @@ def test_system_overview_requires_admin_and_aggregates(tmp_path: Path) -> None:
 
     settings = Settings(
         environment="test",
+        product_release="v1_1",
         database_url=database_url,
         instance_lock_path=tmp_path / "instance.lock",
         storage_root=tmp_path / "storage",
@@ -83,6 +84,7 @@ def test_system_overview_reports_storage_degradation(tmp_path: Path) -> None:
 
     settings = Settings(
         environment="test",
+        product_release="v1_1",
         database_url=database_url,
         instance_lock_path=tmp_path / "instance.lock",
         storage_root=tmp_path / "storage",

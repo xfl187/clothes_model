@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
+from clothes_model.core.features import feature_enabled, require_feature
 from clothes_model.core.problems import AppProblem
 from clothes_model.generated.models import CreateJobRequest
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
@@ -63,6 +64,25 @@ def _provider_service(request: Request) -> ProviderConfigService:
         request.app.state.provider_registry,
         request.app.state.secret_cipher,
     )
+
+
+async def _require_provider_enabled(request: Request, provider_id: str) -> None:
+    config = await _provider_service(request).get(provider_id)
+    if config is not None and config.provider_type == "comfyui":
+        require_feature(request, "comfyui")
+
+
+async def _require_item_provider_enabled(
+    request: Request, item_id: str, provider_id: str | None = None
+) -> None:
+    if provider_id is not None:
+        await _require_provider_enabled(request, provider_id)
+        return
+    async with SqlAlchemyUnitOfWork(request.app.state.database.sessions) as uow:
+        item = await uow.jobs.get_item(item_id)
+        job = await uow.jobs.get_job(item.job_id) if item is not None else None
+    if job is not None:
+        await _require_provider_enabled(request, job.provider_id)
 
 
 def _ensure_capacity(request: Request) -> None:
@@ -224,6 +244,8 @@ async def create_job(
         revision = await service.current_revision(provider_id)
         if config is None or revision is None:
             raise _problem(409, "provider_not_usable", "所选 Provider 不存在。")
+        if config.provider_type == "comfyui" and not feature_enabled(request, "comfyui"):
+            require_feature(request, "comfyui")
         if config.state not in {"active", "validated"}:
             raise _problem(409, "provider_not_usable", "所选 Provider 未启用。")
         capabilities = _as_mapping(json.loads(revision.capabilities_json or "{}"))
@@ -458,6 +480,7 @@ async def retry_job_item(
     await _require_owned_job(request, identity, item_id=job_item_id)
     reason = body.reason if body is not None else None
     provider_id = body.provider_id if body is not None else None
+    await _require_item_provider_enabled(request, job_item_id, provider_id)
     try:
         job, new_item_id = await _command_service(request).retry_item(
             job_item_id, reason=reason, provider_id=provider_id
@@ -476,6 +499,7 @@ async def requery_job_item(
 ) -> dict[str, object]:
     del idempotency_key
     await _require_owned_job(request, identity, item_id=job_item_id)
+    await _require_item_provider_enabled(request, job_item_id)
     try:
         job = await _command_service(request).requery_item(job_item_id)
     except JobCommandError as error:
@@ -557,6 +581,7 @@ async def admin_retry_job_item(
     del identity, idempotency_key
     reason = body.reason if body is not None else None
     provider_id = body.provider_id if body is not None else None
+    await _require_item_provider_enabled(request, job_item_id, provider_id)
     try:
         job, new_item_id = await _command_service(request).retry_item(
             job_item_id, reason=reason, provider_id=provider_id
@@ -578,6 +603,7 @@ async def admin_requery_job_item(
     idempotency_key: str = Header(alias="Idempotency-Key"),
 ) -> dict[str, object]:
     del identity, idempotency_key
+    await _require_item_provider_enabled(request, job_item_id)
     try:
         job = await _command_service(request).requery_item(job_item_id)
     except JobCommandError as error:

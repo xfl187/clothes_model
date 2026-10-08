@@ -6,6 +6,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Header, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 
+from clothes_model.core.features import require_feature
 from clothes_model.core.problems import AppProblem
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.modules.auth.application import VerifiedCredential
@@ -13,7 +14,11 @@ from clothes_model.modules.auth.http import require_app
 from clothes_model.modules.outfits.application.service import OutfitError, OutfitService
 from clothes_model.modules.providers.application.services import ProviderConfigService
 
-router = APIRouter(tags=["Outfits"])
+async def _require_layered_outfits(request: Request) -> None:
+    require_feature(request, "layered_outfits")
+
+
+router = APIRouter(tags=["Outfits"], dependencies=[Depends(_require_layered_outfits)])
 AppIdentity = Annotated[VerifiedCredential, Depends(require_app)]
 LayerRoleLiteral = Literal["inner_top", "outerwear", "lower_body", "dress"]
 

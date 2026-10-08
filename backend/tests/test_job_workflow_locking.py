@@ -233,6 +233,7 @@ def _seed(
 def _settings(database_url: str, tmp_path: Path) -> Settings:
     return Settings(
         environment="test",
+        product_release="v1_1",
         database_url=database_url,
         instance_lock_path=tmp_path / "instance.lock",
         storage_root=tmp_path / "storage",

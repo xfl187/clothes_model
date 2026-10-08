@@ -20,6 +20,20 @@ import {
     WorkflowVersionRefToJSON,
     WorkflowVersionRefToJSONTyped,
 } from './WorkflowVersionRef';
+import type { ProductRelease } from './ProductRelease';
+import {
+    ProductReleaseFromJSON,
+    ProductReleaseFromJSONTyped,
+    ProductReleaseToJSON,
+    ProductReleaseToJSONTyped,
+} from './ProductRelease';
+import type { ProductFeature } from './ProductFeature';
+import {
+    ProductFeatureFromJSON,
+    ProductFeatureFromJSONTyped,
+    ProductFeatureToJSON,
+    ProductFeatureToJSONTyped,
+} from './ProductFeature';
 import type { ProviderConfigRef } from './ProviderConfigRef';
 import {
     ProviderConfigRefFromJSON,
@@ -35,6 +49,14 @@ import {
  */
 export interface EffectiveConfiguration {
     /**
+     * Active server-authoritative product release track.
+     */
+    productRelease?: ProductRelease;
+    /**
+     * Stable product features enabled for the active release track.
+     */
+    enabledFeatures?: Set<ProductFeature>;
+    /**
      * 
      */
     defaultProvider?: ProviderConfigRef;
@@ -47,6 +69,8 @@ export interface EffectiveConfiguration {
      */
     activeWorkflow?: WorkflowVersionRef;
 }
+
+
 
 /**
  * Check if a given object implements the EffectiveConfiguration interface.
@@ -65,6 +89,8 @@ export function EffectiveConfigurationFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
+        'productRelease': json['product_release'] == null ? undefined : ProductReleaseFromJSON(json['product_release']),
+        'enabledFeatures': json['enabled_features'] == null ? undefined : (new Set((json['enabled_features'] as Array<any>).map(ProductFeatureFromJSON))),
         'defaultProvider': json['default_provider'] == null ? undefined : ProviderConfigRefFromJSON(json['default_provider']),
         'activeLlmProvider': json['active_llm_provider'] == null ? undefined : ProviderConfigRefFromJSON(json['active_llm_provider']),
         'activeWorkflow': json['active_workflow'] == null ? undefined : WorkflowVersionRefFromJSON(json['active_workflow']),
@@ -82,6 +108,8 @@ export function EffectiveConfigurationToJSONTyped(value?: EffectiveConfiguration
 
     return {
         
+        'product_release': ProductReleaseToJSON(value['productRelease']),
+        'enabled_features': value['enabledFeatures'] == null ? undefined : (Array.from(value['enabledFeatures'] as Set<any>).map(ProductFeatureToJSON)),
         'default_provider': ProviderConfigRefToJSON(value['defaultProvider']),
         'active_llm_provider': ProviderConfigRefToJSON(value['activeLlmProvider']),
         'active_workflow': WorkflowVersionRefToJSON(value['activeWorkflow']),
