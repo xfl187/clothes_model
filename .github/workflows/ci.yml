@@ -94,8 +94,15 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          ./contracts/tooling/verify-generated.ps1 *>&1 |
-            Tee-Object -FilePath artifacts/contract-verification.log
+          try {
+            ./contracts/tooling/verify-generated.ps1 *>&1 |
+              Tee-Object -FilePath artifacts/contract-verification.log
+          }
+          catch {
+            $message = $_.Exception.Message -replace "`r?`n", '%0A'
+            Write-Output "::error::$message"
+            throw
+          }
 
       - name: Verify Phase 2 contract boundaries
         shell: pwsh
@@ -329,7 +336,7 @@ jobs:
         uses: android-actions/setup-android@v4
 
       - name: Install pinned Android SDK packages
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
@@ -407,7 +414,7 @@ jobs:
       - name: Create and start test emulator
         run: |
           mkdir -p android/artifacts
-          sdkmanager "platforms;android-37" "build-tools;36.0.0" \
+          sdkmanager "platforms;android-37.0" "build-tools;36.0.0" \
             "system-images;android-34;google_apis;x86_64"
           echo no | avdmanager create avd --force --name phase2-ci \
             --package "system-images;android-34;google_apis;x86_64"
