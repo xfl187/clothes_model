@@ -25,11 +25,31 @@ Goal: initialize, rotate, and recover the App Token and Admin Token without expo
 Writes both new credentials to an operator-owned file outside the repository. Do not run during normal
 startup and never commit the output.
 
+## Bootstrap, reset, or rotate production credentials
+
+Use the host wrapper instead of invoking `clothes-model-security` directly so every newly issued
+plaintext token is persisted before the terminal session ends:
+
+```powershell
+./infra/manage-production-credentials.ps1 -Command bootstrap
+./infra/manage-production-credentials.ps1 -Command reset-admin
+./infra/manage-production-credentials.ps1 -Command rotate-app
+```
+
+The default file is
+`%LOCALAPPDATA%\ClothesModel\production-credentials.json`. It is outside the repository, is replaced
+atomically, and grants file access only to the current Windows user. The file keeps only the current
+App/Admin token pair; a reset or rotation replaces the affected plaintext value instead of retaining
+revoked token history. The script never prints token values to the console.
+
+The file does not store Provider API keys or the encryption master key. Web Admin continues to use
+the Admin Token only for the current login exchange and does not persist it in browser storage.
+
 ## Recovery when a credential is believed compromised
 
 - App: rotate from Web Admin; Android re-authenticates on the next request.
-- Admin: rotate from Web Admin after re-authenticating; reset via SSH if the current Admin Token is
-  lost.
+- Admin: run `manage-production-credentials.ps1 -Command reset-admin` on the host if the current
+  Admin Token is lost.
 
 ## Expected signals
 

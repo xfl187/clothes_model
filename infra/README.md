@@ -92,17 +92,23 @@ leave referenced content missing, while restoring encrypted configuration
 without its original 32-byte master key makes those secrets unrecoverable by
 design. Never place token values or the decoded master key in diagnostic logs.
 
-First deployment runs `uv run clothes-model-security bootstrap` inside the
-application image after migrations. It prints missing App/Admin credentials
-once. `reset-admin` is the server-side recovery boundary for a lost Admin
-Token; `rotate-app` immediately revokes the previous App credential without
-cancelling persisted server work.
+Manage production credentials through the host wrapper so each newly issued
+plaintext App/Admin Token is saved atomically outside the repository:
 
-Any credentials file created under the host temporary directory is only an
-operator-managed snapshot. `Get-Content` reads that file; it does not generate
-or query the active credentials. Neither `reset-admin` nor `rotate-app` updates
-such a file automatically, so replace or remove the snapshot immediately after
-rotation to avoid presenting a revoked token as current.
+```powershell
+./infra/manage-production-credentials.ps1 -Command bootstrap
+./infra/manage-production-credentials.ps1 -Command reset-admin
+./infra/manage-production-credentials.ps1 -Command rotate-app
+```
+
+The default file is
+`%LOCALAPPDATA%\ClothesModel\production-credentials.json`. It grants access only
+to the current Windows user and keeps the current token pair rather than revoked
+history. The wrapper never prints plaintext tokens. `reset-admin` immediately
+invalidates the previous Admin lineage and sessions; `rotate-app` immediately
+revokes the previous App credential without cancelling persisted server work.
+Provider API keys and the encryption master key remain outside this plaintext
+token file.
 
 `docker compose down` removes containers and the network but preserves these volumes. Do not add `--volumes` when validating restart persistence.
 

@@ -18,10 +18,11 @@ docker compose -f infra/compose.yaml --profile production up -d --no-build
 curl.exe --fail --insecure https://localhost:8443/health/ready
 ```
 
-1. Bootstrap the one-time credentials from the running container:
-   `docker compose -f infra/compose.yaml --profile production exec -T app clothes-model-security bootstrap`
-2. Save both tokens in one operator-owned file outside the repository (see
-   [credential lifecycle](credential-lifecycle.md)).
+1. Bootstrap and persist the one-time credentials from the repository root:
+   `./infra/manage-production-credentials.ps1 -Command bootstrap`
+   The wrapper saves newly issued plaintext tokens outside the repository and does not print them.
+2. Preserve the operator-owned credential file described in
+   [credential lifecycle](credential-lifecycle.md).
 3. Configure generation infrastructure: [provider configuration](provider-configuration.md) and
    [workflow publish and rollback](workflow-publish-rollback.md).
 4. Connect Android with the App Token; connect Web Admin with the Admin Token.
