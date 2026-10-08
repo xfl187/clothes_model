@@ -2,10 +2,10 @@
 
 ## Progress
 
-- Status: COMPLETE — all 9 Tasks implemented and the full deterministic `verify-phase8.ps1` gate
-  passed end-to-end (contract, Backend, Web, backup/restore, Android build/lint/unit/instrumentation
-  compile/release). Real credentialed AutoDL/Comfy acceptance remains the documented manual release
-  prerequisite.
+- Status: COMPLETE FOR CURRENT IMPLEMENTATION — all 9 Tasks implemented and the full deterministic
+  `verify-phase8.ps1` gate passed. Product scope changed on 2026-10-08: V1 is direct-model only and real
+  credentialed AutoDL/Comfy acceptance moved to V1.1. The gate still needs the release-profile split in
+  `release-track-comfyui-v1-1.md` before the updated V1 release claim is final.
 - Environment fix (2026-10-07): `android/verify-phase6.ps1` now passes an explicit pytest `--basetemp`,
   so the gate no longer depends on the machine's default pytest temp directory being writable.
 - Planning mode: `PHASE_PLAN + LARGE`
@@ -13,8 +13,8 @@
 - Scope: V1 hardening, fault/recovery verification, security verification, backup/restore, operator
   runbooks, and the release gate. No new product surface.
 - Execution rule: complete, verify, and Git-commit every Task before starting the next Task.
-- Deferred external gate: real credentialed AutoDL/Comfy acceptance stays deferred until a real
-  Workflow/node exists; it is a documented release prerequisite, not a deterministic Task gate.
+- Reclassified external gate: real credentialed AutoDL/Comfy acceptance is a V1.1 prerequisite and no
+  longer blocks the direct-model V1 release.
 - Task 1 — COMPLETE (2026-10-07): `docs/acceptance/v1-acceptance-matrix.md` maps scenarios 1–22 to
   evidence with owners/status; V1.1 23–43 excluded; deferred prerequisites listed.
 - Task 2 — COMPLETE (2026-10-07): `backend/tests/test_fault_recovery.py` covers cancelled-never-reconciled,
@@ -35,8 +35,8 @@
 - Task 8 — COMPLETE (2026-10-07): root `verify-phase8.ps1` orchestrates contract, Backend, Web,
   backup/restore, and Android; CI gained `backup-restore` and `phase8-exit` jobs.
 - Task 9 — COMPLETE (2026-10-07): plan/roadmap/README updated; no unclassified V1 scenario remains.
-- Next action: V1 release candidate ready. Execute the manual credentialed AutoDL/Comfy acceptance before
-  claiming Comfy production readiness; then begin Phase 9 (V1.1) only after the V1 release gate.
+- Next action: implement the V1/V1.1 release-profile split from
+  `release-track-comfyui-v1-1.md`, then rerun the direct-model V1 gate.
 
 ## Goal
 

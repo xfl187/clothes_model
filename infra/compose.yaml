@@ -25,6 +25,7 @@ services:
       dockerfile: infra/docker/application.Dockerfile
     environment:
       CLOTHES_MODEL_ENVIRONMENT: development
+      CLOTHES_MODEL_PRODUCT_RELEASE: "${CLOTHES_MODEL_PRODUCT_RELEASE:-v1}"
       CLOTHES_MODEL_BIND_HOST: 0.0.0.0
       CLOTHES_MODEL_BIND_PORT: 8000
       CLOTHES_MODEL_DATABASE_URL: sqlite+aiosqlite:////var/lib/clothes-model/db/clothes-model.db
@@ -61,6 +62,7 @@ services:
       dockerfile: infra/docker/application.Dockerfile
     environment:
       CLOTHES_MODEL_ENVIRONMENT: production
+      CLOTHES_MODEL_PRODUCT_RELEASE: "${CLOTHES_MODEL_PRODUCT_RELEASE:-v1}"
       CLOTHES_MODEL_BIND_HOST: 0.0.0.0
       CLOTHES_MODEL_BIND_PORT: 8000
       CLOTHES_MODEL_DATABASE_URL: sqlite+aiosqlite:////var/lib/clothes-model/db/clothes-model.db

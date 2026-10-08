@@ -34,6 +34,13 @@ function Invoke-BackendTool([string]$Name, [string[]]$Arguments) {
     if ($null -ne $uvCommand) {
         & $uvCommand 'run' '--project' $backendRoot $Name @Arguments
     }
+    elseif ($Name -eq 'pyright') {
+        $python = Join-Path $backendRoot '.venv\Scripts\python.exe'
+        if (-not (Test-Path -LiteralPath $python)) {
+            throw "Missing Backend Python. Install the locked Backend environment or set CLOTHES_MODEL_UV."
+        }
+        & $python '-m' 'pyright' @Arguments
+    }
     else {
         $extension = if ($runningOnWindows) { '.exe' } else { '' }
         $command = Join-Path $backendRoot ('.venv\Scripts\' + $Name + $extension)

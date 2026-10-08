@@ -77,6 +77,16 @@ function Invoke-BackendTool([string]$Name, [string[]]$Arguments) {
     if ($null -ne $uvCommand) {
         & $uvCommand 'run' '--project' $backendProject $Name @Arguments
     }
+    elseif ($Name -eq 'datamodel-codegen') {
+        $python = Join-Path $backendProject 'Scripts\python.exe'
+        if (-not (Test-Path -LiteralPath $python)) {
+            $python = Join-Path $backendProject '.venv\Scripts\python.exe'
+        }
+        if (-not (Test-Path -LiteralPath $python)) {
+            throw "Missing Backend Python. Install the locked Backend environment or set CLOTHES_MODEL_UV."
+        }
+        & $python '-m' 'datamodel_code_generator' @Arguments
+    }
     else {
         $extension = if ($runningOnWindows) { '.exe' } else { '' }
         $command = Join-Path $backendProject ('.venv\Scripts\' + $Name + $extension)

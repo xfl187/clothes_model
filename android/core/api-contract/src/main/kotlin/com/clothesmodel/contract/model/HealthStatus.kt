@@ -23,6 +23,8 @@
 
 package com.clothesmodel.contract.model
 
+import com.clothesmodel.contract.model.ProductFeature
+import com.clothesmodel.contract.model.ProductRelease
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -38,6 +40,8 @@ import kotlinx.serialization.encoding.Encoder
  *
  * @param status 
  * @param checkedAt UTC RFC 3339 timestamp.
+ * @param productRelease Active server-authoritative product release track.
+ * @param enabledFeatures Stable product features enabled for the active release track.
  * @param checks Safe component conclusions without filesystem paths or secrets.
  */
 @Serializable
@@ -50,6 +54,14 @@ data class HealthStatus (
     /* UTC RFC 3339 timestamp. */
     @Contextual @SerialName(value = "checked_at")
     val checkedAt: java.time.OffsetDateTime,
+
+    /* Active server-authoritative product release track. */
+    @Contextual @SerialName(value = "product_release")
+    val productRelease: ProductRelease? = null,
+
+    /* Stable product features enabled for the active release track. */
+    @SerialName(value = "enabled_features")
+    val enabledFeatures: kotlin.collections.Set<@Contextual ProductFeature>? = null,
 
     /* Safe component conclusions without filesystem paths or secrets. */
     @SerialName(value = "checks")

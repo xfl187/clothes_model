@@ -65,6 +65,16 @@ PageMetadata:
     has_more:
       type: boolean
 
+ProductRelease:
+  type: string
+  enum: [v1, v1_1]
+  description: Server-authoritative product release track for exposed behavior.
+
+ProductFeature:
+  type: string
+  enum: [direct_model_try_on, comfyui, layered_outfits]
+  description: Stable product feature enabled for this deployment release track.
+
 HealthStatus:
   type: object
   additionalProperties: false
@@ -75,6 +85,16 @@ HealthStatus:
       enum: [ok, unavailable]
     checked_at:
       $ref: '#/Timestamp'
+    product_release:
+      description: Active server-authoritative product release track.
+      allOf:
+        - $ref: '#/ProductRelease'
+    enabled_features:
+      type: array
+      uniqueItems: true
+      description: Stable product features enabled for the active release track.
+      items:
+        $ref: '#/ProductFeature'
     checks:
       type: object
       additionalProperties:

@@ -5,17 +5,28 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Request
 from sqlalchemy import func, select
 
-from clothes_model.generated.models import HealthStatus, Status, Timestamp
+from clothes_model.core.config import Settings
+from clothes_model.generated.models import (
+    HealthStatus,
+    ProductFeature,
+    ProductRelease,
+    Status,
+    Timestamp,
+)
 from clothes_model.infrastructure.database import SqlAlchemyUnitOfWork
 from clothes_model.infrastructure.database import models as db
 
 router = APIRouter(tags=["Health"])
 
 
-def _health(status: Status, checks: dict[str, str]) -> HealthStatus:
+def _health(status: Status, checks: dict[str, str], settings: Settings) -> HealthStatus:
     return HealthStatus(
         status=status,
         checked_at=Timestamp(root=datetime.now(UTC)),
+        product_release=ProductRelease(settings.product_release),
+        enabled_features=[
+            ProductFeature(feature) for feature in settings.enabled_product_features()
+        ],
         checks=checks,
     )
 
@@ -70,8 +81,8 @@ async def _comfy_diagnostics(request: Request) -> dict[str, str]:
 
 
 @router.get("/health/live", operation_id="getLiveness", response_model=HealthStatus)
-async def get_liveness() -> HealthStatus:
-    return _health(Status.ok, {"process": "ok"})
+async def get_liveness(request: Request) -> HealthStatus:
+    return _health(Status.ok, {"process": "ok"}, request.app.state.settings)
 
 
 @router.get("/health/ready", operation_id="getReadiness", response_model=HealthStatus)
@@ -84,4 +95,4 @@ async def get_readiness(request: Request) -> HealthStatus:
         "scheduler": scheduler_status,
     }
     checks.update(await _comfy_diagnostics(request))
-    return _health(Status.ok, checks)
+    return _health(Status.ok, checks, request.app.state.settings)

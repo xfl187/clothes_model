@@ -2,9 +2,10 @@
 
 ## Progress
 
-- Status: COMPLETE — all 14 Tasks implemented and the deterministic `verify-phase9.ps1` gate passed
-  (contract, Backend V1 regression + V1.1 outfits, Android build/unit/lint). V1.1 real layered generation
-  requires a Provider declaring `sequential_layering` in the acceptance environment.
+- Status: COMPLETE FOR IMPLEMENTATION — all 14 Tasks implemented and the deterministic
+  `verify-phase9.ps1` gate passed. Product scope changed on 2026-10-08: ComfyUI node/Workflow capability
+  now belongs to V1.1. V1.1 production readiness therefore remains pending the release-profile split
+  and real credentialed ComfyUI acceptance.
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-10-07
 - Scope: V1.1 分层穿搭 (Layered Outfit Track) as an independent domain module and independent Android
@@ -74,8 +75,8 @@
 - Task 14 — COMPLETE (2026-10-07): roadmap and README updated to record V1.1 completion; no unclassified
   V1.1 scenario remains. V1.1 real layered generation requires a Provider declaring `sequential_layering`
   in the acceptance environment.
-- Next action: V1.1 complete. Ship V1/V1.1 after the deferred credentialed AutoDL/Comfy acceptance; then
-  plan the next roadmap phase.
+- Next action: implement `release-track-comfyui-v1-1.md`; ship V1 independently after its direct-model
+  gate passes, and ship the ComfyUI portion of V1.1 only after credentialed acceptance.
 
 ## Goal
 

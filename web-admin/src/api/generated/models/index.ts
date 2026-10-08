@@ -62,6 +62,8 @@ export * from './OutfitSession';
 export * from './OutfitSessionPage';
 export * from './OutputConstraints';
 export * from './ProblemDetails';
+export * from './ProductFeature';
+export * from './ProductRelease';
 export * from './ProviderAvailability';
 export * from './ProviderCapabilities';
 export * from './ProviderConfig';

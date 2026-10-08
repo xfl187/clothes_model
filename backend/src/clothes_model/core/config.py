@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     )
 
     environment: Literal["development", "test", "production"] = "development"
+    product_release: Literal["v1", "v1_1"] = "v1"
     bind_host: str = "127.0.0.1"
     bind_port: int = Field(default=8000, ge=1, le=65535)
     database_url: str = "sqlite+aiosqlite:///./data/clothes-model.db"
@@ -53,11 +54,18 @@ class Settings(BaseSettings):
     def safe_log_context(self) -> dict[str, str | int | bool]:
         return {
             "environment": self.environment,
+            "product_release": self.product_release,
             "bind_host": self.bind_host,
             "bind_port": self.bind_port,
             "log_level": self.log_level,
             "scheduler_enabled": self.scheduler_enabled,
         }
+
+    def enabled_product_features(self) -> tuple[str, ...]:
+        features = ["direct_model_try_on"]
+        if self.product_release == "v1_1":
+            features.extend(("comfyui", "layered_outfits"))
+        return tuple(features)
 
 
 @lru_cache

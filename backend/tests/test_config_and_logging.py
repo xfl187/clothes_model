@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from pytest import MonkeyPatch
+from pydantic import ValidationError
 
 from clothes_model.api.application import _load_secret_cipher
 from clothes_model.core.config import Settings
@@ -22,6 +23,23 @@ def test_prefixed_environment_and_safe_log_context(monkeypatch: MonkeyPatch) -> 
     serialized = json.dumps(settings.safe_log_context())
     assert "super-secret-value" not in serialized
     assert "encryption_master_key" not in serialized
+
+
+def test_product_release_defaults_to_v1_and_exposes_stable_features() -> None:
+    v1 = Settings(_env_file=None)
+    v1_1 = Settings(_env_file=None, product_release="v1_1")
+
+    assert v1.product_release == "v1"
+    assert v1.enabled_product_features() == ("direct_model_try_on",)
+    assert v1_1.enabled_product_features() == (
+        "direct_model_try_on",
+        "comfyui",
+        "layered_outfits",
+    )
+    assert v1_1.safe_log_context()["product_release"] == "v1_1"
+
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, product_release="v2")  # type: ignore[arg-type]
 
 
 def test_json_formatter_does_not_serialize_unapproved_record_fields() -> None:

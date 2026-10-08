@@ -2,7 +2,8 @@
 
 ## Progress
 
-- Status: COMPLETE FOR IMPLEMENTATION — deterministic exit gate passed; live acceptance deferred
+- Status: COMPLETE FOR IMPLEMENTATION — deterministic exit gate passed; this implemented subsystem is
+  now assigned to V1.1, with live acceptance deferred to the V1.1 release gate
 - Planning mode: `PHASE_PLAN + LARGE`
 - Planned: 2026-09-28
 - Task 1: COMPLETE (contract, ADR, generated clients, and boundary verification)

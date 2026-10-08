@@ -14,6 +14,25 @@ class Timestamp(RootModel[AwareDatetime]):
     root: AwareDatetime = Field(..., description='UTC RFC 3339 timestamp.')
 
 
+class ProductRelease(Enum):
+    """
+    Server-authoritative product release track for exposed behavior.
+    """
+
+    v1 = 'v1'
+    v1_1 = 'v1_1'
+
+
+class ProductFeature(Enum):
+    """
+    Stable product feature enabled for this deployment release track.
+    """
+
+    direct_model_try_on = 'direct_model_try_on'
+    comfyui = 'comfyui'
+    layered_outfits = 'layered_outfits'
+
+
 class Status(Enum):
     ok = 'ok'
     unavailable = 'unavailable'
@@ -25,6 +44,13 @@ class HealthStatus(BaseModel):
     )
     status: Status
     checked_at: Timestamp
+    product_release: ProductRelease | None = Field(
+        None, description='Active server-authoritative product release track.'
+    )
+    enabled_features: list[ProductFeature] | None = Field(
+        None,
+        description='Stable product features enabled for the active release track.',
+    )
     checks: dict[str, str] | None = Field(
         None,
         description='Safe component conclusions without filesystem paths or secrets.',

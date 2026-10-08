@@ -2372,6 +2372,19 @@ components:
       type: string
       format: date-time
       description: UTC RFC 3339 timestamp.
+    ProductRelease:
+      type: string
+      enum:
+        - v1
+        - v1_1
+      description: Server-authoritative product release track for exposed behavior.
+    ProductFeature:
+      type: string
+      enum:
+        - direct_model_try_on
+        - comfyui
+        - layered_outfits
+      description: Stable product feature enabled for this deployment release track.
     HealthStatus:
       type: object
       additionalProperties: false
@@ -2386,6 +2399,16 @@ components:
             - unavailable
         checked_at:
           $ref: '#/components/schemas/Timestamp'
+        product_release:
+          description: Active server-authoritative product release track.
+          allOf:
+            - $ref: '#/components/schemas/ProductRelease'
+        enabled_features:
+          type: array
+          uniqueItems: true
+          description: Stable product features enabled for the active release track.
+          items:
+            $ref: '#/components/schemas/ProductFeature'
         checks:
           type: object
           additionalProperties:

@@ -13,6 +13,21 @@
  */
 
 import { mapValues, parseDate, parseDateTime, serializeDate, serializeDateTime } from '../runtime';
+import type { ProductRelease } from './ProductRelease';
+import {
+    ProductReleaseFromJSON,
+    ProductReleaseFromJSONTyped,
+    ProductReleaseToJSON,
+    ProductReleaseToJSONTyped,
+} from './ProductRelease';
+import type { ProductFeature } from './ProductFeature';
+import {
+    ProductFeatureFromJSON,
+    ProductFeatureFromJSONTyped,
+    ProductFeatureToJSON,
+    ProductFeatureToJSONTyped,
+} from './ProductFeature';
+
 /**
  * 
  * @export
@@ -27,6 +42,14 @@ export interface HealthStatus {
      * UTC RFC 3339 timestamp.
      */
     checkedAt: Date;
+    /**
+     * Active server-authoritative product release track.
+     */
+    productRelease?: ProductRelease;
+    /**
+     * Stable product features enabled for the active release track.
+     */
+    enabledFeatures?: Set<ProductFeature>;
     /**
      * Safe component conclusions without filesystem paths or secrets.
      */
@@ -66,6 +89,8 @@ export function HealthStatusFromJSONTyped(json: any, ignoreDiscriminator: boolea
         
         'status': json['status'],
         'checkedAt': (json['checked_at'] == null ? json['checked_at'] : parseDateTime(json['checked_at'])),
+        'productRelease': json['product_release'] == null ? undefined : ProductReleaseFromJSON(json['product_release']),
+        'enabledFeatures': json['enabled_features'] == null ? undefined : (new Set((json['enabled_features'] as Array<any>).map(ProductFeatureFromJSON))),
         'checks': json['checks'] == null ? undefined : json['checks'],
     };
 }
@@ -83,6 +108,8 @@ export function HealthStatusToJSONTyped(value?: HealthStatus | null, ignoreDiscr
         
         'status': value['status'],
         'checked_at': value['checkedAt'] == null ? value['checkedAt'] : serializeDateTime(value['checkedAt']),
+        'product_release': ProductReleaseToJSON(value['productRelease']),
+        'enabled_features': value['enabledFeatures'] == null ? undefined : (Array.from(value['enabledFeatures'] as Set<any>).map(ProductFeatureToJSON)),
         'checks': value['checks'],
     };
 }

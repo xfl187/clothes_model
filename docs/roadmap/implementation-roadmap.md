@@ -6,13 +6,17 @@
 - Phase 2 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 3 — COMPLETE (11 / 11 tasks; exit gate passed 2026-09-27)
 - Phase 4 — COMPLETE (real Volcengine Ark vertical slice verified 2026-09-27)
-- Phase 5 — COMPLETE FOR IMPLEMENTATION (10 / 10 tasks; deterministic gate passed 2026-09-28)
-- Deferred release evidence — credentialed AutoDL/Comfy acceptance after a real Workflow/node exists
+- Phase 5 — COMPLETE FOR IMPLEMENTATION (10 / 10 tasks; deterministic gate passed 2026-09-28); its
+  ComfyUI node/Workflow scope is now classified as early V1.1 implementation
 - Phase 6 — COMPLETE (10 / 10 tasks; exit gate passed 2026-09-28 via `android/verify-phase6.ps1`)
 - Phase 7 — COMPLETE ([plan](../plans/phase-7-web-admin-operations-completion.md)); Web Admin `概览 / 配置 / 运行维护` A00–A12, Backend overview/retention/scan/cleanup/App-Token rotation/admin diagnostics, and `web-admin/verify-phase7.ps1` passed
-- Phase 8 — COMPLETE ([plan](../plans/phase-8-v1-hardening-release-gate.md)); V1 acceptance matrix, fault/security/backup verification, runbooks, and the full `verify-phase8.ps1` gate passed end-to-end
-- Deferred release evidence — credentialed AutoDL/Comfy acceptance after a real Workflow/node exists
-- Phase 9 — COMPLETE ([plan](../plans/phase-9-layered-outfit-track.md)); V1.1 layered outfits (contract, Outfits module, references, Android workbench/branches/reapply) and `verify-phase9.ps1` passed
+- Phase 8 — COMPLETE FOR CURRENT IMPLEMENTATION ([plan](../plans/phase-8-v1-hardening-release-gate.md));
+  V1 is now the direct-model release and no longer waits for credentialed AutoDL/Comfy acceptance
+- Phase 9 — COMPLETE FOR IMPLEMENTATION ([plan](../plans/phase-9-layered-outfit-track.md)); V1.1 layered
+  outfits and deterministic ComfyUI coverage are implemented, while real ComfyUI production acceptance
+  remains the V1.1 release gate
+- Release-track rebaseline — PLANNED ([plan](../plans/release-track-comfyui-v1-1.md)); enforce `v1` versus
+  `v1_1` surfaces and split the deterministic gates before updating release claims
 
 ## Current Repository State
 
