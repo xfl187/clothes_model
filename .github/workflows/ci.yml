@@ -96,8 +96,14 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          ./contracts/tooling/verify-generated.ps1 *>&1 |
-            Tee-Object -FilePath artifacts/contract-verification.log
+          try {
+            ./contracts/tooling/verify-generated.ps1 *> artifacts/contract-verification.log
+          }
+          finally {
+            if (Test-Path artifacts/contract-verification.log) {
+              Get-Content artifacts/contract-verification.log
+            }
+          }
 
       - name: Report contract verification failure
         if: steps.contract-verification.outcome == 'failure'
@@ -425,7 +431,7 @@ jobs:
             "system-images;android-34;google_apis;x86_64"
           echo no | avdmanager create avd --force --name phase2-ci \
             --package "system-images;android-34;google_apis;x86_64"
-          nohup emulator -avd phase2-ci -no-window -no-audio -no-boot-anim \
+          nohup "${ANDROID_HOME}/emulator/emulator" -avd phase2-ci -no-window -no-audio -no-boot-anim \
             -no-snapshot -gpu swiftshader_indirect \
             > android/artifacts/emulator.log 2>&1 &
           if ! timeout 180 adb wait-for-device; then
