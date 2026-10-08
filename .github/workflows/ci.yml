@@ -161,6 +161,8 @@ jobs:
 
       - name: Test
         working-directory: backend
+        env:
+          CLOTHES_MODEL_PRODUCT_RELEASE: v1
         run: |
           mkdir -p reports
           uv run pytest --junitxml=reports/pytest.xml 2>&1 | tee artifacts/backend-test.log
@@ -190,6 +192,8 @@ jobs:
 
       - name: Phase 5 deterministic Comfy verification
         working-directory: backend
+        env:
+          CLOTHES_MODEL_PRODUCT_RELEASE: v1_1
         run: |
           uv run pytest \
             tests/test_workflow_artifacts.py \
@@ -199,6 +203,29 @@ jobs:
             tests/test_job_workflow_locking.py \
             tests/test_scheduler_recovery.py \
             -q 2>&1 | tee artifacts/backend-phase5.log
+
+      - name: V1 release boundary
+        working-directory: backend
+        env:
+          CLOTHES_MODEL_PRODUCT_RELEASE: v1
+        run: |
+          uv run pytest \
+            tests/test_release_track_boundary.py::test_v1_hides_and_rejects_v1_1_surfaces \
+            tests/test_jobs_http.py::test_mask_job_requires_provider_capability \
+            -q 2>&1 | tee artifacts/backend-v1-release.log
+
+      - name: V1.1 release boundary
+        working-directory: backend
+        env:
+          CLOTHES_MODEL_PRODUCT_RELEASE: v1_1
+        run: |
+          uv run pytest \
+            tests/test_release_track_boundary.py::test_v1_1_preserves_comfyui_availability \
+            tests/test_workflow_lifecycle.py \
+            tests/test_comfy_node_http.py \
+            tests/test_outfits_http.py \
+            tests/test_outfits_layers.py \
+            -q 2>&1 | tee artifacts/backend-v1_1-release.log
 
       - name: Build wheel and source distribution
         working-directory: backend
@@ -426,6 +453,7 @@ jobs:
     timeout-minutes: 30
     env:
       CLOTHES_MODEL_ENCRYPTION_MASTER_KEY_FILE_SOURCE: ../artifacts/encryption_master_key
+      CLOTHES_MODEL_PRODUCT_RELEASE: v1
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -560,6 +588,8 @@ jobs:
     name: V1.1 layered outfits
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      CLOTHES_MODEL_PRODUCT_RELEASE: v1_1
     steps:
       - name: Check out repository
         uses: actions/checkout@v7

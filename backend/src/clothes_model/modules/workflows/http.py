@@ -16,6 +16,7 @@ from clothes_model.modules.auth.http import AdminIdentity, require_admin
 from clothes_model.modules.comfy.application import ComfyWorkflowValidator
 from clothes_model.modules.workflows.application import WorkflowService, WorkflowServiceError
 
+
 async def _require_comfyui(request: Request) -> None:
     require_feature(request, "comfyui")
 

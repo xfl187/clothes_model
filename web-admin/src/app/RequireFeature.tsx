@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 
-import type { ProductFeature } from '../api/generated/models/ProductFeature';
+import type { ProductFeature } from '../api/adminApi';
 import { ModuleError, StateBlock } from '../components/ui';
 import { useReleaseFeatures } from './useReleaseFeatures';
 

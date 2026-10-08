@@ -1,6 +1,6 @@
 import { useAdminApi } from '../api/AdminApiContext';
 import { useAdminQuery } from '../api/useAdminQuery';
-import type { ProductFeature } from '../api/generated/models/ProductFeature';
+import type { ProductFeature } from '../api/adminApi';
 
 export function useReleaseFeatures() {
   const api = useAdminApi();

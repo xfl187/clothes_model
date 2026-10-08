@@ -14,6 +14,7 @@ from clothes_model.modules.auth.http import require_app
 from clothes_model.modules.outfits.application.service import OutfitError, OutfitService
 from clothes_model.modules.providers.application.services import ProviderConfigService
 
+
 async def _require_layered_outfits(request: Request) -> None:
     require_feature(request, "layered_outfits")
 

@@ -3,7 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import styles from './AppShell.module.css';
 import { useOnline } from './useOnline';
 import { useAdminSession } from '../features/auth/adminSessionState';
-import type { ProductFeature } from '../api/generated/models/ProductFeature';
+import type { ProductFeature } from '../api/adminApi';
 import { useReleaseFeatures } from './useReleaseFeatures';
 
 interface NavItem {

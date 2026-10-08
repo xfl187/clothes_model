@@ -2,7 +2,7 @@
 
 ## Progress
 
-- Status: IN PROGRESS — Tasks 1–3 complete
+- Status: IN PROGRESS — Tasks 1–4 complete
 - Planning mode: `PLAN_UPDATE + MEDIUM`
 - Planned: 2026-10-08
 - Confirmed change: ComfyUI node, Workflow, selection, waiting/recovery, diagnostics, and credentialed
@@ -13,7 +13,7 @@
   deployment defaults.
 - Verified: contract lint/additive/boundary/Prism gates; generated drift, Python type checks, Web
   generated type checks, Android generated-client compilation; six focused Backend settings/health tests.
-- Next action: implement Task 4 split V1 and V1.1 deterministic gates.
+- Next action: implement Task 5 release-record and runbook rebaseline.
 
 ## Goal
 
@@ -151,6 +151,8 @@ Verify:
 Dependencies: Tasks 1–2.
 
 ### Task 4 — Split V1 and V1.1 deterministic gates
+
+Status: COMPLETE (2026-10-08)
 
 Affected:
 

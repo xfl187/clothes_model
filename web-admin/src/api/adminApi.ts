@@ -16,6 +16,7 @@ import type { DiagnosticJobDetail } from './generated/models/DiagnosticJobDetail
 import type { DiagnosticJobPage } from './generated/models/DiagnosticJobPage';
 import type { JobCommandResult } from './generated/models/JobCommandResult';
 import type { ProviderConfig } from './generated/models/ProviderConfig';
+import type { ProductFeature } from './generated/models/ProductFeature';
 import type { RetentionPolicy } from './generated/models/RetentionPolicy';
 import type { StorageScanResult } from './generated/models/StorageScanResult';
 import type { StorageStatus } from './generated/models/StorageStatus';
@@ -24,7 +25,7 @@ import type { WorkflowValidationResult } from './generated/models/WorkflowValida
 import type { WorkflowVersion } from './generated/models/WorkflowVersion';
 import { Configuration, FetchError, ResponseError } from './generated/runtime';
 
-export type { WorkflowVersion };
+export type { ProductFeature, WorkflowVersion };
 
 let csrfToken = '';
 

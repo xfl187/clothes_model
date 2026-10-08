@@ -3,8 +3,8 @@ import logging
 from pathlib import Path
 
 import pytest
-from pytest import MonkeyPatch
 from pydantic import ValidationError
+from pytest import MonkeyPatch
 
 from clothes_model.api.application import _load_secret_cipher
 from clothes_model.core.config import Settings
@@ -25,7 +25,10 @@ def test_prefixed_environment_and_safe_log_context(monkeypatch: MonkeyPatch) -> 
     assert "encryption_master_key" not in serialized
 
 
-def test_product_release_defaults_to_v1_and_exposes_stable_features() -> None:
+def test_product_release_defaults_to_v1_and_exposes_stable_features(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("CLOTHES_MODEL_PRODUCT_RELEASE", raising=False)
     v1 = Settings(_env_file=None)
     v1_1 = Settings(_env_file=None, product_release="v1_1")
 
