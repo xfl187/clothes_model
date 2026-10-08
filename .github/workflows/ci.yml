@@ -101,13 +101,13 @@ jobs:
 
       - name: Report contract verification failure
         if: steps.contract-verification.outcome == 'failure'
-        shell: pwsh
-        run: |
-          Get-Content artifacts/contract-verification.log -Tail 100 | ForEach-Object {
-            $message = $_ -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A'
-            Write-Output "::error::$message"
-          }
-          exit 1
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const fs = require('fs')
+            const report = fs.readFileSync('artifacts/contract-verification.log', 'utf8')
+            core.error(report.slice(-8000), { title: 'Contract verification' })
+            core.setFailed('Contract verification failed; see the annotation above.')
 
       - name: Verify Phase 2 contract boundaries
         shell: pwsh
@@ -417,6 +417,8 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Create and start test emulator
+        id: emulator-boot
+        continue-on-error: true
         run: |
           mkdir -p android/artifacts
           sdkmanager "platforms;android-37.0" "build-tools;36.0.0" \
@@ -445,6 +447,16 @@ jobs:
             echo "::error::$escaped"
           done < <(tail -100 android/artifacts/emulator.log)
           exit 1
+
+      - name: Report emulator boot failure
+        if: steps.emulator-boot.outcome == 'failure'
+        uses: actions/github-script@v9.0.0
+        with:
+          script: |
+            const fs = require('fs')
+            const report = fs.readFileSync('android/artifacts/emulator.log', 'utf8')
+            core.error(report.slice(-8000), { title: 'Android emulator boot' })
+            core.setFailed('Android emulator failed to boot; see the annotation above.')
 
       - name: Run device security and persistence tests
         run: |
