@@ -91,18 +91,23 @@ jobs:
           } 2>&1 | tee artifacts/contract-versions.log
 
       - name: Verify contract generation and consumers
+        id: contract-verification
+        continue-on-error: true
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
-          try {
-            ./contracts/tooling/verify-generated.ps1 *>&1 |
-              Tee-Object -FilePath artifacts/contract-verification.log
-          }
-          catch {
-            $message = $_.Exception.Message -replace "`r?`n", '%0A'
+          ./contracts/tooling/verify-generated.ps1 *>&1 |
+            Tee-Object -FilePath artifacts/contract-verification.log
+
+      - name: Report contract verification failure
+        if: steps.contract-verification.outcome == 'failure'
+        shell: pwsh
+        run: |
+          Get-Content artifacts/contract-verification.log -Tail 100 | ForEach-Object {
+            $message = $_ -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A'
             Write-Output "::error::$message"
-            throw
           }
+          exit 1
 
       - name: Verify Phase 2 contract boundaries
         shell: pwsh
@@ -421,7 +426,13 @@ jobs:
           nohup emulator -avd phase2-ci -no-window -no-audio -no-boot-anim \
             -no-snapshot -gpu swiftshader_indirect \
             > android/artifacts/emulator.log 2>&1 &
-          timeout 180 adb wait-for-device
+          if ! timeout 180 adb wait-for-device; then
+            while IFS= read -r line; do
+              escaped="${line//%/%25}"
+              echo "::error::$escaped"
+            done < <(tail -100 android/artifacts/emulator.log)
+            exit 1
+          fi
           for attempt in $(seq 1 120); do
             if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
               adb shell input keyevent 82
@@ -429,6 +440,10 @@ jobs:
             fi
             sleep 2
           done
+          while IFS= read -r line; do
+            escaped="${line//%/%25}"
+            echo "::error::$escaped"
+          done < <(tail -100 android/artifacts/emulator.log)
           exit 1
 
       - name: Run device security and persistence tests
